@@ -2,20 +2,30 @@
 
 import * as assert from 'assert';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as propel from 'propel';
 
-import { ITrainDataBulk, TrainData } from '../src/train-data';
+const OUT_DIR = path.join(__dirname, '..', 'out');
 
-const td = new TrainData();
+const labels = require(path.join(OUT_DIR, 'labels.json'));
 
-const { maxIndex, bulks } =
-  td.parse(fs.readFileSync(process.argv[2]).toString());
+function parseCSV(name) {
+  const file = path.join(OUT_DIR, name + '.csv');
+  const content = fs.readFileSync(file).toString();
 
-const verifyData =
-  td.parse(fs.readFileSync(process.argv[3]).toString());
+  const lines = content.split(/\n/g);
+  for (const line of lines) {
+    if (!line) {
+      continue;
+    }
+    console.log(line);
+  }
+}
 
-assert.strictEqual(verifyData.maxIndex, maxIndex);
+const train = parseCSV('train');
+const validate = parseCSV('validate');
 
+/*
 function apply(bulk: ITrainDataBulk, params: propel.Params): propel.Tensor {
   return bulk.input
     .linear("Adjust", params, maxIndex + 1).relu();
@@ -64,3 +74,4 @@ async function train(maxSteps?: number) {
 train().catch((e) => {
   console.log(e);
 });
+ */

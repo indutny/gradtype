@@ -34,6 +34,15 @@ for (let i = 0; i < datasets.length; i++) {
     entry.dataset.validate.map((table) => [ i ].concat(table).join(',')));
 }
 
+// Shuffle
+for (let i = 0; i < csv.train.length - 1; i++) {
+  const j = i + 1 + Math.floor(Math.random() * (csv.train.length - 1 - i));
+
+  const t = csv.train[i];
+  csv.train[i] = csv.train[j];
+  csv.train[j] = t;
+}
+
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 try {
