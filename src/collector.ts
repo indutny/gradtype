@@ -12,7 +12,9 @@ interface ICollectorEvent {
 export interface ICollectorResult {
   readonly delta: number;
   readonly fromCode: number;
+  readonly fromTS: Timestamp;
   readonly toCode: number;
+  readonly toTS: Timestamp;
 }
 
 export class Collector {
@@ -42,11 +44,16 @@ export class Collector {
         continue;
       }
 
-      assert(event.code <= MAX_CHAR, 'Only ASCII chars are supported');
       const delta = (event.timestamp[0] - lastEvent.timestamp[0]) +
         1e-9 * (event.timestamp[1] - lastEvent.timestamp[1]);
 
-      result.push({ delta, fromCode: lastEvent.code, toCode: event.code });
+      result.push({
+        fromTS: lastEvent.timestamp,
+        toTS: event.timestamp,
+        delta,
+        fromCode: lastEvent.code,
+        toCode: event.code,
+      });
       lastEvent = event;
     }
     return result;
