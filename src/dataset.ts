@@ -1,7 +1,7 @@
 import { ICollectorResult } from './collector';
 import { MAX_CHAR } from './gradtype';
 
-const STRIDE = 64;
+const STRIDE = 250;
 
 export type DatasetEntry = ReadonlyArray<number>;
 
