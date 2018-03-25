@@ -2,8 +2,7 @@
   "name": "gradtype",
   "version": "1.0.0",
   "description": "Classify user by typing timing",
-  "main": "lib/gradtype.js",
-  "types": "lib/gradtype.d.ts",
+  "private": true,
   "files": [
     "lib",
     "src"

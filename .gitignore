@@ -3,3 +3,4 @@ npm-debug.log
 lib/
 gradtype.json
 *.csv
+out/

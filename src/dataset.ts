@@ -1,55 +1,124 @@
 import * as assert from 'assert';
 
-import { ICollectorResult } from './collector';
-
 const MAX_CHAR = 27;
+
 const MIN_STRIDE = 5;
 const MAX_STRIDE = 40;
 const STRIDE_STEP = 5;
 
+const VALIDATE_PERCENT = 0.1;
+
+const VALIDATE_MIN_STRIDE = 20;
+const VALIDATE_MAX_STRIDE = 20;
+const VALIDATE_STRIDE_STEP = 1;
+
 export type DatasetEntry = ReadonlyArray<number>;
+
+export interface IInputEntry {
+  c: string;
+  ts: number;
+}
 
 export interface IDatasetMeanVar {
   mean: number;
   variance: number;
-};
+}
+
+export interface IDatasetOutput {
+  train: ReadonlyArray<DatasetEntry>;
+  validate: ReadonlyArray<DatasetEntry>;
+}
+
+export interface IIntermediateEntry {
+  fromCode: number;
+  toCode: number;
+  delta: number;
+}
+
+export type Input = ReadonlyArray<IInputEntry>;
+export type Intermediate = ReadonlyArray<IIntermediateEntry>;
 
 export class Dataset {
-  public generate(events: ReadonlyArray<ICollectorResult>)
+  public generate(events: Input): Output {
+    const ir = this.preprocess(events);
+
+    const validateCount = Math.ceil(VALIDATE_PERCENT * ir.length);
+    return {
+      train: this.stride(ir.slice(validateCount),
+        MIN_STRIDE, MAX_STRIDE, STRIDE_STEP),
+      validate: this.stride(ir.slice(0, validateCount),
+        VALIDATE_MIN_STRIDE, VALIDATE_MAX_STRIDE, VALIDATE_STRIDE_STEP),
+    };
+  }
+
+  private preprocess(events: Input): Intermediate {
+    const out: Intermediate = [];
+
+    let lastTS: number | undefined;
+    let lastCode: number | undefined;
+    for (const event of events) {
+      // Skip `Enter` and things like that
+      if (event.k.length !== 1) {
+        lastTS = undefined;
+        lastCode = undefined;
+        continue;
+      }
+
+      // TODO(indutny): backspace?
+      const code = this.compress(event.k.charCodeAt(0));
+      if (code === undefined) {
+        lastTS = undefined;
+        lastCode = undefined;
+        continue;
+      }
+
+      if (lastCode !== undefined) {
+        out.push({
+          delta: event.ts - lastTS,
+          fromCode: lastCode,
+          toCode: code,
+        });
+      }
+      lastTS = event.ts;
+      lastCode = code;
+    }
+    return out;
+  }
+
+  private stride(input: Intermediate, min: number, max: number, step: number)
     : ReadonlyArray<DatasetEntry> {
-    if (events.length < 2 * MAX_STRIDE) {
-      throw new Error('Not enough events to generate dataset');
+    if (input.length < 2 * max) {
+      throw new Error('Not enough events to generate a stride');
     }
 
-    const meanVar = this.computeMeanVar(events);
+    const meanVar = this.computeMeanVar(input);
 
     const res: DatasetEntry[] = [];
-    for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride += STRIDE_STEP) {
+    for (let stride = min; stride <= max; stride += step) {
       for (let i = 0; i < stride; i++) {
-        for (let j = i; j < events.length; j += stride) {
-          const slice = events.slice(j, j + stride);
+        for (let j = i; j < input.length; j += stride) {
+          const slice = input.slice(j, j + stride);
           if (slice.length !== stride) {
             break;
           }
 
-          res.push(this.generateSingle(slice, meanVar));
+          res.push(this.single(slice, meanVar));
         }
       }
     }
     return res;
   }
 
-  public generateSingle(events: ReadonlyArray<ICollectorResult>,
-                        meanVar?: IDatasetMeanVar): DatasetEntry {
+  public single(input: Intermediate, meanVar?: IDatasetMeanVar): DatasetEntry {
     if (meanVar === undefined) {
-      meanVar = this.computeMeanVar(events);
+      meanVar = this.computeMeanVar(input);
     }
     const mean = meanVar!.mean;
     const variance = meanVar!.variance;
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
-    for (const event of events) {
+    for (const event of input) {
       const fromCode = this.compress(event.fromCode);
       const toCode = this.compress(event.toCode);
       if (fromCode === undefined || toCode === undefined) {
@@ -75,8 +144,7 @@ export class Dataset {
     return result;
   }
 
-  public computeMeanVar(events: ReadonlyArray<ICollectorResult>)
-    : IDatasetMeanVar {
+  private computeMeanVar(events: Intermediate): IDatasetMeanVar {
     let mean = 0;
     let variance = 0;
     for (const event of events) {
