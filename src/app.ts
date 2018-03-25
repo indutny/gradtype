@@ -2,7 +2,7 @@ import * as wilde from '../data/wilde.txt';
 
 interface ILogEvent {
   readonly ts: number;
-  readonly c: number;
+  readonly k: string;
 }
 
 const text: string = wilde.toString().replace(/\s+/g, ' ');
@@ -37,9 +37,9 @@ const ts = window.performance === undefined ? () => Date.now() :
 
 const start = ts();
 elems.input.onkeypress = (e: KeyboardEvent) => {
-  log.push({ ts: ts(), c: e.keyCode });
+  log.push({ ts: ts(), k: e.key });
 
-  if (e.keyCode === 46) {
+  if (e.key === '.') {
     next();
     e.preventDefault();
     return false;
@@ -50,7 +50,7 @@ elems.save.onclick = (e: Event) => {
   e.preventDefault();
 
   const json = JSON.stringify(log.map((event) => {
-    return { ts: (event.ts - start) / 1000, c: event.c };
+    return { ts: (event.ts - start) / 1000, k: event.k };
   }));
 
   const blob = new File([ json ], 'gradtype.json', {
