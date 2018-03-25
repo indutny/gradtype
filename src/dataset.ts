@@ -3,8 +3,9 @@ import * as assert from 'assert';
 import { ICollectorResult } from './collector';
 
 const MAX_CHAR = 27;
-const MIN_STRIDE = 40;
+const MIN_STRIDE = 5;
 const MAX_STRIDE = 40;
+const STRIDE_STEP = 5;
 
 export type DatasetEntry = ReadonlyArray<number>;
 
@@ -23,7 +24,7 @@ export class Dataset {
     const meanVar = this.computeMeanVar(events);
 
     const res: SingleDataset = [];
-    for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride++) {
+    for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride += STRIDE_STEP) {
       for (let i = 0; i < stride; i++) {
         for (let j = i; j < events.length; j += stride) {
           const slice = events.slice(j, j + stride);

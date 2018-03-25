@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as propel from 'propel';
 
-import { TrainData } from '../src/gradtype';
+import { TrainData } from '../src/train-data';
 
 const td = new TrainData();
 

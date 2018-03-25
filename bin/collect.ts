@@ -2,7 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Collector } from '../src/gradtype';
+import { Collector } from '../src/collector';
 
 const collector = new Collector();
 

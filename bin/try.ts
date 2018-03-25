@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as propel from 'propel';
 
-import { Collector, Dataset } from '../src/gradtype';
+import { Collector, Dataset } from '../src/train-data';
 
 const collector = new Collector();
 const ds = new Dataset();
@@ -13,8 +13,8 @@ function print(exp: propel.Experiment): void {
   const params = exp.params;
 
   const result = propel.tensor(input).expandDims(0)
-    .linear("L2", params, 20).relu()
-    .linear("L5", params, 3)
+    .linear("L5", params, 200).relu()
+    .linear("Adjust", params, 3)
     .softmax();
 
   const max = result.argmax(1).dataSync()[0];

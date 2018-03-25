@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Dataset } from '../src/gradtype';
+import { Dataset } from '../src/dataset';
 
 const events = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 

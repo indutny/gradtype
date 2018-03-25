@@ -4,7 +4,7 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import * as propel from 'propel';
 
-import { ITrainDataBulk, TrainData } from '../src/gradtype';
+import { ITrainDataBulk, TrainData } from '../src/train-data';
 
 const td = new TrainData();
 
@@ -18,8 +18,8 @@ assert.strictEqual(verifyData.maxIndex, maxIndex);
 
 function apply(bulk: ITrainDataBulk, params: propel.Params): propel.Tensor {
   return bulk.input
-    .linear("L2", params, 200).relu()
-    .linear("L5", params, maxIndex + 1);
+    .linear("L5", params, 500).relu()
+    .linear("Adjust", params, maxIndex + 1);
 }
 
 async function verify(exp: propel.Experiment) {
@@ -47,7 +47,7 @@ async function train(maxSteps?: number) {
   let last: number | undefined;
   for (let repeat = 0; repeat < 1000000; repeat++) {
     for (const bulk of bulks) {
-      await exp.sgd({ lr: 0.01 }, (params) =>
+      await exp.sgd({ lr: 0.003 }, (params) =>
         apply(bulk, params)
           .softmaxLoss(bulk.labels));
 
