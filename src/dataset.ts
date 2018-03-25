@@ -120,8 +120,8 @@ export class Dataset {
     const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
     for (const event of input) {
-      const fromCode = this.compress(event.fromCode);
-      const toCode = this.compress(event.toCode);
+      const fromCode = event.fromCode;
+      const toCode = event.toCode;
       if (fromCode === undefined || toCode === undefined) {
         continue;
       }

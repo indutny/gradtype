@@ -35,7 +35,7 @@ function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
       input[i] = parseFloat(parts[i]);
     }
 
-    const tensor = propel.tensor(input).reshape(SHAPE);
+    const tensor = propel.tensor(input);
 
     labels.push(label);
     tensors.push(tensor);
@@ -58,7 +58,7 @@ function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
   return bulks;
 }
 
-const trainBulks = parseCSV('train');
+const trainBulks = parseCSV('train', 100);
 const validateBulks = parseCSV('validate');
 
 console.log('Loaded data, total labels %d', LABELS.length);
@@ -93,7 +93,7 @@ async function train(maxSteps?: number) {
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
     for (const bulk of trainBulks) {
-      await exp.sgd({ lr: 0.03 }, (params) =>
+      await exp.sgd({ lr: 0.01 }, (params) =>
         apply(bulk, params)
           .softmaxLoss(bulk.labels));
 
