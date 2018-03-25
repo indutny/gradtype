@@ -3,33 +3,18 @@ import * as assert from 'assert';
 import { ICollectorResult } from './collector';
 
 const MAX_CHAR = 27;
+const MIN_STRIDE = 30;
+const MAX_STRIDE = 30;
 
 export type DatasetEntry = ReadonlyArray<number>;
 
 export class Dataset {
   public generate(events: ReadonlyArray<ICollectorResult>)
     : ReadonlyArray<DatasetEntry> {
-    if (events.length < 2 * 64) {
+    if (events.length < 2 * MAX_STRIDE) {
       throw new Error('Not enough events to generate dataset');
     }
 
-    const res: SingleDataset = [];
-    for (let stride = 32; stride < 64; stride++) {
-      for (let i = 0; i < stride; i++) {
-        for (let j = i; j < events.length; j += stride) {
-          const slice = events.slice(j, j + stride);
-          if (slice.length !== stride) {
-            break;
-          }
-
-          res.push(this.generateSingle(slice));
-        }
-      }
-    }
-    return res;
-  }
-
-  public generateSingle(events: ReadonlyArray<ICollectorResult>): DatasetEntry {
     let mean = 0;
     let variance = 0;
     for (const event of events) {
@@ -40,6 +25,25 @@ export class Dataset {
     variance /= events.length;
     variance = Math.sqrt(variance - Math.pow(mean, 2));
 
+    const res: SingleDataset = [];
+    for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride++) {
+      for (let i = 0; i < stride; i++) {
+        for (let j = i; j < events.length; j += stride) {
+          const slice = events.slice(j, j + stride);
+          if (slice.length !== stride) {
+            break;
+          }
+
+          res.push(this.generateSingle(slice, mean, variance));
+        }
+      }
+    }
+    return res;
+  }
+
+  public generateSingle(events: ReadonlyArray<ICollectorResult>,
+                        mean: number,
+                        variance: number): DatasetEntry {
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
