@@ -1,0 +1,26 @@
+{
+  "name": "gradtype",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "devDependencies": {
+    "raw-loader": "^0.5.1",
+    "ts-loader": "^4.1.0",
+    "ts-node": "^5.0.1",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2",
+    "webpack": "^4.2.0",
+    "webpack-cli": "^2.0.13"
+  },
+  "scripts": {
+    "watch": "webpack -w -d",
+    "build": "webpack -p"
+  },
+  "repository": {
+    "type": "git",
+    "url": "gh:indutny/gradtype"
+  },
+  "keywords": [],
+  "author": "Fedor Indutny <fedor@indutny.com> (http://darksi.de/)",
+  "license": "MIT"
+}
