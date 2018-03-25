@@ -18,8 +18,7 @@ assert.strictEqual(verifyData.maxIndex, maxIndex);
 
 function apply(bulk: ITrainDataBulk, params: propel.Params): propel.Tensor {
   return bulk.input
-    .linear("L5", params, 500).relu()
-    .linear("Adjust", params, maxIndex + 1);
+    .linear("Adjust", params, maxIndex + 1).relu();
 }
 
 async function verify(exp: propel.Experiment) {
@@ -47,7 +46,7 @@ async function train(maxSteps?: number) {
   let last: number | undefined;
   for (let repeat = 0; repeat < 1000000; repeat++) {
     for (const bulk of bulks) {
-      await exp.sgd({ lr: 0.003 }, (params) =>
+      await exp.sgd({ lr: 0.03 }, (params) =>
         apply(bulk, params)
           .softmaxLoss(bulk.labels));
 
