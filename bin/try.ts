@@ -3,7 +3,8 @@
 import * as fs from 'fs';
 import * as propel from 'propel';
 
-import { Collector, Dataset } from '../src/train-data';
+import { Collector } from '../src/collector';
+import { Dataset } from '../src/dataset';
 
 const collector = new Collector();
 const ds = new Dataset();

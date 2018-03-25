@@ -5,16 +5,27 @@ import * as path from 'path';
 
 import { Dataset } from '../src/dataset';
 
-const csv = [];
-
-process.argv.slice(2).map((name, index) => {
+const fileLines = process.argv.slice(2).map((name, index) => {
   const lines = fs.readFileSync(name).toString().split(/\r\n|\r|\n/g)
     .map((line) => line.trim()).filter((line) => line);
 
-  lines.map((line) => line + ',' + index).forEach((line) => {
-    csv.push(line);
-  });
+  return lines.map((line) => line + ',' + index);
 });
+
+let min = Infinity;
+for (const file of fileLines) {
+  min = Math.min(min, file.length);
+}
+
+const csv = [];
+for (const file of fileLines) {
+  for (let i = 0; i < min; i++) {
+    const index = Math.floor(Math.random() * file.length);
+    const line = file[index];
+    file.splice(index, 1);
+    csv.push(line);
+  }
+}
 
 // Shuffle
 for (let i = 0; i < csv.length; i++) {
