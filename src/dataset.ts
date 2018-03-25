@@ -1,7 +1,9 @@
-import { ICollectorResult } from './collector';
-import { MAX_CHAR } from './gradtype';
+import * as assert from 'assert';
 
-const STRIDE = 250;
+import { ICollectorResult } from './collector';
+
+const MAX_CHAR = 27;
+const STRIDE = 32;
 
 export type DatasetEntry = ReadonlyArray<number>;
 
@@ -33,14 +35,21 @@ export class Dataset {
     }
     mean /= events.length;
 
-    const size = (MAX_CHAR + 1)* (MAX_CHAR + 1);
-    const result: number[] = new Array(size * 2).fill(0);
+    const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
+    const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
     for (const event of events) {
-      const index = event.fromCode + event.toCode * MAX_CHAR;
+      const fromCode = this.compress(event.fromCode);
+      const toCode = this.compress(event.toCode);
+      if (fromCode === undefined || toCode === undefined) {
+        continue;
+      }
 
-      result[index * 2] += event.delta;
-      result[index * 2 + 1] += Math.pow(event.delta, 2);
+      assert(0 <= fromCode && fromCode <= MAX_CHAR);
+      assert(0 <= toCode && toCode <= MAX_CHAR);
+      const index = fromCode + toCode * (MAX_CHAR + 1);
+
+      result[index] += event.delta;
       count[index]++;
     }
 
@@ -49,18 +58,33 @@ export class Dataset {
         continue;
       }
 
-      result[i * 2] /= count[i];
-
-      // Deviation
-      result[i * 2 + 1] /= count[i];
-      result[i * 2 + 1] -= Math.pow(result[i * 2], 2);
-      result[i * 2 + 1] = Math.sqrt(result[i * 2 + 1]);
+      result[i] /= count[i];
 
       // Normalize
-      result[i * 2] = Math.exp(-result[i * 2] / mean);
-      result[i * 2 + 1] = Math.exp(-result[i * 2 + 1] / mean);
+      result[i] = Math.exp(-result[i] / mean);
     }
 
     return result;
+  }
+
+  public compress(code: number): number | undefined {
+    // a - z
+    if (0x61 <= code && code <= 0x7a) {
+      return code - 0x61;
+
+    // A - Z
+    } else if (0x41 <= code && code <= 0x5a) {
+      return code - 0x41;
+
+    // ' '
+    } else if (code === 0x20) {
+      return 26;
+
+    // ','
+    } else if (code === 0x2c) {
+      return 27;
+    } else {
+      return undefined;
+    }
   }
 }

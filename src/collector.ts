@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-import { MAX_CHAR } from './gradtype';
+const MAX_CHAR = 0x7f;
 
 type Timestamp = [ number, number ];
 
