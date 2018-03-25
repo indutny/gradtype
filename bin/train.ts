@@ -16,6 +16,11 @@ interface IBulk {
   readonly labels: Tensor;
 }
 
+interface INNOutput {
+  readonly output: Tensor;
+  readonly l1: Tensor;
+}
+
 function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
   const file = path.join(OUT_DIR, name + '.csv');
   const content = fs.readFileSync(file);
@@ -73,9 +78,17 @@ const validateBulks = parseCSV('validate');
 
 console.log('Loaded data, total labels %d', LABELS.length);
 
-function apply(bulk: IBulk, params: propel.Params): propel.Tensor {
-  return bulk.input
-    .linear("Adjust", params, LABELS.length).relu();
+function apply(bulk: IBulk, params: propel.Params): INNOutput {
+  const l1 = bulk.input
+    .linear("L1", params, 200);
+
+  const output = l1
+    .linear("Adjust", params, LABELS.length);
+
+  return {
+    output,
+    l1
+  };
 }
 
 async function validate(exp: propel.Experiment) {
@@ -83,17 +96,23 @@ async function validate(exp: propel.Experiment) {
 
   let sum = 0;
   let count = 0;
+  const l1List = [];
   for (const bulk of validateBulks) {
-    const loss = apply(bulk, params)
+    const { l1, output } = apply(bulk, params);
+
+    const loss = output
       .argmax(1)
       .equal(bulk.labels.argmax(1).cast('int32'))
       .reduceMean();
 
     sum += loss.dataSync()[0];
     count++;
+    l1List.push(l1);
   }
+  const l1 = l1List.length === 1 ? l1List[0] : propel.stack(l1List, 0);
 
   console.log('Success rate: %s %%', (100 * sum / count).toFixed(2));
+  console.log('L1 moments:', l1.moments());
 }
 
 async function train(maxSteps?: number) {
@@ -105,6 +124,7 @@ async function train(maxSteps?: number) {
     for (const bulk of trainBulks) {
       await exp.sgd({ lr: 0.01 }, (params) =>
         apply(bulk, params)
+          .output
           .softmaxLoss(bulk.labels));
 
       if (maxSteps && exp.step >= maxSteps) return;
