@@ -9,8 +9,8 @@ const STRIDE_STEP = 5;
 
 const VALIDATE_PERCENT = 0.1;
 
-const VALIDATE_MIN_STRIDE = 20;
-const VALIDATE_MAX_STRIDE = 20;
+const VALIDATE_MIN_STRIDE = 30;
+const VALIDATE_MAX_STRIDE = 30;
 const VALIDATE_STRIDE_STEP = 1;
 
 export type DatasetEntry = ReadonlyArray<number>;
