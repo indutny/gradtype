@@ -18,12 +18,22 @@ interface IBulk {
 
 function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
   const file = path.join(OUT_DIR, name + '.csv');
-  const content = fs.readFileSync(file).toString();
+  const content = fs.readFileSync(file);
 
-  const lines = content.split(/\n/g);
   const labels: number[] = [];
   const tensors: propel.Tensor[] = [];
-  for (const line of lines) {
+
+  // I know it looks lame, but we have not enough JS heap to parse it otherwise
+  let last = 0;
+  for (let off = 0; off < content.length; off++) {
+    // '\n'
+    if (content[off] !== 0x0a) {
+      continue;
+    }
+
+    const line = content.slice(last, off).toString();
+    last = off + 1;
+
     if (!line) {
       continue;
     }

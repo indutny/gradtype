@@ -3,8 +3,8 @@ import * as assert from 'assert';
 export const MAX_CHAR = 27;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1 ];
 
-const MIN_STRIDE = 30;
-const MAX_STRIDE = 30;
+const MIN_STRIDE = 10;
+const MAX_STRIDE = 40;
 const STRIDE_STEP = 5;
 
 const VALIDATE_PERCENT = 0.1;

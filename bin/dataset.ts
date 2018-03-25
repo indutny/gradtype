@@ -52,7 +52,16 @@ try {
 }
 
 const labels = JSON.stringify(datasets.map((d) => d.name));
-
-fs.writeFileSync(path.join(OUT_DIR, 'train.csv'), csv.train.join('\n'));
-fs.writeFileSync(path.join(OUT_DIR, 'validate.csv'), csv.validate.join('\n'));
 fs.writeFileSync(path.join(OUT_DIR, 'labels.json'), labels);
+
+function writeCSV(file: string, csv: ReadonlyArray<string>): void {
+  const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
+  for (const line of csv) {
+    fs.writeSync(fd, line);
+    fs.writeSync(fd, '\n');
+  }
+  fs.closeSync(fd);
+}
+
+writeCSV('train.csv', csv.train);
+writeCSV('validate.csv', csv.validate);
