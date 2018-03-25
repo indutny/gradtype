@@ -8,6 +8,11 @@ const MAX_STRIDE = 30;
 
 export type DatasetEntry = ReadonlyArray<number>;
 
+export interface IDatasetMeanVar {
+  mean: number;
+  variance: number;
+};
+
 export class Dataset {
   public generate(events: ReadonlyArray<ICollectorResult>)
     : ReadonlyArray<DatasetEntry> {
@@ -15,15 +20,7 @@ export class Dataset {
       throw new Error('Not enough events to generate dataset');
     }
 
-    let mean = 0;
-    let variance = 0;
-    for (const event of events) {
-      mean += event.delta;
-      variance += Math.pow(event.delta, 2);
-    }
-    mean /= events.length;
-    variance /= events.length;
-    variance = Math.sqrt(variance - Math.pow(mean, 2));
+    const meanVar = this.computeMeanVar(events);
 
     const res: SingleDataset = [];
     for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride++) {
@@ -34,7 +31,7 @@ export class Dataset {
             break;
           }
 
-          res.push(this.generateSingle(slice, mean, variance));
+          res.push(this.generateSingle(slice, meanVar));
         }
       }
     }
@@ -42,8 +39,12 @@ export class Dataset {
   }
 
   public generateSingle(events: ReadonlyArray<ICollectorResult>,
-                        mean: number,
-                        variance: number): DatasetEntry {
+                        meanVar?: IDatasetMeanVar): DatasetEntry {
+    if (meanVar === undefined) {
+      meanVar = this.computeMeanVar(events);
+    }
+                          const mean = meanVar.mean;
+                          const variance = meanVar.variance;
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
@@ -73,7 +74,22 @@ export class Dataset {
     return result;
   }
 
-  public compress(code: number): number | undefined {
+  public computeMeanVar(events: ReadonlyArray<ICollectorResult>)
+    : IDatasetMeanVariance {
+    let mean = 0;
+    let variance = 0;
+    for (const event of events) {
+      mean += event.delta;
+      variance += Math.pow(event.delta, 2);
+    }
+    mean /= events.length;
+    variance /= events.length;
+    variance = Math.sqrt(variance - Math.pow(mean, 2));
+
+    return { mean, variance };
+  }
+
+  private compress(code: number): number | undefined {
     // a - z
     if (0x61 <= code && code <= 0x7a) {
       return code - 0x61;
