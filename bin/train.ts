@@ -82,7 +82,7 @@ console.log('Validation bulks: %d', validateBulks.length);
 
 function apply(bulk: IBulk, params: propel.Params): INNOutput {
   const l1 = bulk.input
-    .linear("L1", params, 200);
+    .linear("L1", params, 200).relu();
 
   const output = l1
     .linear("Adjust", params, LABELS.length);
