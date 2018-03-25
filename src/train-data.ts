@@ -25,7 +25,7 @@ export class TrainData {
     let maxIndex: number = 0;
     while (lines.length !== 0) {
       // Consume less memory
-      const line = lines.pop();
+      const line = lines.pop()!;
       const parts = line.split(/\s*,\s*/g);
 
       if (lines.length % 500 === 0) {
@@ -36,7 +36,7 @@ export class TrainData {
       for (let i = 0; i < single.length; i++) {
         single[i] = parseFloat(parts[i]);
       }
-      const index = parts[parts.length - 1];
+      const index = parseInt(parts[parts.length - 1], 10);
       maxIndex = Math.max(maxIndex, index);
 
       indices.push(index);

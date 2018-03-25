@@ -23,7 +23,7 @@ export class Dataset {
 
     const meanVar = this.computeMeanVar(events);
 
-    const res: SingleDataset = [];
+    const res: DatasetEntry[] = [];
     for (let stride = MIN_STRIDE; stride <= MAX_STRIDE; stride += STRIDE_STEP) {
       for (let i = 0; i < stride; i++) {
         for (let j = i; j < events.length; j += stride) {
@@ -44,8 +44,8 @@ export class Dataset {
     if (meanVar === undefined) {
       meanVar = this.computeMeanVar(events);
     }
-                          const mean = meanVar.mean;
-                          const variance = meanVar.variance;
+    const mean = meanVar!.mean;
+    const variance = meanVar!.variance;
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(size).fill(0);
     const count: number[] = new Array(size).fill(0);
@@ -76,7 +76,7 @@ export class Dataset {
   }
 
   public computeMeanVar(events: ReadonlyArray<ICollectorResult>)
-    : IDatasetMeanVariance {
+    : IDatasetMeanVar {
     let mean = 0;
     let variance = 0;
     for (const event of events) {
