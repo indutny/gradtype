@@ -77,6 +77,8 @@ const trainBulks = parseCSV('train', 100);
 const validateBulks = parseCSV('validate');
 
 console.log('Loaded data, total labels %d', LABELS.length);
+console.log('Train bulks: %d', trainBulks.length);
+console.log('Validation bulks: %d', validateBulks.length);
 
 function apply(bulk: IBulk, params: propel.Params): INNOutput {
   const l1 = bulk.input
