@@ -20,7 +20,6 @@ async function verify() {
 
     const loss = bulk.input
       .linear("L2", params, 20).relu()
-      .linear("L3", params, 40).relu()
       .linear("L5", params, maxIndex + 1)
       .argmax(1)
       .equal(bulk.labels.argmax(1).cast('int32'))

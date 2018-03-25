@@ -3,8 +3,8 @@ import * as assert from 'assert';
 import { ICollectorResult } from './collector';
 
 const MAX_CHAR = 27;
-const MIN_STRIDE = 30;
-const MAX_STRIDE = 30;
+const MIN_STRIDE = 40;
+const MAX_STRIDE = 40;
 
 export type DatasetEntry = ReadonlyArray<number>;
 

@@ -14,10 +14,14 @@ function print(exp: propel.Experiment): void {
 
   const result = propel.tensor(input).expandDims(0)
     .linear("L2", params, 20).relu()
-    .linear("L3", params, 40).relu()
     .linear("L5", params, 3)
-    .argmax(1).dataSync()[0];
-  console.log(result === 0 ? 'both' : result === 1 ? 'left' : 'right');
+    .softmax();
+
+  const max = result.argmax(1).dataSync()[0];
+  console.log('');
+  console.log(max === 0 ? 'both' : max === 1 ? 'left' : 'right');
+  console.log(Array.from(result.dataSync()).map(
+    (val) => (val * 100).toFixed(2) + '%'));
 }
 
 async function run() {

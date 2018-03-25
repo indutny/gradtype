@@ -18,8 +18,7 @@ assert.strictEqual(verifyData.maxIndex, maxIndex);
 
 function apply(bulk: ITrainDataBulk, params: propel.Params): propel.Tensor {
   return bulk.input
-    .linear("L2", params, 20).relu()
-    .linear("L3", params, 40).relu()
+    .linear("L2", params, 200).relu()
     .linear("L5", params, maxIndex + 1);
 }
 
