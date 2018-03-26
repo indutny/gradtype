@@ -7,6 +7,8 @@ import * as propel from 'propel';
 
 import { SHAPE } from '../src/dataset';
 
+import Tensor = propel.Tensor;
+
 const FEATURE_COUNT = 18;
 const MARGIN = propel.float32(0.1);
 const ONE = propel.float32(1);
@@ -17,28 +19,24 @@ const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const LABELS = require(path.join(DATASETS_DIR, 'index.json'));
 
-interface IBulk {
-  readonly input: Tensor;
-  readonly labels: Tensor;
-}
-
-interface IBulkPair {
+interface IBatch {
   readonly left: Tensor;
+  readonly leftLabels: Tensor;
   readonly right: Tensor;
+  readonly rightLabels: Tensor;
   readonly output: Tensor;
 }
 
 interface IParseCSVOptions {
-  bulkSize: number;
-  byLabel?: boolean;
+  batchSize: number;
 }
 
-function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
+function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch> {
   const file = path.join(OUT_DIR, name + '.csv');
   const content = fs.readFileSync(file);
 
   const labels: number[] = [];
-  const tensors: propel.Tensor[] = [];
+  const tensors: Tensor[] = [];
 
   // I know it looks lame, but we have not enough JS heap to parse it otherwise
   let last = 0;
@@ -68,91 +66,68 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
     tensors.push(tensor);
   }
 
-  const bulkSize = options.bulkSize;
+  const batchSize = options.batchSize;
 
-  const bulks: IBulk[] = [];
-  let indices: number = [];
-  let lastLabel: number | undefined;
+  const batches: IBatch[] = [];
+  for (let i = 0; i < tensors.length; i += batchSize * 2) {
+    const avail = Math.min(batchSize * 2, tensors.length - i) / 2;
 
-  // NOTE: assumes sorted validation dataset
-  for (let i = 0; i < tensors.length; i++) {
-    if (labels[i] !== lastLabel) {
-      lastLabel = labels[i];
-      indices.push(i);
+    const left: Tensor[] = [];
+    const leftLabels: number[] = [];
+    const right: Tensor[] = [];
+    const rightLabels: number[] = [];
+
+    for (let j = 0; j < avail; j++) {
+      left.push(tensors[i + j * 2]);
+      leftLabels.push(labels[i + j * 2]);
+      right.push(tensors[i + j * 2 + 1]);
+      rightLabels.push(labels[i + j * 2 + 1]);
     }
+
+    const leftLabelsT = propel.int32(leftLabels);
+    const rightLabelsT = propel.int32(rightLabels);
+
+    batches.push({
+      left: propel.stack(left, 0),
+      leftLabels: leftLabelsT,
+      right: propel.stack(right, 0),
+      rightLabels: rightLabelsT,
+      output: leftLabelsT.equal(rightLabelsT).cast('float32'),
+    });
   }
-
-  indices.push(tensors.length);
-  for (let i = 0; i < indices.length - 1; i++) {
-    const from = indices[i];
-    const to = indices[i + 1];
-
-    assert(labels.slice(from, to).every((elem) => elem === i));
-
-    for (let j = from; j < to; j += bulkSize) {
-      const input = tensors.slice(j, j + bulkSize);
-
-      // Make sure that all bulks have the same size
-      if (input.length !== bulkSize) {
-        break;
-      }
-
-      bulks.push({
-        input: propel.stack(input, 0),
-        labels: propel.int32(labels.slice(j, j + bulkSize)),
-      });
-    }
-  }
-  return bulks;
+  return batches;
 }
 
 console.time('parse');
 
-const validateBulks = parseCSV('validate', { bulkSize: 64, byLabel: true });
-const trainBulks = parseCSV('train', { bulkSize: 64, byLabel: true });
+const validateBatches = parseCSV('validate', { batchSize: 64 });
+const trainBatches = parseCSV('train', { batchSize: 64 });
 
 console.timeEnd('parse');
 
 console.log('Loaded data, total labels %d', LABELS.length);
-console.log('Train bulks: %d', trainBulks.length);
-console.log('Validation bulks: %d', validateBulks.length);
-
-function *bulkPairs(list: ReadonlyArray<IBulk>): Iterator<IBulkPair> {
-  let left = list.length * list.length;
-  while (left-- >= 0) {
-    let i = Math.floor(Math.random() * list.length);
-    let j = 0;
-    do {
-      j = Math.floor(Math.random() * list.length);
-    } while (i === j);
-
-    const left = list[i];
-    const right = list[j];
-
-    const output = left.labels.equal(right.labels).cast('float32');
-    yield { left: left.input, right: right.input, output };
-  }
-}
+console.log('Train batches: %d', trainBatches.length);
+console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   const raw = input
     .linear("Features", params, FEATURE_COUNT).relu();
 
-  return raw;
+  return raw.logSoftmax();
 }
 
-function apply(pair: IBulkPair, params: propel.Params): Tensor {
-  const left = applySingle(pair.left, params);
-  const right = applySingle(pair.right, params);
+function apply(batch: IBatch, params: propel.Params): Tensor {
+  const left = applySingle(batch.left, params);
+  const right = applySingle(batch.right, params);
 
   // Euclidian distance^2
   return left.sub(right).square().reduceSum([ 1 ]).add(EPSILON).sqrt();
 }
 
-function contrastiveLoss(distance: Tensor, labels: Tensor): Tensor {
+function contrastiveLoss(distance: Tensor, output: Tensor): Tensor {
   return (
-    ONE.sub(labels).mul(distance.square())
-      .add(labels.mul(MARGIN.sub(distance).relu().square()))
+    ONE.sub(output).mul(distance.square())
+      .add(output.mul(MARGIN.sub(distance).relu().square()))
   ).reduceMean();
 }
 
@@ -164,11 +139,12 @@ async function validate(exp: propel.Experiment) {
   let sum = 0;
   let count = 0;
 
-  for (const pair of bulkPairs(validateBulks)) {
-    const distance = apply(pair, params);
-    const loss = contrastiveLoss(distance, pair.output);
+  for (const batch of validateBatches) {
+    const distance = apply(batch, params);
+    const loss = contrastiveLoss(distance, batch.output)
+      .reduceMean().dataSync()[0];
 
-    sum += loss.reduceMean().dataSync()[0];
+    sum += loss;
     count++;
   }
 
@@ -187,26 +163,20 @@ async function validate(exp: propel.Experiment) {
 async function train(maxSteps?: number) {
   const exp = await propel.experiment("gradtype", { saveSecs: 10 });
   await validate(exp);
+  return;
 
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
-    for (const pair of bulkPairs(trainBulks)) {
+    for (const batch of trainBatches) {
       await exp.sgd({ lr: 0.01 }, (params) => {
-        const distance = apply(pair, params)
-        const loss = contrastiveLoss(distance, pair.output);
+        const distance = apply(batch, params)
+        const loss = contrastiveLoss(distance, batch.output);
         return loss;
-
-        let l2 = loss.zerosLike();
-        for (const [ name, tensor ] of params) {
-          if (/\/weights$/.test(name)) {
-            l2 = l2.add(tensor.square().reduceMean());
-          }
-        }
-
-        return loss.add(l2.mul(0.01));
       });
 
       if (maxSteps && exp.step >= maxSteps) return;
+
+      // Validate every 5000 steps
       if (last === undefined) {
         last = exp.step;
       } else if (exp.step - last > 5000) {

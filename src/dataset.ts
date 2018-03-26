@@ -3,11 +3,11 @@ import * as assert from 'assert';
 export const MAX_CHAR = 27;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
-const MIN_STRIDE = 30;
+const MIN_STRIDE = 20;
 const MAX_STRIDE = 30;
 const STRIDE_STEP = 1;
 
-const VALIDATE_PERCENT = 0.1;
+const VALIDATE_PERCENT = 0.25;
 
 const VALIDATE_MIN_STRIDE = 30;
 const VALIDATE_MAX_STRIDE = 30;
@@ -88,14 +88,15 @@ export class Dataset {
 
   private *stride(input: Intermediate, min: number, max: number, step: number)
     : Iterator<DatasetEntry> {
-    if (input.length < 2 * max) {
+    if (input.length < max) {
       throw new Error('Not enough events to generate a stride');
     }
 
     const meanVar = this.computeMeanVar(input);
 
     for (let stride = min; stride <= max; stride += step) {
-      for (let i = 0; i < stride; i++) {
+      const limit = Math.min(input.length - stride, stride - 1);
+      for (let i = 0; i <= limit; i++) {
         for (let j = i; j < input.length; j += stride) {
           const slice = input.slice(j, j + stride);
           if (slice.length !== stride) {
