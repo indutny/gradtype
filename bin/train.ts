@@ -6,13 +6,12 @@ import * as path from 'path';
 import * as propel from 'propel';
 
 import { SHAPE } from '../src/dataset';
+import { shuffle } from '../src/utils';
 
 import Tensor = propel.Tensor;
 
 const FEATURE_COUNT = 18;
-const MARGIN = propel.float32(0.5);
-const ONE = propel.float32(1);
-const EPSILON = propel.float32(0.000001);
+const BATCH_SIZE = 96;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -103,8 +102,8 @@ function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch
 
 console.time('parse');
 
-const validateBatches = parseCSV('validate', { batchSize: 64 });
-const trainBatches = parseCSV('train', { batchSize: 64 });
+const validateBatches = parseCSV('validate', { batchSize: BATCH_SIZE });
+const trainBatches = parseCSV('train', { batchSize: BATCH_SIZE });
 
 console.timeEnd('parse');
 
@@ -114,7 +113,6 @@ console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   const raw = input
-    .linear("L1", params, 100).relu()
     .linear("Features", params, FEATURE_COUNT).relu();
 
   return raw;
@@ -166,6 +164,7 @@ async function train(maxSteps?: number) {
 
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
+    shuffle(trainBatches);
     for (const batch of trainBatches) {
       await exp.sgd({ lr: 0.01 }, (params) => {
         const output = apply(batch, params)

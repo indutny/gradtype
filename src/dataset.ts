@@ -1,5 +1,7 @@
 import * as assert from 'assert';
 
+import { shuffle } from './utils';
+
 export const MAX_CHAR = 28;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
@@ -38,16 +40,6 @@ export interface IIntermediateEntry {
 
 export type Input = ReadonlyArray<IInputEntry>;
 export type Intermediate = ReadonlyArray<IIntermediateEntry>;
-
-function shuffle(list: number[]): void {
-  for (let i = 0; i < list.length - 1; i++) {
-    const j = i + 1 + Math.floor(Math.random() * (list.length - 1 - i));
-
-    const t = list[i];
-    list[i] = list[j];
-    list[j] = t;
-  }
-}
 
 export class Dataset {
   public generate(events: Input): IDatasetOutput {
