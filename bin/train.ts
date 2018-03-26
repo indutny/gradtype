@@ -132,6 +132,9 @@ async function validate(exp: propel.Experiment) {
 
   console.log('Validation:');
 
+  let sum = 0;
+  let count = 0;
+
   assert.strictEqual(validateBulks.length, LABELS.length);
   for (let i = 0; i < validateBulks.length; i++) {
     const bulk = validateBulks[i];
@@ -143,11 +146,18 @@ async function validate(exp: propel.Experiment) {
       .reduceMean()
       .dataSync()[0];
 
+    sum += success;
+    count++;
+
     const { mean, variance } = l1.moments();
     console.log('  %s - %s %%, activation: mean=%s variance=%s',
       LABELS[i], (100 * success).toFixed(2), mean.dataSync()[0].toFixed(4),
       variance.dataSync()[0].toFixed(4));
   }
+
+  sum /= count;
+  console.log('');
+  console.log('  Total %d %%', (100 * sum).toFixed(2));
 }
 
 async function train(maxSteps?: number) {
