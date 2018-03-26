@@ -141,15 +141,17 @@ async function validate(exp: propel.Experiment) {
 
   for (const batch of validateBatches) {
     const output = apply(batch, params);
-    const loss = computeLoss(output, batch.output).dataSync()[0];
+    const binary = output.greater(0.5).cast('int32');
+    const success = binary.equal(batch.output.cast('int32'))
+      .reduceMean().dataSync()[0];
 
-    sum += loss;
+    sum += success;
     count++;
   }
 
   sum /= count;
   console.log('');
-  console.log('  Mean loss %s', sum.toFixed(5));
+  console.log('  Success rate %s %%', (sum * 100).toFixed(3));
   console.log('');
   for (const [ name, tensor ] of params) {
     if (/\/weights$/.test(name)) {
