@@ -40,6 +40,7 @@ for (let i = 0; i < datasets.length; i++) {
   }
 }
 
+  /*
 // Shuffle
 for (let i = 0; i < csv.train.length - 1; i++) {
   const j = i + 1 + Math.floor(Math.random() * (csv.train.length - 1 - i));
@@ -48,6 +49,7 @@ for (let i = 0; i < csv.train.length - 1; i++) {
   csv.train[i] = csv.train[j];
   csv.train[j] = t;
 }
+   */
 
 const OUT_DIR = path.join(__dirname, '..', 'out');
 

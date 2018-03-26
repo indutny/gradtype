@@ -9,9 +9,8 @@ import { SHAPE } from '../src/dataset';
 
 const FEATURE_COUNT = 18;
 const MARGIN = propel.float32(0.1);
-const EPSILON = propel.float32(1e-6);
 const ONE = propel.float32(1);
-const TWO = propel.float32(2);
+const EPSILON = propel.float32(0.000001);
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -72,63 +71,45 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
   const bulkSize = options.bulkSize;
 
   const bulks: IBulk[] = [];
-  if (options.byLabel === true) {
-    let indices: number = [];
-    let lastLabel: number | undefined;
+  let indices: number = [];
+  let lastLabel: number | undefined;
 
-    // NOTE: assumes sorted validation dataset
-    for (let i = 0; i < tensors.length; i++) {
-      if (labels[i] !== lastLabel) {
-        lastLabel = labels[i];
-        indices.push(i);
-      }
+  // NOTE: assumes sorted validation dataset
+  for (let i = 0; i < tensors.length; i++) {
+    if (labels[i] !== lastLabel) {
+      lastLabel = labels[i];
+      indices.push(i);
     }
-
-    indices.push(tensors.length);
-    for (let i = 0; i < indices.length - 1; i++) {
-      const from = indices[i];
-      const to = indices[i + 1];
-
-      assert(labels.slice(from, to).every((elem) => elem === i));
-
-      for (let j = from; j < to; j += bulkSize) {
-        const input = tensors.slice(j, j + bulkSize);
-
-        // Make sure that all bulks have the same size
-        if (input.length !== bulkSize) {
-          break;
-        }
-
-        bulks.push({
-          input: propel.stack(input, 0),
-          labels: propel.int32(labels.slice(j, j + bulkSize)),
-        });
-      }
-    }
-    return bulks;
   }
 
-  for (let i = 0; i < tensors.length; i += bulkSize) {
-    const input = tensors.slice(i, i + bulkSize);
+  indices.push(tensors.length);
+  for (let i = 0; i < indices.length - 1; i++) {
+    const from = indices[i];
+    const to = indices[i + 1];
 
-    // Make sure that all bulks have the same size
-    if (input.length !== bulkSize) {
-      break;
+    assert(labels.slice(from, to).every((elem) => elem === i));
+
+    for (let j = from; j < to; j += bulkSize) {
+      const input = tensors.slice(j, j + bulkSize);
+
+      // Make sure that all bulks have the same size
+      if (input.length !== bulkSize) {
+        break;
+      }
+
+      bulks.push({
+        input: propel.stack(input, 0),
+        labels: propel.int32(labels.slice(j, j + bulkSize)),
+      });
     }
-
-    bulks.push({
-      input: propel.stack(input, 0),
-      labels: propel.int32(labels.slice(i, i + bulkSize)),
-    });
   }
-
   return bulks;
 }
 
 console.time('parse');
 
 const validateBulks = parseCSV('validate', { bulkSize: 64, byLabel: true });
-const trainBulks = parseCSV('train', { bulkSize: 64 });
+const trainBulks = parseCSV('train', { bulkSize: 64, byLabel: true });
 
 console.timeEnd('parse');
 
@@ -137,14 +118,19 @@ console.log('Train bulks: %d', trainBulks.length);
 console.log('Validation bulks: %d', validateBulks.length);
 
 function *bulkPairs(list: ReadonlyArray<IBulk>): Iterator<IBulkPair> {
-  for (let i = 0; i < list.length; i++) {
-    const left = list[i];
-    for (let j = i + 1; j < list.length; j++) {
-      const right = list[j];
+  let left = list.length * list.length;
+  while (left-- >= 0) {
+    let i = Math.floor(Math.random() * list.length);
+    let j = 0;
+    do {
+      j = Math.floor(Math.random() * list.length);
+    } while (i === j);
 
-      const output = left.labels.equal(right.labels).cast('float32');
-      yield { left: left.input, right: right.input, output };
-    }
+    const left = list[i];
+    const right = list[j];
+
+    const output = left.labels.equal(right.labels).cast('float32');
+    yield { left: left.input, right: right.input, output };
   }
 }
 
@@ -152,25 +138,22 @@ function applySingle(input: Tensor, params: propel.Params): Tensor {
   const raw = input
     .linear("Features", params, FEATURE_COUNT).relu();
 
-  const norm = raw.square().add(EPSILON).reduceSum([ 1 ]).sqrt();
-  return raw.div(norm.expandDims(1));
+  return raw;
 }
 
 function apply(pair: IBulkPair, params: propel.Params): Tensor {
   const left = applySingle(pair.left, params);
   const right = applySingle(pair.right, params);
 
-  // Euclidian distance
-  const distance = left.sub(right).square().reduceSum([ 1 ]).add(EPSILON).sqrt();
-
-  return distance;
+  // Euclidian distance^2
+  return left.sub(right).square().reduceSum([ 1 ]).add(EPSILON).sqrt();
 }
 
 function contrastiveLoss(distance: Tensor, labels: Tensor): Tensor {
   return (
     ONE.sub(labels).mul(distance.square())
       .add(labels.mul(MARGIN.sub(distance).relu().square()))
-  ).div(TWO).reduceMean();
+  ).reduceMean();
 }
 
 async function validate(exp: propel.Experiment) {
@@ -191,7 +174,7 @@ async function validate(exp: propel.Experiment) {
 
   sum /= count;
   console.log('');
-  console.log('  Total %s %%', sum);
+  console.log('  Mean loss %s', sum.toFixed(5));
   console.log('');
   for (const [ name, tensor ] of params) {
     if (/\/weights$/.test(name)) {
@@ -226,7 +209,7 @@ async function train(maxSteps?: number) {
       if (maxSteps && exp.step >= maxSteps) return;
       if (last === undefined) {
         last = exp.step;
-      } else if (exp.step - last > 500) {
+      } else if (exp.step - last > 5000) {
         await validate(exp);
         last = exp.step;
       }
