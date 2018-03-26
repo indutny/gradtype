@@ -161,9 +161,14 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
 
   let sum = 0;
   let count = 0;
+  let meanPositive = 0;
+  let meanNegative = 0;
 
   for (const batch of batches.slice(0, validateBatches.length)) {
     const output = apply(batch, params);
+
+    meanPositive += output.positive.reduceMean().dataSync()[0];
+    meanNegative += output.negative.reduceMean().dataSync()[0];
 
     const positive = output.positive.less(0.5).cast('int32')
       .reduceMean().dataSync()[0];
@@ -171,19 +176,18 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
       .reduceMean().dataSync()[0];
 
     sum += positive + negative;
-    count += 2;
+    count++;
   }
 
-  sum /= count;
+  sum /= count * 2;
+  meanPositive /= count;
+  meanNegative /= count;
+
   console.log('');
   console.log('  Success rate %s %%', (sum * 100).toFixed(3));
+  console.log('  Mean positive distance %s', meanPositive.toFixed(5));
+  console.log('  Mean negative distance %s', meanNegative.toFixed(5));
   console.log('');
-  for (const [ name, tensor ] of params) {
-    if (/\/weights$/.test(name)) {
-      const mean = tensor.square().reduceMean().dataSync()[0];
-      console.log('  %s - mean-square=%s', name, mean.toFixed(5));
-    }
-  }
 }
 
 async function train(maxSteps?: number) {
