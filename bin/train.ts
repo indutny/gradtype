@@ -127,7 +127,12 @@ function apply(batch: IBatch, params: propel.Params): Tensor {
 }
 
 function computeLoss(output: Tensor, expected: Tensor): Tensor {
-  return output.sub(expected).square().reduceMean();
+  const equal = propel.tensor(1).sub(expected)
+    .mul(output.sub(expected));
+  const notEqual = expected
+    .mul(expected.sub(output));
+
+  return equal.add(notEqual).reduceMean();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
