@@ -16,7 +16,7 @@ const VALIDATE_STRIDE_STEP = 1;
 export type DatasetEntry = ReadonlyArray<number>;
 
 export interface IInputEntry {
-  c: string;
+  k: string;
   ts: number;
 }
 
@@ -26,8 +26,8 @@ export interface IDatasetMeanVar {
 }
 
 export interface IDatasetOutput {
-  train: ReadonlyArray<DatasetEntry>;
-  validate: ReadonlyArray<DatasetEntry>;
+  train: Iterator<DatasetEntry>;
+  validate: Iterator<DatasetEntry>;
 }
 
 export interface IIntermediateEntry {
@@ -40,7 +40,7 @@ export type Input = ReadonlyArray<IInputEntry>;
 export type Intermediate = ReadonlyArray<IIntermediateEntry>;
 
 export class Dataset {
-  public generate(events: Input): Output {
+  public generate(events: Input): IDatasetOutput {
     const ir = this.preprocess(events);
 
     const validateCount = Math.ceil(VALIDATE_PERCENT * ir.length);
@@ -53,7 +53,7 @@ export class Dataset {
   }
 
   private preprocess(events: Input): Intermediate {
-    const out: Intermediate = [];
+    const out: IIntermediateEntry[] = [];
 
     let lastTS: number | undefined;
     let lastCode: number | undefined;
@@ -75,7 +75,7 @@ export class Dataset {
 
       if (lastCode !== undefined) {
         out.push({
-          delta: event.ts - lastTS,
+          delta: event.ts - lastTS!,
           fromCode: lastCode,
           toCode: code,
         });
@@ -86,15 +86,14 @@ export class Dataset {
     return out;
   }
 
-  private stride(input: Intermediate, min: number, max: number, step: number)
-    : ReadonlyArray<DatasetEntry> {
+  private *stride(input: Intermediate, min: number, max: number, step: number)
+    : Iterator<DatasetEntry> {
     if (input.length < 2 * max) {
       throw new Error('Not enough events to generate a stride');
     }
 
     const meanVar = this.computeMeanVar(input);
 
-    const res: DatasetEntry[] = [];
     for (let stride = min; stride <= max; stride += step) {
       for (let i = 0; i < stride; i++) {
         for (let j = i; j < input.length; j += stride) {
@@ -103,11 +102,10 @@ export class Dataset {
             break;
           }
 
-          res.push(this.single(slice, meanVar));
+          yield this.single(slice, meanVar);
         }
       }
     }
-    return res;
   }
 
   public single(input: Intermediate, meanVar?: IDatasetMeanVar): DatasetEntry {

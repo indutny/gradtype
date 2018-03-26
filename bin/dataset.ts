@@ -32,10 +32,12 @@ const csv = {
 for (let i = 0; i < datasets.length; i++) {
   const entry = datasets[i];
 
-  csv.train = csv.train.concat(
-    entry.dataset.train.map((table) => [ i ].concat(table).join(',')));
-  csv.validate = csv.validate.concat(
-    entry.dataset.validate.map((table) => [ i ].concat(table).join(',')));
+  for (const table of entry.dataset.train) {
+    csv.train.push([ i ].concat(table).join(','));
+  }
+  for (const table of entry.dataset.validate) {
+    csv.validate.push([ i ].concat(table).join(','));
+  }
 }
 
 // Shuffle
