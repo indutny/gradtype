@@ -135,8 +135,6 @@ function computeLoss(output: Tensor, expected: Tensor): Tensor {
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
   const params = exp.params;
 
-  console.log('Validation:');
-
   let sum = 0;
   let count = 0;
 
@@ -189,9 +187,10 @@ async function train(maxSteps?: number) {
       if (last === undefined) {
         last = exp.step;
       } else if (exp.step - last > 5000) {
-        console.log('train');
+        console.log('Training dataset:');
         await validate(exp, trainBatches);
-        console.log('validate');
+
+        console.log('Validation dataset:');
         await validate(exp, validateBatches);
         last = exp.step;
       }
