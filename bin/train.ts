@@ -114,9 +114,10 @@ console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   const raw = input
+    .linear("L1", params, 100).relu()
     .linear("Features", params, FEATURE_COUNT).relu();
 
-  return raw.softmax();
+  return raw;
 }
 
 function apply(batch: IBatch, params: propel.Params): Tensor {
@@ -131,7 +132,7 @@ function computeLoss(output: Tensor, expected: Tensor): Tensor {
   return output.sub(expected).square().reduceMean();
 }
 
-async function validate(exp: propel.Experiment) {
+async function validate(exp: propel.Experiment, batches: IBatch[]) {
   const params = exp.params;
 
   console.log('Validation:');
@@ -139,7 +140,7 @@ async function validate(exp: propel.Experiment) {
   let sum = 0;
   let count = 0;
 
-  for (const batch of validateBatches) {
+  for (const batch of batches.slice(0, validateBatches.length)) {
     const output = apply(batch, params);
     const binary = output.greater(0.5).cast('int32');
     const success = binary.equal(batch.output.cast('int32'))
@@ -163,7 +164,7 @@ async function validate(exp: propel.Experiment) {
 
 async function train(maxSteps?: number) {
   const exp = await propel.experiment("gradtype", { saveSecs: 10 });
-  await validate(exp);
+  await validate(exp, validateBatches);
 
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
@@ -188,7 +189,10 @@ async function train(maxSteps?: number) {
       if (last === undefined) {
         last = exp.step;
       } else if (exp.step - last > 5000) {
-        await validate(exp);
+        console.log('train');
+        await validate(exp, trainBatches);
+        console.log('validate');
+        await validate(exp, validateBatches);
         last = exp.step;
       }
     }
