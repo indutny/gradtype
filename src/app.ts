@@ -29,7 +29,7 @@ function next() {
   elems.input.value = '';
   elems.counter.textContent = (counter++).toString();
 
-  if (counter === 20) {
+  if (counter === 21) {
     elems.save.style.display = 'inherit';
   }
 }
