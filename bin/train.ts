@@ -7,9 +7,10 @@ import * as propel from 'propel';
 
 import { SHAPE } from '../src/dataset';
 
+const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
-const LABELS = require(path.join(OUT_DIR, 'labels.json'));
+const LABELS = require(path.join(DATASETS_DIR, 'labels.json'));
 
 interface IBulk {
   readonly input: Tensor;
