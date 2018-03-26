@@ -120,9 +120,6 @@ export class Dataset {
     for (const event of input) {
       const fromCode = event.fromCode;
       const toCode = event.toCode;
-      if (fromCode === undefined || toCode === undefined) {
-        continue;
-      }
 
       assert(0 <= fromCode && fromCode <= MAX_CHAR);
       assert(0 <= toCode && toCode <= MAX_CHAR);
