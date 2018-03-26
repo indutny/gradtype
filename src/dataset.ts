@@ -3,9 +3,9 @@ import * as assert from 'assert';
 export const MAX_CHAR = 27;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
-const MIN_STRIDE = 15;
+const MIN_STRIDE = 10;
 const MAX_STRIDE = 30;
-const STRIDE_STEP = 5;
+const STRIDE_STEP = 2;
 
 const VALIDATE_PERCENT = 0.1;
 
@@ -141,6 +141,7 @@ export class Dataset {
       result[2 * i] /= count[i];
     }
 
+    assert(result.some((cell) => cell !== 0));
     return result;
   }
 
