@@ -16,7 +16,7 @@ const elems = {
   counter: document.getElementById('counter')!,
 };
 
-let index = 0;
+let index = Math.floor(Math.random() * (sentences.length - 1));
 let counter = 0;
 
 function next() {
