@@ -5,8 +5,12 @@ import * as path from 'path';
 
 import { Dataset, DatasetEntry } from '../src/dataset';
 
-const datasets = process.argv.slice(2).map((name) => {
-  const file = path.join(__dirname, '..', 'datasets', name + '.json');
+const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
+
+const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
+
+const datasets = labels.map((name) => {
+  const file = path.join(DATASETS_DIR, name + '.json');
   return {
     data: JSON.parse(fs.readFileSync(file).toString()),
     name,
@@ -50,9 +54,6 @@ try {
 } catch (e) {
   // no-op
 }
-
-const labels = JSON.stringify(datasets.map((d) => d.name));
-fs.writeFileSync(path.join(OUT_DIR, 'labels.json'), labels);
 
 function writeCSV(file: string, csv: ReadonlyArray<string>): void {
   const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
