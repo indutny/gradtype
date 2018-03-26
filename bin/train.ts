@@ -107,8 +107,12 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
   return bulks;
 }
 
+console.time('parse');
+
 const validateBulks = parseCSV('validate', { byLabel: true });
 const trainBulks = parseCSV('train', { bulkSize: 100 });
+
+console.timeEnd('parse');
 
 console.log('Loaded data, total labels %d', LABELS.length);
 console.log('Train bulks: %d', trainBulks.length);
@@ -116,7 +120,7 @@ console.log('Validation bulks: %d', validateBulks.length);
 
 function apply(bulk: IBulk, params: propel.Params): INNOutput {
   const l1 = bulk.input
-    .linear("L1", params, 200).relu();
+    .linear("L1", params, 48).relu();
 
   const output = l1
     .linear("Adjust", params, LABELS.length);
@@ -151,8 +155,8 @@ async function validate(exp: propel.Experiment) {
 
     const { mean, variance } = l1.moments();
     console.log('  %s - %s %%, activation: mean=%s variance=%s',
-      LABELS[i], (100 * success).toFixed(2), mean.dataSync()[0].toFixed(4),
-      variance.dataSync()[0].toFixed(4));
+      LABELS[i], (100 * success).toFixed(2), mean.dataSync()[0].toFixed(5),
+      variance.dataSync()[0].toFixed(5));
   }
 
   sum /= count;
@@ -162,7 +166,7 @@ async function validate(exp: propel.Experiment) {
   for (const [ name, tensor ] of params) {
     if (/\/weights$/.test(name)) {
       const mean = tensor.square().reduceMean().dataSync()[0];
-      console.log('  %s - mean=%s', name, mean.toFixed(2));
+      console.log('  %s - mean=%s', name, mean.toFixed(5));
     }
   }
 }
