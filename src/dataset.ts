@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 
 export const MAX_CHAR = 27;
-export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1 ];
+export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
 const MIN_STRIDE = 5;
 const MAX_STRIDE = 40;
@@ -117,7 +117,7 @@ export class Dataset {
     const mean = meanVar!.mean;
     const variance = meanVar!.variance;
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
-    const result: number[] = new Array(size).fill(0);
+    const result: number[] = new Array(2 * size).fill(0);
     const count: number[] = new Array(size).fill(0);
     for (const event of input) {
       const fromCode = event.fromCode;
@@ -130,7 +130,8 @@ export class Dataset {
       assert(0 <= toCode && toCode <= MAX_CHAR);
       const index = fromCode + toCode * (MAX_CHAR + 1);
 
-      result[index] += (event.delta - mean) / variance;
+      result[2 * index] += (event.delta - mean) / variance;
+      result[2 * index + 1] = 1;
       count[index]++;
     }
 
@@ -139,7 +140,7 @@ export class Dataset {
         continue;
       }
 
-      result[i] /= count[i];
+      result[2 * i] /= count[i];
     }
 
     return result;
