@@ -28,6 +28,10 @@ function next() {
   elems.input.focus();
   elems.input.value = '';
   elems.counter.textContent = (counter++).toString();
+
+  if (counter === 20) {
+    elems.save.style.display = 'inherit';
+  }
 }
 
 const log: ILogEvent[] = [];
