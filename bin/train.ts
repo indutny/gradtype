@@ -163,7 +163,6 @@ async function validate(exp: propel.Experiment) {
 async function train(maxSteps?: number) {
   const exp = await propel.experiment("gradtype", { saveSecs: 10 });
   await validate(exp);
-  return;
 
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
