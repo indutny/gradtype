@@ -10,7 +10,7 @@ import { SHAPE } from '../src/dataset';
 import Tensor = propel.Tensor;
 
 const FEATURE_COUNT = 18;
-const MARGIN = propel.float32(0.1);
+const MARGIN = propel.float32(0.5);
 const ONE = propel.float32(1);
 const EPSILON = propel.float32(0.000001);
 
@@ -116,22 +116,19 @@ function applySingle(input: Tensor, params: propel.Params): Tensor {
   const raw = input
     .linear("Features", params, FEATURE_COUNT).relu();
 
-  return raw.logSoftmax();
+  return raw.softmax();
 }
 
 function apply(batch: IBatch, params: propel.Params): Tensor {
   const left = applySingle(batch.left, params);
   const right = applySingle(batch.right, params);
 
-  // Euclidian distance^2
-  return left.sub(right).square().reduceSum([ 1 ]).add(EPSILON).sqrt();
+  // exp(-distance^2 / 2)
+  return left.sub(right).square().reduceSum([ 1 ]).neg().div(2).exp();
 }
 
-function contrastiveLoss(distance: Tensor, output: Tensor): Tensor {
-  return (
-    ONE.sub(output).mul(distance.square())
-      .add(output.mul(MARGIN.sub(distance).relu().square()))
-  ).reduceMean().mul(1000);
+function computeLoss(output: Tensor, expected: Tensor): Tensor {
+  return output.sub(expected).square().reduceMean();
 }
 
 async function validate(exp: propel.Experiment) {
@@ -143,9 +140,8 @@ async function validate(exp: propel.Experiment) {
   let count = 0;
 
   for (const batch of validateBatches) {
-    const distance = apply(batch, params);
-    const loss = contrastiveLoss(distance, batch.output)
-      .reduceMean().dataSync()[0];
+    const output = apply(batch, params);
+    const loss = computeLoss(output, batch.output).dataSync()[0];
 
     sum += loss;
     count++;
@@ -171,9 +167,17 @@ async function train(maxSteps?: number) {
   for (let repeat = 0; repeat < Infinity; repeat++) {
     for (const batch of trainBatches) {
       await exp.sgd({ lr: 0.01 }, (params) => {
-        const distance = apply(batch, params)
-        const loss = contrastiveLoss(distance, batch.output);
-        return loss;
+        const output = apply(batch, params)
+        const loss = computeLoss(output, batch.output);
+
+        let l2 = loss.zerosLike();
+        for (const [ name, tensor ] of params) {
+          if (/\/weights$/.test(name)) {
+            l2 = l2.add(tensor.square().reduceMean());
+          }
+        }
+
+        return loss.add(l2.mul(0.01));
       });
 
       if (maxSteps && exp.step >= maxSteps) return;
