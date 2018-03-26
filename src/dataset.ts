@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 
-export const MAX_CHAR = 27;
+export const MAX_CHAR = 28;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
 const MIN_STRIDE = 30;
@@ -38,6 +38,16 @@ export interface IIntermediateEntry {
 
 export type Input = ReadonlyArray<IInputEntry>;
 export type Intermediate = ReadonlyArray<IIntermediateEntry>;
+
+function shuffle(list: number[]): void {
+  for (let i = 0; i < list.length - 1; i++) {
+    const j = i + 1 + Math.floor(Math.random() * (list.length - 1 - i));
+
+    const t = list[i];
+    list[i] = list[j];
+    list[j] = t;
+  }
+}
 
 export class Dataset {
   public generate(events: Input): IDatasetOutput {
@@ -96,9 +106,24 @@ export class Dataset {
 
     for (let stride = min; stride <= max; stride += step) {
       const limit = Math.min(input.length - stride, stride - 1);
+
+      const offsets = [];
       for (let i = 0; i <= limit; i++) {
-        for (let j = i; j < input.length; j += stride) {
-          const slice = input.slice(j, j + stride);
+        offsets.push(i);
+      }
+
+      shuffle(offsets);
+
+      for (const offset of offsets) {
+        const strideOffsets = [];
+        for (let i = offset; i < input.length; i += stride) {
+          strideOffsets.push(i);
+        }
+
+        shuffle(strideOffsets)
+
+        for (const strideOffset of strideOffsets) {
+          const slice = input.slice(strideOffset, strideOffset + stride);
           if (slice.length !== stride) {
             break;
           }
