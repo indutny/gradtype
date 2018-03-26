@@ -157,7 +157,14 @@ async function validate(exp: propel.Experiment) {
 
   sum /= count;
   console.log('');
-  console.log('  Total %d %%', (100 * sum).toFixed(2));
+  console.log('  Total %s %%', (100 * sum).toFixed(2));
+  console.log('');
+  for (const [ name, tensor ] of params) {
+    if (/\/weights$/.test(name)) {
+      const mean = tensor.square().reduceMean().dataSync()[0];
+      console.log('  %s - mean=%s', name, mean.toFixed(2));
+    }
+  }
 }
 
 async function train(maxSteps?: number) {
