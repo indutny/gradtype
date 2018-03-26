@@ -96,10 +96,16 @@ export class Dataset {
 
     const meanVar = this.computeMeanVar(input);
 
+    const strideSizes: number[] = [];
     for (let stride = min; stride <= max; stride += step) {
+      strideSizes.push(stride);
+    }
+
+    shuffle(strideSizes);
+    for (const stride of strideSizes) {
       const limit = Math.min(input.length - stride, stride - 1);
 
-      const offsets = [];
+      const offsets: number[] = [];
       for (let i = 0; i <= limit; i++) {
         offsets.push(i);
       }
@@ -107,7 +113,7 @@ export class Dataset {
       shuffle(offsets);
 
       for (const offset of offsets) {
-        const strideOffsets = [];
+        const strideOffsets: number[] = [];
         for (let i = offset; i < input.length; i += stride) {
           strideOffsets.push(i);
         }
