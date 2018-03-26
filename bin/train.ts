@@ -21,7 +21,12 @@ interface INNOutput {
   readonly l1: Tensor;
 }
 
-function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
+interface IParseCSVOptions {
+  bulkSize?: number;
+  byLabel?: boolean;
+}
+
+function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
   const file = path.join(OUT_DIR, name + '.csv');
   const content = fs.readFileSync(file);
 
@@ -56,11 +61,39 @@ function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
     tensors.push(tensor);
   }
 
-  if (bulkSize === undefined) {
-    bulkSize = tensors.length;
+  const bulks: IBulk[] = [];
+  if (options.byLabel === true) {
+    let indices: number = [];
+    let lastLabel: number | undefined;
+
+    // NOTE: assumes sorted validation dataset
+    for (let i = 0; i < tensors.length; i++) {
+      if (labels[i] !== lastLabel) {
+        lastLabel = labels[i];
+        indices.push(i);
+      }
+    }
+
+    indices.push(tensors.length);
+    for (let i = 0; i < indices.length - 1; i++) {
+      const from = indices[i];
+      const to = indices[i + 1];
+
+      assert(labels.slice(from, to).every((elem) => elem === i));
+
+      bulks.push({
+        input: propel.stack(tensors.slice(from, to), 0),
+        labels: propel.tensor(labels.slice(from, to), {
+          dtype: 'int32'
+        }).oneHot(LABELS.length),
+      });
+    }
+    return bulks;
   }
 
-  const bulks: IBulk[] = [];
+  let bulkSize: number = options.bulkSize === undefined ?
+    tensors.length : options.bulkSize;
+
   for (let i = 0; i < tensors.length; i += bulkSize) {
     bulks.push({
       input: propel.stack(tensors.slice(i, i + bulkSize), 0),
@@ -73,8 +106,8 @@ function parseCSV(name, bulkSize?: number): ReadonlyArray<IBulk> {
   return bulks;
 }
 
-const trainBulks = parseCSV('train', 100);
-const validateBulks = parseCSV('validate');
+const validateBulks = parseCSV('validate', { byLabel: true });
+const trainBulks = parseCSV('train', { bulkSize: 100 });
 
 console.log('Loaded data, total labels %d', LABELS.length);
 console.log('Train bulks: %d', trainBulks.length);
@@ -96,25 +129,24 @@ function apply(bulk: IBulk, params: propel.Params): INNOutput {
 async function validate(exp: propel.Experiment) {
   const params = exp.params;
 
-  let sum = 0;
-  let count = 0;
-  const l1List = [];
-  for (const bulk of validateBulks) {
+  console.log('Validation:');
+
+  assert.strictEqual(validateBulks.length, LABELS.length);
+  for (let i = 0; i < validateBulks.length; i++) {
+    const bulk = validateBulks[i];
     const { l1, output } = apply(bulk, params);
 
-    const loss = output
+    const success = output
       .argmax(1)
       .equal(bulk.labels.argmax(1).cast('int32'))
-      .reduceMean();
+      .reduceMean()
+      .dataSync()[0];
 
-    sum += loss.dataSync()[0];
-    count++;
-    l1List.push(l1);
+    const moments = l1.moments();
+    console.log('  %s - %s %%, activation: mean=%s variance=%s',
+      LABELS[i], (100 * success).toFixed(2), moments.mean.toFixed(4),
+      moments.variance.toFixed(4));
   }
-  const l1 = l1List.length === 1 ? l1List[0] : propel.stack(l1List, 0);
-
-  console.log('Success rate: %s %%', (100 * sum / count).toFixed(2));
-  console.log('L1 moments:', l1.moments());
 }
 
 async function train(maxSteps?: number) {
