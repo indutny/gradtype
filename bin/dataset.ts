@@ -25,41 +25,54 @@ const datasets = labels.map((name) => {
 
   return {
     name: entry.name,
-    dataset: d.generate(entry.data),
+    dataset: () => d.generate(entry.data),
   };
 });
 
 function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
+  const anchorDS = datasets.map((d) => d.dataset());
+  const positiveDS = datasets.map((d) => d.dataset());
+  const negativeDS = datasets.map((d) => d.dataset());
+
+  function isEqual(a: number[], b: number[]): boolean {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   let added = true;
   while (added) {
     added = false;
 
-    for (let i = 0; i < datasets.length; i++) {
-      const entry = datasets[i];
 
-      const first = entry.dataset[kind].next();
-      if (first.done) {
+    for (let i = 0; i < anchorDS.length; i++) {
+      const anchor = anchorDS[i][kind].next();
+      if (anchor.done) {
         continue;
       }
 
-      // Try to give half-the-same/half-the-other
-      let j;
-      if (Math.random() < 0.5) {
-        j = i;
-      } else {
-        do {
-          j = Math.floor(Math.random() * datasets.length);
-        } while (j === i);
+      const positive = positiveDS[i][kind].next();
+      if (positive.done || isEqual(anchor.value, positive.value)) {
+        continue;
       }
 
-      const second = datasets[j].dataset[kind].next();
-      if (second.done) {
+      let j = 0;
+      do {
+        j = Math.floor(Math.random() * negativeDS.length);
+      } while (j === i);
+
+      const negative = negativeDS[j][kind].next();
+      if (negative.done) {
         continue;
       }
 
       yield {
-        first: [ i ].concat(first.value).join(','),
-        second: [ j ].concat(second.value).join(','),
+        anchor: [ i ].concat(anchor.value).join(','),
+        positive: [ i ].concat(positive.value).join(','),
+        negative: [ j ].concat(negative.value).join(','),
       };
       added = true;
     }
@@ -77,9 +90,11 @@ try {
 function writeCSV(file: string, groups: Iterator<string>): void {
   const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
   for (const entry of groups) {
-    fs.writeSync(fd, entry.first);
+    fs.writeSync(fd, entry.anchor);
     fs.writeSync(fd, '\n');
-    fs.writeSync(fd, entry.second);
+    fs.writeSync(fd, entry.positive);
+    fs.writeSync(fd, '\n');
+    fs.writeSync(fd, entry.negative);
     fs.writeSync(fd, '\n');
   }
   fs.closeSync(fd);

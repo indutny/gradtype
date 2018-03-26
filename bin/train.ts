@@ -11,23 +11,31 @@ import { shuffle } from '../src/utils';
 import Tensor = propel.Tensor;
 
 const FEATURE_COUNT = 18;
-const BATCH_SIZE = 96;
+const BATCH_SIZE = 32;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const LABELS = require(path.join(DATASETS_DIR, 'index.json'));
 
+interface IBatchElem {
+  readonly input: Tensor;
+  readonly label: Tensor;
+}
+
 interface IBatch {
-  readonly left: Tensor;
-  readonly leftLabels: Tensor;
-  readonly right: Tensor;
-  readonly rightLabels: Tensor;
-  readonly output: Tensor;
+  readonly anchor: IBatchElem;
+  readonly positive: IBatchElem;
+  readonly negative: IBatchElem;
 }
 
 interface IParseCSVOptions {
-  batchSize: number;
+  readonly batchSize: number;
+}
+
+interface IApplyRenegative {
+  readonly positive: Tensor;
+  readonly negative: Tensor;
 }
 
 function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch> {
@@ -68,33 +76,41 @@ function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch
   const batchSize = options.batchSize;
 
   const batches: IBatch[] = [];
-  for (let i = 0; i < tensors.length; i += batchSize * 2) {
-    const avail = Math.min(batchSize * 2, tensors.length - i) / 2;
+  for (let i = 0; i < tensors.length; i += batchSize * 3) {
+    const avail = Math.min(batchSize * 3, tensors.length - i) / 3;
+
+    // Can't do `stack` on less
     if (avail < 2) {
       break;
     }
 
-    const left: Tensor[] = [];
-    const leftLabels: number[] = [];
-    const right: Tensor[] = [];
-    const rightLabels: number[] = [];
-
+    const anchor: Tensor[] = [];
+    const anchorLabels: number[] = [];
+    const positive: Tensor[] = [];
+    const positiveLabels: number[] = [];
+    const negative: Tensor[] = [];
+    const negativeLabels: number[] = [];
     for (let j = 0; j < avail; j++) {
-      left.push(tensors[i + j * 2]);
-      leftLabels.push(labels[i + j * 2]);
-      right.push(tensors[i + j * 2 + 1]);
-      rightLabels.push(labels[i + j * 2 + 1]);
+      const anchorIndex = i + j * 3;
+      const positiveIndex = anchorIndex + 1;
+      const negativeIndex = anchorIndex + 2;
+
+      anchor.push(tensors[anchorIndex]);
+      positive.push(tensors[positiveIndex]);
+      negative.push(tensors[negativeIndex]);
+      anchorLabels.push(labels[anchorIndex]);
+      positiveLabels.push(labels[positiveIndex]);
+      negativeLabels.push(labels[negativeIndex]);
     }
 
-    const leftLabelsT = propel.int32(leftLabels);
-    const rightLabelsT = propel.int32(rightLabels);
+    const anchorLabelsT = propel.int32(anchorLabels);
+    const positiveLabelsT = propel.int32(positiveLabels);
+    const negativeLabelsT = propel.int32(negativeLabels);
 
     batches.push({
-      left: propel.stack(left, 0),
-      leftLabels: leftLabelsT,
-      right: propel.stack(right, 0),
-      rightLabels: rightLabelsT,
-      output: leftLabelsT.equal(rightLabelsT).cast('float32'),
+      anchor: { input: propel.stack(anchor, 0), label: anchorLabelsT },
+      positive: { input: propel.stack(positive, 0), label: positiveLabelsT },
+      negative: { input: propel.stack(negative, 0), label: negativeLabelsT },
     });
   }
   return batches;
@@ -112,27 +128,32 @@ console.log('Train batches: %d', trainBatches.length);
 console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
-  const raw = input
-    .linear("Features", params, FEATURE_COUNT).relu();
-
-  return raw;
+  return input
+    .linear("Features", params, FEATURE_COUNT)
+    .sigmoid();
 }
 
-function apply(batch: IBatch, params: propel.Params): Tensor {
-  const left = applySingle(batch.left, params);
-  const right = applySingle(batch.right, params);
-
+function distance(a: Tensor, b: Tensor): Tensor {
   // exp(-distance^2 / 2)
-  return left.sub(right).square().reduceSum([ 1 ]).neg().div(2).exp();
+  return a.sub(b).square().reduceSum([ 1 ]).neg().div(2).exp();
 }
 
-function computeLoss(output: Tensor, expected: Tensor): Tensor {
-  const equal = propel.tensor(1).sub(expected)
-    .mul(output.sub(expected));
-  const notEqual = expected
-    .mul(expected.sub(output));
+function apply(batch: IBatch, params: propel.Params): IApplyResult {
+  const anchor = applySingle(batch.anchor.input, params);
+  const positive = applySingle(batch.positive.input, params);
+  const negative = applySingle(batch.negative.input, params);
 
-  return equal.add(notEqual).reduceMean();
+  return {
+    positive: distance(anchor, positive),
+    negative: distance(anchor, negative),
+  };
+}
+
+function computeLoss(output: IApplyResult): Tensor {
+  // Triplet loss
+  return output.positive.square().reduceSum()
+    .sub(output.negative.square().reduceSum()).div(FEATURE_COUNT).add(1)
+    .reduceMean();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
@@ -143,12 +164,14 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
 
   for (const batch of batches.slice(0, validateBatches.length)) {
     const output = apply(batch, params);
-    const binary = output.greater(0.5).cast('int32');
-    const success = binary.equal(batch.output.cast('int32'))
+
+    const positive = output.positive.less(0.5).cast('int32')
+      .reduceMean().dataSync()[0];
+    const negative = output.negative.greater(0.5).cast('int32')
       .reduceMean().dataSync()[0];
 
-    sum += success;
-    count++;
+    sum += positive + negative;
+    count += 2;
   }
 
   sum /= count;
@@ -173,7 +196,7 @@ async function train(maxSteps?: number) {
     for (const batch of trainBatches) {
       await exp.sgd({ lr: 0.01 }, (params) => {
         const output = apply(batch, params)
-        const loss = computeLoss(output, batch.output);
+        const loss = computeLoss(output);
 
         let l2 = loss.zerosLike();
         for (const [ name, tensor ] of params) {
