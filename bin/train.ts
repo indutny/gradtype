@@ -143,10 +143,10 @@ async function validate(exp: propel.Experiment) {
       .reduceMean()
       .dataSync()[0];
 
-    const moments = l1.moments();
+    const { mean, variance } = l1.moments();
     console.log('  %s - %s %%, activation: mean=%s variance=%s',
-      LABELS[i], (100 * success).toFixed(2), moments.mean.toFixed(4),
-      moments.variance.toFixed(4));
+      LABELS[i], (100 * success).toFixed(2), mean.dataSync()[0].toFixed(4),
+      variance.dataSync()[0].toFixed(4));
   }
 }
 
