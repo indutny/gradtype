@@ -167,10 +167,19 @@ async function train(maxSteps?: number) {
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
     for (const bulk of trainBulks) {
-      await exp.sgd({ lr: 0.01 }, (params) =>
-        apply(bulk, params)
+      await exp.sgd({ lr: 0.01 }, (params) => {
+        let loss = apply(bulk, params)
           .output
-          .softmaxLoss(bulk.labels));
+          .softmaxLoss(bulk.labels);
+
+        for (const [ name, tensor ] of params) {
+          if (/\/weights$/.test(name)) {
+            loss = loss.add(tensor.square().reduceMean().mul(0.01));
+          }
+        }
+
+        return loss;
+      });
 
       if (maxSteps && exp.step >= maxSteps) return;
       if (last === undefined) {
