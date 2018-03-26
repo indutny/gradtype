@@ -7,6 +7,12 @@ import * as propel from 'propel';
 
 import { SHAPE } from '../src/dataset';
 
+const FEATURE_COUNT = 18;
+const MARGIN = propel.float32(0.1);
+const EPSILON = propel.float32(1e-6);
+const ONE = propel.float32(1);
+const TWO = propel.float32(2);
+
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
@@ -17,13 +23,14 @@ interface IBulk {
   readonly labels: Tensor;
 }
 
-interface INNOutput {
+interface IBulkPair {
+  readonly left: Tensor;
+  readonly right: Tensor;
   readonly output: Tensor;
-  readonly l1: Tensor;
 }
 
 interface IParseCSVOptions {
-  bulkSize?: number;
+  bulkSize: number;
   byLabel?: boolean;
 }
 
@@ -62,6 +69,8 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
     tensors.push(tensor);
   }
 
+  const bulkSize = options.bulkSize;
+
   const bulks: IBulk[] = [];
   if (options.byLabel === true) {
     let indices: number = [];
@@ -82,25 +91,34 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
 
       assert(labels.slice(from, to).every((elem) => elem === i));
 
-      bulks.push({
-        input: propel.stack(tensors.slice(from, to), 0),
-        labels: propel.tensor(labels.slice(from, to), {
-          dtype: 'int32'
-        }).oneHot(LABELS.length),
-      });
+      for (let j = from; j < to; j += bulkSize) {
+        const input = tensors.slice(j, j + bulkSize);
+
+        // Make sure that all bulks have the same size
+        if (input.length !== bulkSize) {
+          break;
+        }
+
+        bulks.push({
+          input: propel.stack(input, 0),
+          labels: propel.int32(labels.slice(j, j + bulkSize)),
+        });
+      }
     }
     return bulks;
   }
 
-  let bulkSize: number = options.bulkSize === undefined ?
-    tensors.length : options.bulkSize;
-
   for (let i = 0; i < tensors.length; i += bulkSize) {
+    const input = tensors.slice(i, i + bulkSize);
+
+    // Make sure that all bulks have the same size
+    if (input.length !== bulkSize) {
+      break;
+    }
+
     bulks.push({
-      input: propel.stack(tensors.slice(i, i + bulkSize), 0),
-      labels: propel.tensor(labels.slice(i, i + bulkSize), {
-        dtype: 'int32'
-      }).oneHot(LABELS.length),
+      input: propel.stack(input, 0),
+      labels: propel.int32(labels.slice(i, i + bulkSize)),
     });
   }
 
@@ -109,8 +127,8 @@ function parseCSV(name, options: IParseCSVOptions = {}): ReadonlyArray<IBulk> {
 
 console.time('parse');
 
-const validateBulks = parseCSV('validate', { byLabel: true });
-const trainBulks = parseCSV('train', { bulkSize: 100 });
+const validateBulks = parseCSV('validate', { bulkSize: 64, byLabel: true });
+const trainBulks = parseCSV('train', { bulkSize: 64 });
 
 console.timeEnd('parse');
 
@@ -118,17 +136,41 @@ console.log('Loaded data, total labels %d', LABELS.length);
 console.log('Train bulks: %d', trainBulks.length);
 console.log('Validation bulks: %d', validateBulks.length);
 
-function apply(bulk: IBulk, params: propel.Params): INNOutput {
-  const l1 = bulk.input
-    .linear("L1", params, 48).relu();
+function *bulkPairs(list: ReadonlyArray<IBulk>): Iterator<IBulkPair> {
+  for (let i = 0; i < list.length; i++) {
+    const left = list[i];
+    for (let j = i + 1; j < list.length; j++) {
+      const right = list[j];
 
-  const output = l1
-    .linear("Adjust", params, LABELS.length);
+      const output = left.labels.equal(right.labels).cast('float32');
+      yield { left: left.input, right: right.input, output };
+    }
+  }
+}
 
-  return {
-    output,
-    l1
-  };
+function applySingle(input: Tensor, params: propel.Params): Tensor {
+  const raw = input
+    .linear("Features", params, FEATURE_COUNT).relu();
+
+  const norm = raw.square().add(EPSILON).reduceSum([ 1 ]).sqrt();
+  return raw.div(norm.expandDims(1));
+}
+
+function apply(pair: IBulkPair, params: propel.Params): Tensor {
+  const left = applySingle(pair.left, params);
+  const right = applySingle(pair.right, params);
+
+  // Euclidian distance
+  const distance = left.sub(right).square().reduceSum([ 1 ]).add(EPSILON).sqrt();
+
+  return distance;
+}
+
+function contrastiveLoss(distance: Tensor, labels: Tensor): Tensor {
+  return (
+    ONE.sub(labels).mul(distance.square())
+      .add(labels.mul(MARGIN.sub(distance).relu().square()))
+  ).div(TWO).reduceMean();
 }
 
 async function validate(exp: propel.Experiment) {
@@ -139,29 +181,17 @@ async function validate(exp: propel.Experiment) {
   let sum = 0;
   let count = 0;
 
-  assert.strictEqual(validateBulks.length, LABELS.length);
-  for (let i = 0; i < validateBulks.length; i++) {
-    const bulk = validateBulks[i];
-    const { l1, output } = apply(bulk, params);
+  for (const pair of bulkPairs(validateBulks)) {
+    const distance = apply(pair, params);
+    const loss = contrastiveLoss(distance, pair.output);
 
-    const success = output
-      .argmax(1)
-      .equal(bulk.labels.argmax(1).cast('int32'))
-      .reduceMean()
-      .dataSync()[0];
-
-    sum += success;
+    sum += loss.reduceMean().dataSync()[0];
     count++;
-
-    const { mean, variance } = l1.moments();
-    console.log('  %s - %s %%, activation: mean=%s variance=%s',
-      LABELS[i], (100 * success).toFixed(2), mean.dataSync()[0].toFixed(5),
-      variance.dataSync()[0].toFixed(5));
   }
 
   sum /= count;
   console.log('');
-  console.log('  Total %s %%', (100 * sum).toFixed(2));
+  console.log('  Total %s %%', sum);
   console.log('');
   for (const [ name, tensor ] of params) {
     if (/\/weights$/.test(name)) {
@@ -177,11 +207,11 @@ async function train(maxSteps?: number) {
 
   let last: number | undefined;
   for (let repeat = 0; repeat < Infinity; repeat++) {
-    for (const bulk of trainBulks) {
+    for (const pair of bulkPairs(trainBulks)) {
       await exp.sgd({ lr: 0.01 }, (params) => {
-        const loss = apply(bulk, params)
-          .output
-          .softmaxLoss(bulk.labels);
+        const distance = apply(pair, params)
+        const loss = contrastiveLoss(distance, pair.output);
+        return loss;
 
         let l2 = loss.zerosLike();
         for (const [ name, tensor ] of params) {
@@ -196,7 +226,7 @@ async function train(maxSteps?: number) {
       if (maxSteps && exp.step >= maxSteps) return;
       if (last === undefined) {
         last = exp.step;
-      } else if (exp.step - last > 5000) {
+      } else if (exp.step - last > 500) {
         await validate(exp);
         last = exp.step;
       }
