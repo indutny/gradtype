@@ -1,6 +1,19 @@
 # gradtype
 
-WIP
+## This project needs your data
+
+Submitting data to this project takes 2-3 minutes. If you'd like to do this -
+please follow the instructions below:
+
+1. Go to https://github.com/indutny/gradtype
+2. Type 20-30 sentences terminated by dot (`.`) as they are displayed on the
+   screen. _(NOTE: spelling is not important, so don't worry about getting
+   everything right)_
+3. Hit "save" button
+4. Copy JSON file contents to the gist
+5. Either open an [issue][0] with a link to gist, or DM it to me privately on:
+   [twitter][1], or on IRC freenode (my handle is `indutny`). Please kindly let
+   me know if you want your data to be posted under a pseudonym.
 
 #### LICENSE
 
@@ -27,7 +40,5 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-[0]: https://reviews.llvm.org/D43729
-[1]: https://reviews.llvm.org/D43708
-[2]: https://reviews.llvm.org/D43695
-[3]: https://llvm.org/docs/LangRef.html
+[0]: https://github.com/indutny/gradtype/issues/new
+[1]: https://twitter.com/indutny
