@@ -15,6 +15,11 @@ please follow the instructions below:
    [twitter][1], or on IRC freenode (my handle is `indutny`). Please kindly let
    me know if you want your data to be posted under a pseudonym.
 
+## What data is collected
+
+The website above collects the time difference between the keystrokes as you
+type displayed text.
+
 #### LICENSE
 
 This software is licensed under the MIT License.
