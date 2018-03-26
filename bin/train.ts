@@ -71,6 +71,9 @@ function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch
   const batches: IBatch[] = [];
   for (let i = 0; i < tensors.length; i += batchSize * 2) {
     const avail = Math.min(batchSize * 2, tensors.length - i) / 2;
+    if (avail < 2) {
+      break;
+    }
 
     const left: Tensor[] = [];
     const leftLabels: number[] = [];
