@@ -131,7 +131,7 @@ function contrastiveLoss(distance: Tensor, output: Tensor): Tensor {
   return (
     ONE.sub(output).mul(distance.square())
       .add(output.mul(MARGIN.sub(distance).relu().square()))
-  ).reduceMean();
+  ).reduceMean().mul(1000);
 }
 
 async function validate(exp: propel.Experiment) {
