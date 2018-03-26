@@ -155,7 +155,7 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
   for (const [ name, tensor ] of params) {
     if (/\/weights$/.test(name)) {
       const mean = tensor.square().reduceMean().dataSync()[0];
-      console.log('  %s - mean=%s', name, mean.toFixed(5));
+      console.log('  %s - square-mean=%s', name, mean.toFixed(5));
     }
   }
 }
