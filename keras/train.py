@@ -71,13 +71,13 @@ dummy_y = {
 #
 
 def positive_distance(y_pred):
-  anchor = y_pred[:, 0::3]
-  positive = y_pred[:, 1::3]
+  anchor = y_pred[:, 0:FEATURE_COUNT]
+  positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
   return K.sum(K.square(anchor - positive), axis=1)
 
 def negative_distance(y_pred):
-  anchor = y_pred[:, 0::3]
-  negative = y_pred[:, 2::3]
+  anchor = y_pred[:, 0:FEATURE_COUNT]
+  negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
   return K.sum(K.square(anchor - negative), axis=1)
 
 def triple_loss(y_true, y_pred):
@@ -98,6 +98,7 @@ def nvar(y_true, y_pred):
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
+    x = K.sin(x)
     return x / K.sqrt(K.sum(K.square(x)) + K.epsilon())
 
   def compute_output_shape(self, input_shape):
@@ -107,6 +108,9 @@ def create_siamese():
   model = Sequential()
 
   model.add(Dense(512, input_shape=INPUT_SHAPE, activation='relu'))
+  model.add(Dropout(0.2))
+
+  model.add(Dense(256, activation='relu'))
   model.add(Dropout(0.2))
 
   model.add(Dense(256, activation='relu'))
@@ -132,7 +136,7 @@ def create_model():
     anchor_activations,
     positive_activations,
     negative_activations
-  ])
+  ], axis=-1)
 
   return Model(inputs=[ anchor, positive, negative ], outputs=merge)
 
