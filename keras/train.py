@@ -70,19 +70,26 @@ dummy_y = {
 # Network configuration
 #
 
-def positive_distance(y_pred):
+def positive_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
   return K.sum(K.square(anchor - positive), axis=1)
 
-def negative_distance(y_pred):
+def negative_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
   return K.sum(K.square(anchor - negative), axis=1)
 
+# Probably don't use these two in learning
+def positive_distance(y_pred):
+  return K.sqrt(positive_distance2(y_pred) + K.epsilon())
+
+def negative_distance(y_pred):
+  return K.sqrt(negative_distance2(y_pred) + K.epsilon())
+
 def triple_loss(y_true, y_pred):
   return K.maximum(0.0,
-      positive_distance(y_pred) - negative_distance(y_pred) + ALPHA)
+      positive_distance2(y_pred) - negative_distance2(y_pred) + ALPHA)
 
 def pmean(y_true, y_pred):
   return K.mean(positive_distance(y_pred))
