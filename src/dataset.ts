@@ -6,7 +6,7 @@ export const MAX_CHAR = 28;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
 const CUTOFF_TIME = 3;
-const MOVING_AVG_WINDOW = 8;
+const MOVING_AVG_WINDOW = 20;
 
 const MIN_STRIDE = 30;
 const MAX_STRIDE = 30;
@@ -57,6 +57,7 @@ export class Dataset {
 
     // Moving average
     let average = 0;
+    let square = 0;
     const deltaList: number[] = [];
 
     let lastTS: number | undefined;
@@ -85,13 +86,18 @@ export class Dataset {
         const delta = event.ts - lastTS!;
 
         average += delta / MOVING_AVG_WINDOW;
-        if (deltaList.length >= MOVING_AVG_WINDOW - 1) {
-          average -= deltaList[out.length - MOVING_AVG_WINDOW + 1];
-        }
-        deltaList.push(delta / MOVING_AVG_WINDOW);
+        square += Math.pow(delta, 2) / MOVING_AVG_WINDOW;
+        if (deltaList.length >= MOVING_AVG_WINDOW) {
+          const first = deltaList[out.length - MOVING_AVG_WINDOW];
 
+          average -= first / MOVING_AVG_WINDOW;
+          square -= Math.pow(first, 2) / MOVING_AVG_WINDOW;
+        }
+        deltaList.push(delta);
+
+        const variance = Math.sqrt(square - Math.pow(average, 2));
         out.push({
-          delta: delta / average,
+          delta: (delta - average) / variance,
           fromCode: lastCode,
           toCode: code,
         });
