@@ -150,8 +150,8 @@ function apply(batch: IBatch, params: propel.Params): IApplyResult {
 function computeLoss(output: IApplyResult): Tensor {
   // Triplet loss
   return output.positive.reduceMean()
-    .sub(output.negative.reduceMean()).add(0.2)
-    .reduceMean().relu();
+    .sub(output.negative.reduceMean())
+    .reduceMean().add(0.2).relu();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
