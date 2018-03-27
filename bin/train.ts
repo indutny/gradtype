@@ -14,7 +14,7 @@ const FEATURE_COUNT = 64;
 const BATCH_SIZE = 64;
 
 const L2 = 0.01;
-const LEARNING_RATE = 0.3;
+const LEARNING_RATE = 0.001;
 const ALPHA = 0.2;
 const EPSILON = 1e-8;
 
