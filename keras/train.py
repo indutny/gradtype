@@ -15,7 +15,8 @@ FEATURE_COUNT = 128
 # Triple loss alpha
 ALPHA = 0.1
 
-EPOCHS = 50000
+TOTAL_EPOCHS = 50000
+CONTINUOUS_EPOCHS = 100
 
 #
 # Input parsing below
@@ -157,7 +158,9 @@ model.compile('adam', loss=triple_loss, metrics=[
   nmean, nvar
 ])
 
-model.fit(x=dataset['train'], y=dummy_y['train'], batch_size=256,
-    epochs=EPOCHS, validation_data=(dataset['validate'], dummy_y['validate']))
-
-model.save('./out/gradtype.h5')
+for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
+  print('Run #' + str(i))
+  model.fit(x=dataset['train'], y=dummy_y['train'], batch_size=128,
+      epochs=CONTINUOUS_EPOCHS,
+      validation_data=(dataset['validate'], dummy_y['validate']))
+  model.save('./out/gradtype-' + str(i) + '.h5')
