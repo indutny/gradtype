@@ -137,7 +137,8 @@ function applySingle(input: Tensor, params: propel.Params): Tensor {
     .linear("Features", params, FEATURE_COUNT).relu();
 
   // Normalize features to make them lie on n-sphere
-  const norm = features.square().add(EPSILON).sqrt();
+  const norm = features.square().reduceSum([ -1 ]).expandDims([ 1 ])
+    .add(EPSILON).sqrt();
   return features.div(norm);
 }
 
