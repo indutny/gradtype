@@ -133,7 +133,7 @@ function applySingle(input: Tensor, params: propel.Params): Tensor {
 }
 
 function distanceSquare(a: Tensor, b: Tensor): Tensor {
-  return a.sub(b).square();
+  return a.sub(b).square().reduceMean([ -1 ]);
 }
 
 function apply(batch: IBatch, params: propel.Params): IApplyResult {
@@ -149,9 +149,7 @@ function apply(batch: IBatch, params: propel.Params): IApplyResult {
 
 function computeLoss(output: IApplyResult): Tensor {
   // Triplet loss
-  return output.positive.reduceMean()
-    .sub(output.negative.reduceMean())
-    .reduceMean().add(0.2).relu();
+  return output.positive.sub(output.negative).add(0.2).relu().reduceMean();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
