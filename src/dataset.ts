@@ -5,6 +5,8 @@ import { shuffle } from './utils';
 export const MAX_CHAR = 28;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
+const CUTOFF_TIME = 1;
+
 const MIN_STRIDE = 30;
 const MAX_STRIDE = 30;
 const STRIDE_STEP = 1;
@@ -69,7 +71,7 @@ export class Dataset {
 
       // TODO(indutny): backspace?
       const code = this.compress(event.k.charCodeAt(0));
-      if (code === undefined) {
+      if (code === undefined || (event.ts - lastTS!) >= CUTOFF_TIME) {
         lastTS = undefined;
         lastCode = undefined;
         continue;
