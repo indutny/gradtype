@@ -4,16 +4,22 @@ import { Buffer } from 'buffer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Dataset, DatasetEntry } from '../src/dataset';
-
-interface IGroup {
-  readonly first: string;
-  readonly second: string;
-}
+import { Dataset, Output } from '../src/dataset';
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
+const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
+
+function encodeSeq(sequence) {
+  const enc = Buffer.alloc(4 + sequence.length * 8);
+  enc.writeUInt32LE(sequence.length, 0);
+  for (let i = 0; i < sequence.length; i++) {
+    enc.writeUInt32LE(sequence[i].code, 4 + i * 8);
+    enc.writeFloatLE(sequence[i].delta, 4 + i * 8 + 4);
+  }
+  return enc;
+}
 
 const datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
@@ -26,70 +32,9 @@ const datasets = labels.map((name) => {
 
   return {
     name: entry.name,
-    dataset: () => d.generate(entry.data),
+    sequences: d.generate(entry.data).map((sequence) => encodeSeq(sequence)),
   };
 });
-
-function encodeLine(index: number, table: ReadonlyArray<number>): Buffer {
-  const res = Buffer.alloc(4 + table.length * 4);
-  res.writeUInt32LE(table.length, 0);
-  for (let i = 0; i < table.length; i++) {
-    res.writeFloatLE(table[i], 4 + i * 4);
-  }
-  return res;
-}
-
-function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
-  const anchorDS = datasets.map((d) => d.dataset());
-  const positiveDS = datasets.map((d) => d.dataset());
-  const negativeDS = datasets.map((d) => d.dataset());
-
-  function isSimilar(a: number[], b: number[]): boolean {
-    let distance = 0;
-    for (let i = 0; i < a.length; i++) {
-      distance += Math.pow(a[i] - b[i], 2);
-    }
-    distance /= a.length;
-    distance = Math.sqrt(distance);
-    return distance < 0.1;
-  }
-
-  let added = true;
-  while (added) {
-    added = false;
-
-    for (let i = 0; i < anchorDS.length; i++) {
-      const anchor = anchorDS[i][kind].next();
-      if (anchor.done) {
-        continue;
-      }
-
-      const positive = positiveDS[i][kind].next();
-      if (positive.done || isSimilar(anchor.value, positive.value)) {
-        continue;
-      }
-
-      let j = 0;
-      do {
-        j = Math.floor(Math.random() * negativeDS.length);
-      } while (j === i);
-
-      const negative = negativeDS[j][kind].next();
-      if (negative.done) {
-        continue;
-      }
-
-      yield {
-        anchor: encodeLine(i, anchor.value),
-        positive: encodeLine(i, positive.value),
-        negative: encodeLine(j, negative.value),
-      };
-      added = true;
-    }
-  }
-}
-
-const OUT_DIR = path.join(__dirname, '..', 'out');
 
 try {
   fs.mkdirSync(OUT_DIR);
@@ -97,22 +42,19 @@ try {
   // no-op
 }
 
-// Remove Keras cache
-try {
-  fs.unlinkSync(path.join(OUT_DIR, 'dataset.npy.npz'));
-} catch (e) {
-  // no-op
-}
+const fd = fs.openSync(path.join(OUT_DIR, 'lstm.raw'), 'w');
 
-function writeDataset(file: string, groups: Iterator<string>): void {
-  const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
-  for (const entry of groups) {
-    fs.writeSync(fd, entry.anchor);
-    fs.writeSync(fd, entry.positive);
-    fs.writeSync(fd, entry.negative);
+const datasetCount = Buffer.alloc(4);
+datasetCount.writeUInt32LE(datasets.length, 0);
+fs.writeSync(fd, datasetCount);
+
+datasets.forEach((ds) => {
+  const count = Buffer.alloc(4);
+  count.writeUInt32LE(ds.sequences.length, 0);
+  fs.writeSync(fd, count);
+
+  for (const seq of ds.sequences) {
+    fs.writeSync(fd, seq);
   }
-  fs.closeSync(fd);
-}
-
-writeDataset('train.raw', group('train'));
-writeDataset('validate.raw', group('validate'));
+});
+fs.closeSync(fd);

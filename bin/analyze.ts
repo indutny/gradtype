@@ -16,6 +16,9 @@ const datasets = process.argv.slice(2).map((name) => {
 
   const items = d.preprocess(entry.data);
   for (const item of items) {
+    if (item === 'reset') {
+      continue;
+    }
     console.log([ item.fromCode, item.toCode, item.delta ].join(','));
   }
 });

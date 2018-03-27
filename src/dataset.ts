@@ -3,207 +3,119 @@ import * as assert from 'assert';
 import { shuffle } from './utils';
 
 export const MAX_CHAR = 28;
-export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
 const CUTOFF_TIME = 3;
 const MOVING_AVG_WINDOW = 20;
 const EPSILON = 1e-8;
-
-const MIN_STRIDE = 30;
-const MAX_STRIDE = 30;
-const STRIDE_STEP = 1;
-
-const VALIDATE_PERCENT = 0.25;
-
-const VALIDATE_MIN_STRIDE = 30;
-const VALIDATE_MAX_STRIDE = 30;
-const VALIDATE_STRIDE_STEP = 1;
-
-export type DatasetEntry = ReadonlyArray<number>;
+const MIN_SEQUENCE = 8;
 
 export interface IInputEntry {
-  k: string;
-  ts: number;
+  readonly k: string;
+  readonly ts: number;
 }
 
-export interface IDatasetOutput {
-  train: Iterator<DatasetEntry>;
-  validate: Iterator<DatasetEntry>;
+export interface ISequenceElem {
+  readonly code: number;
+  readonly delta: number;
 }
 
-export interface IIntermediateEntry {
-  fromCode: number;
-  toCode: number;
-  delta: number;
-}
+export type Sequence = ReadonlyArray<ISequenceElem>;
 
 export type Input = ReadonlyArray<IInputEntry>;
-export type Intermediate = ReadonlyArray<IIntermediateEntry>;
+export type Output = ReadonlyArray<Sequence>;
+
+type IntermediateEntry = 'reset' | ISequenceElem;
 
 export class Dataset {
-  public generate(events: Input): IDatasetOutput {
-    const ir = this.preprocess(events);
+  public generate(events: Input): Output {
+    const out: ISequenceElem[][] = [];
 
-    const validateCount = Math.ceil(VALIDATE_PERCENT * ir.length);
-    return {
-      train: this.stride(ir.slice(validateCount),
-        MIN_STRIDE, MAX_STRIDE, STRIDE_STEP),
-      validate: this.stride(ir.slice(0, validateCount),
-        VALIDATE_MIN_STRIDE, VALIDATE_MAX_STRIDE, VALIDATE_STRIDE_STEP),
-    };
+    let sequence: ISequenceElem[] = [];
+    for (const event of this.preprocess(events)) {
+      if (event === 'reset') {
+        if (sequence.length > MIN_SEQUENCE) {
+          out.push(sequence);
+        }
+        sequence = [];
+        continue;
+      }
+
+      sequence.push(event);
+    }
+    if (sequence.length > MIN_SEQUENCE) {
+      out.push(sequence);
+    }
+
+    return out;
   }
 
-  private preprocess(events: Input): Intermediate {
-    const out: IIntermediateEntry[] = [];
-
+  private *preprocess(events: Input): Iterator<IntermediateEntry> {
     // Moving average
     let average = 0;
     let square = 0;
     const deltaList: number[] = [];
 
     let lastTS: number | undefined;
-    let lastCode: number | undefined;
 
-    const reset = () => {
+    const reset = (): IntermediateEntry => {
       lastTS = undefined;
-      lastCode = undefined;
+      return 'reset';
     };
 
     for (const event of events) {
       // Skip `Enter` and things like that
       if (event.k.length !== 1) {
-        reset();
+        yield reset();
         continue;
       }
 
       // TODO(indutny): backspace?
       const code = this.compress(event.k.charCodeAt(0));
       if (code === undefined || (event.ts - lastTS!) >= CUTOFF_TIME) {
-        reset();
+        yield reset();
         continue;
       }
 
-      if (lastCode !== undefined) {
-        const delta = event.ts - lastTS!;
+      const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
 
-        average += delta / MOVING_AVG_WINDOW;
-        square += Math.pow(delta, 2) / MOVING_AVG_WINDOW;
-        if (deltaList.length >= MOVING_AVG_WINDOW) {
-          const first = deltaList[out.length - MOVING_AVG_WINDOW];
+      average += delta / MOVING_AVG_WINDOW;
+      square += Math.pow(delta, 2) / MOVING_AVG_WINDOW;
+      if (deltaList.length >= MOVING_AVG_WINDOW) {
+        const first = deltaList[deltaList.length - MOVING_AVG_WINDOW];
 
-          average -= first / MOVING_AVG_WINDOW;
-          square -= Math.pow(first, 2) / MOVING_AVG_WINDOW;
-        }
-        deltaList.push(delta);
-
-        const variance = Math.sqrt(square - Math.pow(average, 2));
-        out.push({
-          delta: (delta - average) / (variance + EPSILON),
-          fromCode: lastCode,
-          toCode: code,
-        });
+        average -= first / MOVING_AVG_WINDOW;
+        square -= Math.pow(first, 2) / MOVING_AVG_WINDOW;
       }
+      deltaList.push(delta);
+
+      const variance = Math.sqrt(square - Math.pow(average, 2));
+      yield {
+        delta: (delta - average) / (variance + EPSILON),
+        code,
+      };
 
       lastTS = event.ts;
-      lastCode = code;
     }
-    return out.slice(MOVING_AVG_WINDOW);
-  }
-
-  private *stride(input: Intermediate, min: number, max: number, step: number)
-    : Iterator<DatasetEntry> {
-    if (input.length < max) {
-      throw new Error('Not enough events to generate a stride');
-    }
-
-    const strideSizes: number[] = [];
-    for (let stride = min; stride <= max; stride += step) {
-      strideSizes.push(stride);
-    }
-
-    shuffle(strideSizes);
-    for (const stride of strideSizes) {
-      const limit = Math.min(input.length - stride, stride - 1);
-
-      const offsets: number[] = [];
-      for (let i = 0; i <= limit; i++) {
-        offsets.push(i);
-      }
-
-      shuffle(offsets);
-
-      for (const offset of offsets) {
-        const strideOffsets: number[] = [];
-        for (let i = offset; i < input.length; i += stride) {
-          strideOffsets.push(i);
-        }
-
-        shuffle(strideOffsets)
-
-        for (const strideOffset of strideOffsets) {
-          const slice = input.slice(strideOffset, strideOffset + stride);
-          if (slice.length !== stride) {
-            break;
-          }
-
-          yield this.single(slice);
-        }
-      }
-    }
-  }
-
-  public single(input: Intermediate): DatasetEntry {
-    const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
-    const result: number[] = new Array(2 * size).fill(0);
-    const count: number[] = new Array(size).fill(0);
-
-    // Fill all odd entries with `-0.5`
-    // (See complementary `+0.5` below)
-    for (let i = 1; i < result.length; i += 2) {
-      result[i] = -0.5;
-    }
-
-    for (const event of input) {
-      const fromCode = event.fromCode;
-      const toCode = event.toCode;
-
-      assert(0 <= fromCode && fromCode <= MAX_CHAR);
-      assert(0 <= toCode && toCode <= MAX_CHAR);
-      const index = fromCode + toCode * (MAX_CHAR + 1);
-
-      result[2 * index] += event.delta - 1;
-      result[2 * index + 1] = 0.5;
-      count[index]++;
-    }
-
-    for (let i = 0; i < count.length; i++) {
-      if (count[i] === 0) {
-        continue;
-      }
-
-      result[2 * i] /= count[i];
-    }
-
-    assert(result.some((cell) => cell !== 0));
-    return result;
   }
 
   private compress(code: number): number | undefined {
+    // 0 - is reserved for padding
+
     // a - z
     if (0x61 <= code && code <= 0x7a) {
-      return code - 0x61;
+      return 1 + code - 0x61;
 
     // A - Z
     } else if (0x41 <= code && code <= 0x5a) {
-      return code - 0x41;
+      return 1 + code - 0x41;
 
     // ' '
     } else if (code === 0x20) {
-      return 26;
+      return 27;
 
     // ','
     } else if (code === 0x2c) {
-      return 27;
+      return 28;
     } else {
       return undefined;
     }
