@@ -13,6 +13,10 @@ import Tensor = propel.Tensor;
 const FEATURE_COUNT = 64;
 const BATCH_SIZE = 64;
 
+const L2 = 0.01;
+const LEARNING_RATE = 0.001;
+const ALPHA = 0.2;
+
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
@@ -149,7 +153,7 @@ function apply(batch: IBatch, params: propel.Params): IApplyResult {
 
 function computeLoss(output: IApplyResult): Tensor {
   // Triplet loss
-  return output.positive.sub(output.negative).add(0.2).relu().reduceMean();
+  return output.positive.sub(output.negative).add(ALPHA).relu().reduceMean();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
@@ -204,7 +208,7 @@ async function train(maxSteps?: number) {
   for (let repeat = 0; repeat < Infinity; repeat++) {
     shuffle(trainBatches);
     for (const batch of trainBatches) {
-      await exp.sgd({ lr: 0.01 }, (params) => {
+      await exp.sgd({ lr: LEARNING_RATE }, (params) => {
         const output = apply(batch, params)
         const loss = computeLoss(output);
 
@@ -215,7 +219,7 @@ async function train(maxSteps?: number) {
           }
         }
 
-        return loss.add(l2.mul(0.01));
+        return loss.add(l2.mul(L2));
       });
 
       if (maxSteps && exp.step >= maxSteps) return;
