@@ -155,3 +155,5 @@ model.compile('adam', loss=triple_loss, metrics=[
 
 model.fit(x=dataset['train'], y=dummy_y['train'], batch_size=256,
     epochs=100, validation_data=(dataset['validate'], dummy_y['validate']))
+
+model.save('./out/gradtype.h5')
