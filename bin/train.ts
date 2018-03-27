@@ -161,12 +161,16 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
   let count = 0;
   let meanPositive = 0;
   let meanNegative = 0;
+  let varPositive = 0;
+  let varNegative = 0;
 
   for (const batch of batches.slice(0, validateBatches.length)) {
     const output = apply(batch, params);
 
     meanPositive += output.positive.sqrt().reduceMean().dataSync()[0];
     meanNegative += output.negative.sqrt().reduceMean().dataSync()[0];
+    varPositive += output.positive.reduceMean().dataSync()[0];
+    varNegative += output.negative.reduceMean().dataSync()[0];
 
     const positive = output.positive.sqrt().less(0.5).cast('int32')
       .reduceMean().dataSync()[0];
@@ -180,11 +184,17 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
   sum /= count * 2;
   meanPositive /= count;
   meanNegative /= count;
+  varPositive /= count;
+  varNegative /= count;
+  varPositive = Math.sqrt(varPositive - Math.pow(meanPositive, 2));
+  varNegative = Math.sqrt(varNegative - Math.pow(meanNegative, 2));
 
   console.log('');
   console.log('  Success rate %s %%', (sum * 100).toFixed(3));
-  console.log('  Mean positive distance %s', meanPositive.toFixed(5));
-  console.log('  Mean negative distance %s', meanNegative.toFixed(5));
+  console.log('  positive distance mean=%s var=%s', meanPositive.toFixed(5),
+    varPositive.toFixed(5));
+  console.log('  negative distance mean=%s var=%s', meanNegative.toFixed(5),
+    varNegative.toFixed(5));
   console.log('');
 }
 
