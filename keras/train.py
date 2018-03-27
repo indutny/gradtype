@@ -106,8 +106,14 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   model = Sequential()
 
-  model.add(Dense(400, input_shape=INPUT_SHAPE, activation='relu'))
+  model.add(Dense(512, input_shape=INPUT_SHAPE, activation='relu'))
   model.add(BatchNormalization())
+  model.add(Dropout(0.2))
+
+  model.add(Dense(256, activation='relu'))
+  model.add(BatchNormalization())
+  model.add(Dropout(0.2))
+
   model.add(Dense(FEATURE_COUNT, activation='linear'))
   model.add(NormalizeToSphere())
 
