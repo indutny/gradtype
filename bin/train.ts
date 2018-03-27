@@ -10,8 +10,8 @@ import { shuffle } from '../src/utils';
 
 import Tensor = propel.Tensor;
 
-const FEATURE_COUNT = 18;
-const BATCH_SIZE = 32;
+const FEATURE_COUNT = 64;
+const BATCH_SIZE = 64;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
