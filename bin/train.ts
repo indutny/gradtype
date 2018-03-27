@@ -129,13 +129,11 @@ console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   return input
-    .linear("Features", params, FEATURE_COUNT)
-    .sigmoid();
+    .linear("Features", params, FEATURE_COUNT);
 }
 
-function distance(a: Tensor, b: Tensor): Tensor {
-  // exp(-distance^2 / 2)
-  return a.sub(b).square().reduceSum([ 1 ]).neg().div(2).exp();
+function distanceSquare(a: Tensor, b: Tensor): Tensor {
+  return a.sub(b).square();
 }
 
 function apply(batch: IBatch, params: propel.Params): IApplyResult {
@@ -144,16 +142,16 @@ function apply(batch: IBatch, params: propel.Params): IApplyResult {
   const negative = applySingle(batch.negative.input, params);
 
   return {
-    positive: distance(anchor, positive),
-    negative: distance(anchor, negative),
+    positive: distanceSquare(anchor, positive),
+    negative: distanceSquare(anchor, negative),
   };
 }
 
 function computeLoss(output: IApplyResult): Tensor {
   // Triplet loss
-  return output.positive.square().reduceSum()
-    .sub(output.negative.square().reduceSum()).div(FEATURE_COUNT).add(1)
-    .reduceMean();
+  return output.positive.reduceMean()
+    .sub(output.negative.reduceMean()).add(0.2)
+    .reduceMean().relu();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
@@ -167,12 +165,12 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
   for (const batch of batches.slice(0, validateBatches.length)) {
     const output = apply(batch, params);
 
-    meanPositive += output.positive.reduceMean().dataSync()[0];
-    meanNegative += output.negative.reduceMean().dataSync()[0];
+    meanPositive += output.positive.sqrt().reduceMean().dataSync()[0];
+    meanNegative += output.negative.sqrt().reduceMean().dataSync()[0];
 
-    const positive = output.positive.less(0.5).cast('int32')
+    const positive = output.positive.sqrt().less(0.5).cast('int32')
       .reduceMean().dataSync()[0];
-    const negative = output.negative.greater(0.5).cast('int32')
+    const negative = output.negative.sqrt().greater(0.5).cast('int32')
       .reduceMean().dataSync()[0];
 
     sum += positive + negative;
