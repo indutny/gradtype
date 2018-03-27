@@ -107,8 +107,8 @@ def nvar(y_true, y_pred):
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
-    x = K.sin(x)
-    return x / K.sqrt(K.sum(K.square(x)) + K.epsilon())
+    norm = K.sqrt(K.sum(K.square(x), axis=1) + K.epsilon())
+    return x / K.expand_dims(norm, 1)
 
   def compute_output_shape(self, input_shape):
     return input_shape
