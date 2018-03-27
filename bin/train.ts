@@ -72,7 +72,7 @@ function parseCSV(name: string, options: IParseCSVOptions): ReadonlyArray<IBatch
       input[i] = parseFloat(parts[i]);
     }
 
-    const tensor = propel.tensor(input);
+    const tensor = propel.tensor(input).reshape(SHAPE);
 
     labels.push(label);
     tensors.push(tensor);
