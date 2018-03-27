@@ -155,6 +155,13 @@ export class Dataset {
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(2 * size).fill(0);
     const count: number[] = new Array(size).fill(0);
+
+    // Fill all odd entries with `-0.5`
+    // (See complementary `+0.5` below)
+    for (let i = 1; i < result.length; i += 2) {
+      result[i] = -0.5;
+    }
+
     for (const event of input) {
       const fromCode = event.fromCode;
       const toCode = event.toCode;
@@ -164,7 +171,7 @@ export class Dataset {
       const index = fromCode + toCode * (MAX_CHAR + 1);
 
       result[2 * index] += event.delta - 1;
-      result[2 * index + 1] = 1;
+      result[2 * index + 1] = 0.5;
       count[index]++;
     }
 
