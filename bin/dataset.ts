@@ -30,7 +30,7 @@ const datasets = labels.map((name) => {
 });
 
 function encodeLine(index: number, table: ReadonlyArray<number>): string {
-  return [ index ].concat(table).join(',') + '\n';
+  return table.join(',') + '\n';
 }
 
 function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
@@ -45,7 +45,7 @@ function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
     }
     distance /= a.length;
     distance = Math.sqrt(distance);
-    return distance < 0.15;
+    return distance < 0.1;
   }
 
   let added = true;
@@ -95,11 +95,8 @@ function writeCSV(file: string, groups: Iterator<string>): void {
   const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
   for (const entry of groups) {
     fs.writeSync(fd, entry.anchor);
-    fs.writeSync(fd, '\n');
     fs.writeSync(fd, entry.positive);
-    fs.writeSync(fd, '\n');
     fs.writeSync(fd, entry.negative);
-    fs.writeSync(fd, '\n');
   }
   fs.closeSync(fd);
 }

@@ -9,8 +9,8 @@ const CUTOFF_TIME = 3;
 const MOVING_AVG_WINDOW = 20;
 const EPSILON = 1e-8;
 
-const MIN_STRIDE = 7;
-const MAX_STRIDE = 7;
+const MIN_STRIDE = 30;
+const MAX_STRIDE = 30;
 const STRIDE_STEP = 1;
 
 const VALIDATE_PERCENT = 0.25;

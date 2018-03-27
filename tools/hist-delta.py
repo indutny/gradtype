@@ -13,7 +13,7 @@ with open(sys.argv[1]) as input:
   # the histogram of the data
   plt.hist(delta, 1500, facecolor='g', alpha=0.75)
 
-  plt.axis([ -1000, 1000, 0, 25 ])
+  plt.axis([ -2000, 2000, 0, 25 ])
   plt.xlabel('Delta')
   plt.ylabel('Count')
   plt.grid(True)
