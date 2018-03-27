@@ -199,12 +199,6 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
   varPositive = Math.sqrt(varPositive - Math.pow(meanPositive, 2));
   varNegative = Math.sqrt(varNegative - Math.pow(meanNegative, 2));
 
-  // Normalize the distance
-  meanPositive /= FEATURE_COUNT;
-  meanNegative /= FEATURE_COUNT;
-  varPositive /= FEATURE_COUNT;
-  varNegative /= FEATURE_COUNT;
-
   console.log('');
   console.log('  Success rate %s %%', (sum * 100).toFixed(3));
   console.log('  positive distance mean=%s var=%s', meanPositive.toFixed(5),
