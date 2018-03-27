@@ -133,7 +133,7 @@ console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   return input
-    .linear("Features", params, FEATURE_COUNT);
+    .linear("Features", params, FEATURE_COUNT).relu();
 }
 
 function distanceSquare(a: Tensor, b: Tensor): Tensor {
