@@ -29,6 +29,10 @@ const datasets = labels.map((name) => {
   };
 });
 
+function encodeLine(index: number, table: ReadonlyArray<number>): string {
+  return [ index ].concat(table).join(',') + '\n';
+}
+
 function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
   const anchorDS = datasets.map((d) => d.dataset());
   const positiveDS = datasets.map((d) => d.dataset());
@@ -46,7 +50,6 @@ function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
   let added = true;
   while (added) {
     added = false;
-
 
     for (let i = 0; i < anchorDS.length; i++) {
       const anchor = anchorDS[i][kind].next();
@@ -70,9 +73,9 @@ function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
       }
 
       yield {
-        anchor: [ i ].concat(anchor.value).join(','),
-        positive: [ i ].concat(positive.value).join(','),
-        negative: [ j ].concat(negative.value).join(','),
+        anchor: encodeLine(i, anchor.value),
+        positive: encodeLine(i, positive.value),
+        negative: encodeLine(j, negative.value),
       };
       added = true;
     }
