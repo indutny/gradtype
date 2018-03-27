@@ -1,5 +1,6 @@
 #!/usr/bin/env npx ts-node
 
+import { Buffer } from 'buffer';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -29,8 +30,13 @@ const datasets = labels.map((name) => {
   };
 });
 
-function encodeLine(index: number, table: ReadonlyArray<number>): string {
-  return table.join(',') + '\n';
+function encodeLine(index: number, table: ReadonlyArray<number>): Buffer {
+  const res = Buffer.alloc(4 + table.length * 4);
+  res.writeUInt32LE(table.length, 0);
+  for (let i = 0; i < table.length; i++) {
+    res.writeFloatLE(table[i], 4 + i * 4);
+  }
+  return res;
 }
 
 function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
@@ -91,7 +97,14 @@ try {
   // no-op
 }
 
-function writeCSV(file: string, groups: Iterator<string>): void {
+// Remove Keras cache
+try {
+  fs.unlinkSync(path.join(OUT_DIR, 'dataset.npy.npz'));
+} catch (e) {
+  // no-op
+}
+
+function writeDataset(file: string, groups: Iterator<string>): void {
   const fd = fs.openSync(path.join(OUT_DIR, file), 'w');
   for (const entry of groups) {
     fs.writeSync(fd, entry.anchor);
@@ -101,5 +114,5 @@ function writeCSV(file: string, groups: Iterator<string>): void {
   fs.closeSync(fd);
 }
 
-writeCSV('train.csv', group('train'));
-writeCSV('validate.csv', group('validate'));
+writeDataset('train.raw', group('train'));
+writeDataset('validate.raw', group('validate'));

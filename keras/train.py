@@ -1,5 +1,6 @@
 import numpy as np
 import os.path
+import struct
 
 import keras.layers
 from keras import backend as K
@@ -18,15 +19,26 @@ ALPHA = 0.1
 # Input parsing below
 #
 
+def parse_raw_single(name):
+  with open(name, 'rb') as f:
+    tables = []
+    while True:
+      word = f.read(4)
+      if len(word) == 0:
+        break
+      size = struct.unpack('<i', word)[0]
+      line = struct.unpack('f' * size, f.read(size * 4))
+      line = np.array(line, dtype='float32')
+      tables.append(line)
+    return np.stack(tables)
+
 def parse_dataset():
   np_file = './out/dataset.npy.npz'
   if os.path.isfile(np_file):
     raw = np.load(np_file)
   else:
-    # TODO(indutny): generate numpy
-    train = np.loadtxt('./out/train.csv', delimiter=',', dtype=np.float32)
-    validate = np.loadtxt('./out/validate.csv', delimiter=',', dtype=np.float32)
-
+    train = parse_raw_single('./out/train.raw')
+    validate = parse_raw_single('./out/validate.raw')
     np.savez_compressed(np_file, train=train, validate=validate)
     raw = { 'train': train, 'validate': validate }
 
@@ -84,13 +96,20 @@ def nmean(y_true, y_pred):
 def nvar(y_true, y_pred):
   return K.var(negative_distance(y_pred))
 
+class NormalizeToSphere(keras.layers.Layer):
+  def call(self, x):
+    return x / K.sqrt(K.sum(K.square(x)) + K.epsilon())
+
+  def compute_output_shape(self, input_shape):
+    return input_shape
+
 def create_siamese():
   model = Sequential()
 
   model.add(Dense(400, input_shape=INPUT_SHAPE, activation='relu'))
   model.add(BatchNormalization())
   model.add(Dense(FEATURE_COUNT, activation='linear'))
-  model.add(BatchNormalization())
+  model.add(NormalizeToSphere())
 
   return model
 
