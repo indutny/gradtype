@@ -10,10 +10,12 @@ from keras.layers import Input, Dense, Dropout, BatchNormalization
 # [ prev char, next_char, normalized delta or one hot ]
 INPUT_SHAPE=(29 * 29 * 2,)
 
-FEATURE_COUNT = 64
+FEATURE_COUNT = 128
 
 # Triple loss alpha
 ALPHA = 0.1
+
+EPOCHS = 50000
 
 #
 # Input parsing below
@@ -154,6 +156,6 @@ model.compile('adam', loss=triple_loss, metrics=[
 ])
 
 model.fit(x=dataset['train'], y=dummy_y['train'], batch_size=256,
-    epochs=100, validation_data=(dataset['validate'], dummy_y['validate']))
+    epochs=EPOCHS, validation_data=(dataset['validate'], dummy_y['validate']))
 
 model.save('./out/gradtype.h5')
