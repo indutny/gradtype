@@ -16,6 +16,7 @@ const BATCH_SIZE = 64;
 const L2 = 0.01;
 const LEARNING_RATE = 0.001;
 const ALPHA = 0.2;
+const EPSILON = 1e-8;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -132,12 +133,16 @@ console.log('Train batches: %d', trainBatches.length);
 console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
-  return input
+  const features = input
     .linear("Features", params, FEATURE_COUNT).relu();
+
+  // Normalize features to make them lie on n-sphere
+  const norm = features.square().add(EPSILON).sqrt();
+  return features.div(norm);
 }
 
 function distanceSquare(a: Tensor, b: Tensor): Tensor {
-  return a.sub(b).square().reduceMean([ -1 ]);
+  return a.sub(b).square().reduceSum([ -1 ]);
 }
 
 function apply(batch: IBatch, params: propel.Params): IApplyResult {
