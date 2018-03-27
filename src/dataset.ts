@@ -5,7 +5,8 @@ import { shuffle } from './utils';
 export const MAX_CHAR = 28;
 export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
-const CUTOFF_TIME = 1;
+const CUTOFF_TIME = 3;
+const MOVING_AVG_WINDOW = 8;
 
 const MIN_STRIDE = 30;
 const MAX_STRIDE = 30;
@@ -22,11 +23,6 @@ export type DatasetEntry = ReadonlyArray<number>;
 export interface IInputEntry {
   k: string;
   ts: number;
-}
-
-export interface IDatasetMeanVar {
-  mean: number;
-  variance: number;
 }
 
 export interface IDatasetOutput {
@@ -59,35 +55,52 @@ export class Dataset {
   private preprocess(events: Input): Intermediate {
     const out: IIntermediateEntry[] = [];
 
+    // Moving average
+    let average = 0;
+    const deltaList: number[] = [];
+
     let lastTS: number | undefined;
     let lastCode: number | undefined;
+
+    const reset = () => {
+      lastTS = undefined;
+      lastCode = undefined;
+    };
+
     for (const event of events) {
       // Skip `Enter` and things like that
       if (event.k.length !== 1) {
-        lastTS = undefined;
-        lastCode = undefined;
+        reset();
         continue;
       }
 
       // TODO(indutny): backspace?
       const code = this.compress(event.k.charCodeAt(0));
       if (code === undefined || (event.ts - lastTS!) >= CUTOFF_TIME) {
-        lastTS = undefined;
-        lastCode = undefined;
+        reset();
         continue;
       }
 
       if (lastCode !== undefined) {
+        const delta = event.ts - lastTS!;
+
+        average += delta / MOVING_AVG_WINDOW;
+        if (deltaList.length >= MOVING_AVG_WINDOW - 1) {
+          average -= deltaList[out.length - MOVING_AVG_WINDOW + 1];
+        }
+        deltaList.push(delta / MOVING_AVG_WINDOW);
+
         out.push({
-          delta: event.ts - lastTS!,
+          delta: delta / average,
           fromCode: lastCode,
           toCode: code,
         });
       }
+
       lastTS = event.ts;
       lastCode = code;
     }
-    return out;
+    return out.slice(MOVING_AVG_WINDOW);
   }
 
   private *stride(input: Intermediate, min: number, max: number, step: number)
@@ -95,8 +108,6 @@ export class Dataset {
     if (input.length < max) {
       throw new Error('Not enough events to generate a stride');
     }
-
-    const meanVar = this.computeMeanVar(input);
 
     const strideSizes: number[] = [];
     for (let stride = min; stride <= max; stride += step) {
@@ -128,18 +139,13 @@ export class Dataset {
             break;
           }
 
-          yield this.single(slice, meanVar);
+          yield this.single(slice);
         }
       }
     }
   }
 
-  public single(input: Intermediate, meanVar?: IDatasetMeanVar): DatasetEntry {
-    if (meanVar === undefined) {
-      meanVar = this.computeMeanVar(input);
-    }
-    const mean = meanVar!.mean;
-    const variance = meanVar!.variance;
+  public single(input: Intermediate): DatasetEntry {
     const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
     const result: number[] = new Array(2 * size).fill(0);
     const count: number[] = new Array(size).fill(0);
@@ -151,7 +157,7 @@ export class Dataset {
       assert(0 <= toCode && toCode <= MAX_CHAR);
       const index = fromCode + toCode * (MAX_CHAR + 1);
 
-      result[2 * index] += (event.delta - mean) / variance;
+      result[2 * index] += event.delta - 1;
       result[2 * index + 1] = 1;
       count[index]++;
     }
@@ -166,20 +172,6 @@ export class Dataset {
 
     assert(result.some((cell) => cell !== 0));
     return result;
-  }
-
-  private computeMeanVar(events: Intermediate): IDatasetMeanVar {
-    let mean = 0;
-    let variance = 0;
-    for (const event of events) {
-      mean += event.delta;
-      variance += Math.pow(event.delta, 2);
-    }
-    mean /= events.length;
-    variance /= events.length;
-    variance = Math.sqrt(variance - Math.pow(mean, 2));
-
-    return { mean, variance };
   }
 
   private compress(code: number): number | undefined {
