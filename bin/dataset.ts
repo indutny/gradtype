@@ -38,13 +38,14 @@ function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
   const positiveDS = datasets.map((d) => d.dataset());
   const negativeDS = datasets.map((d) => d.dataset());
 
-  function isEqual(a: number[], b: number[]): boolean {
+  function isSimilar(a: number[], b: number[]): boolean {
+    let distance = 0;
     for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
-        return false;
-      }
+      distance += Math.pow(a[i] - b[i], 2);
     }
-    return true;
+    distance /= a.length;
+    distance = Math.sqrt(distance);
+    return distance < 0.15;
   }
 
   let added = true;
@@ -58,7 +59,7 @@ function* group(kind: 'train' | 'validate'): Iterator<IGroup> {
       }
 
       const positive = positiveDS[i][kind].next();
-      if (positive.done || isEqual(anchor.value, positive.value)) {
+      if (positive.done || isSimilar(anchor.value, positive.value)) {
         continue;
       }
 
