@@ -14,7 +14,7 @@ const FEATURE_COUNT = 64;
 const BATCH_SIZE = 64;
 
 const L2 = 0.01;
-const LEARNING_RATE = 0.001;
+const LEARNING_RATE = 0.3;
 const ALPHA = 0.2;
 const EPSILON = 1e-8;
 
@@ -180,9 +180,9 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
     varPositive += output.positive.reduceMean().dataSync()[0];
     varNegative += output.negative.reduceMean().dataSync()[0];
 
-    const positive = output.positive.sqrt().less(0.5).cast('int32')
+    const positive = output.positive.sqrt().less(1).cast('int32')
       .reduceMean().dataSync()[0];
-    const negative = output.negative.sqrt().greater(0.5).cast('int32')
+    const negative = output.negative.sqrt().greater(1).cast('int32')
       .reduceMean().dataSync()[0];
 
     sum += positive + negative;
