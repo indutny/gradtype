@@ -12,10 +12,6 @@ import Tensor = propel.Tensor;
 
 const FEATURE_COUNT = 64;
 const BATCH_SIZE = 64;
-const LEARNING_RATE = 0.3;
-const L2 = 0.01;
-const BETA = FEATURE_COUNT;
-const EPSILON = 0.00001;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -133,13 +129,11 @@ console.log('Validation batches: %d', validateBatches.length);
 
 function applySingle(input: Tensor, params: propel.Params): Tensor {
   return input
-    .linear("Features", params, FEATURE_COUNT)
-    .sigmoid();
+    .linear("Features", params, FEATURE_COUNT);
 }
 
 function distanceSquare(a: Tensor, b: Tensor): Tensor {
-  // Square of euclidian distance
-  return a.sub(b).square().reduceSum([ -1 ]);
+  return a.sub(b).square().reduceMean([ -1 ]);
 }
 
 function apply(batch: IBatch, params: propel.Params): IApplyResult {
@@ -153,15 +147,9 @@ function apply(batch: IBatch, params: propel.Params): IApplyResult {
   };
 }
 
-// See: https://towardsdatascience.com/lossless-triplet-loss-7e932f990b24
 function computeLoss(output: IApplyResult): Tensor {
-  const pos = output.positive.div(BETA).neg().add(1).add(EPSILON);
-  const neg = output.negative.sub(FEATURE_COUNT).div(BETA).add(1).add(EPSILON);
-
-  const sum = pos.log().add(neg.log()).neg();
-
-  // Linear Triplet loss
-  return sum.reduceMean();
+  // Triplet loss
+  return output.positive.sub(output.negative).add(0.2).relu().reduceMean();
 }
 
 async function validate(exp: propel.Experiment, batches: IBatch[]) {
@@ -182,10 +170,10 @@ async function validate(exp: propel.Experiment, batches: IBatch[]) {
     varPositive += output.positive.reduceMean().dataSync()[0];
     varNegative += output.negative.reduceMean().dataSync()[0];
 
-    const positive = output.positive.sqrt().less(FEATURE_COUNT * 0.5)
-      .cast('int32').reduceMean().dataSync()[0];
-    const negative = output.negative.sqrt().greater(FEATURE_COUNT * 0.5)
-      .cast('int32').reduceMean().dataSync()[0];
+    const positive = output.positive.sqrt().less(0.5).cast('int32')
+      .reduceMean().dataSync()[0];
+    const negative = output.negative.sqrt().greater(0.5).cast('int32')
+      .reduceMean().dataSync()[0];
 
     sum += positive + negative;
     count++;
@@ -216,7 +204,7 @@ async function train(maxSteps?: number) {
   for (let repeat = 0; repeat < Infinity; repeat++) {
     shuffle(trainBatches);
     for (const batch of trainBatches) {
-      await exp.sgd({ lr: LEARNING_RATE }, (params) => {
+      await exp.sgd({ lr: 0.01 }, (params) => {
         const output = apply(batch, params)
         const loss = computeLoss(output);
 
@@ -227,7 +215,7 @@ async function train(maxSteps?: number) {
           }
         }
 
-        return loss.add(l2.mul(L2));
+        return loss.add(l2.mul(0.01));
       });
 
       if (maxSteps && exp.step >= maxSteps) return;
