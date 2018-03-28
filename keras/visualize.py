@@ -37,4 +37,4 @@ def pca(model, datasets, epoch):
   ax.scatter(reduced[:, 0], reduced[:, 1], reduced[:, 2], c=colors,
              cmap=plt.cm.Set1, edgecolor='k', s=5, alpha=0.5, linewidths=0.0,
              edgecolors='none')
-  plt.savefig(fname='./images/pca/' + str(epoch) + '.png')
+  plt.savefig(fname='./images/pca/{:06d}.png'.format(epoch))

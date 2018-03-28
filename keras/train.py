@@ -117,7 +117,7 @@ def create_siamese():
 
   joint_input = JoinInputs()([ codes, deltas ])
 
-  x = GRU(128, dropout=0.5, recurrent_dropout=0.5)(joint_input)
+  x = GRU(128, dropout=0.2, recurrent_dropout=0.2)(joint_input)
 
   x = Dropout(0.5)(x)
   x = Dense(FEATURE_COUNT, name='features')(x)
