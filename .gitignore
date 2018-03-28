@@ -6,3 +6,5 @@ gradtype.json
 *.csv
 out/
 __pycache__/
+images/
+.DS_store

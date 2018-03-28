@@ -214,10 +214,10 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
       callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
 
-  if i % SAVE_EPOCHS == 0:
+  if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
     model.save_weights('./out/gradtype-' + str(end_epoch) + '.h5')
 
-  if i % VISUALIZE_EPOCHS == 0:
+  if end_epoch % VISUALIZE_EPOCHS == 0:
+    print("Visualizing PCA...")
     visualize.pca(siamese, datasets, end_epoch)
-
