@@ -1,7 +1,8 @@
 import math
 import numpy as np
-import os.path
+import os
 import random
+import re
 import struct
 
 import keras.layers
@@ -245,16 +246,29 @@ def generate_dummy(triples):
   return np.zeros([ triples['anchor_codes'].shape[0], FEATURE_COUNT ])
 
 start_epoch = 0
-for i in range(0, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
+
+weight_files = [ name for name in os.listdir('./out') if name.endswith('.h5') ]
+
+saved_epochs = []
+weight_file_re = re.compile(r"^gradtype-(\d+)\.h5$")
+for name in weight_files:
+  match = weight_file_re.match(name)
+  if match == None:
+    continue
+  saved_epochs.append({ 'name': name, 'epoch': int(match.group(1)) })
+saved_epochs.sort(key=lambda entry: entry['epoch'], reverse=True)
+
+for save in saved_epochs:
   try:
-    model.load_weights('./out/gradtype-' + str(i) + '.h5')
+    model.load_weights(os.path.join('./out', save['name']))
   except IOError:
-    break
-  start_epoch = i
+    continue
+  start_epoch = save['epoch']
+  print("Loaded weights from " + save['name'])
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
-    TensorBoard(histogram_freq=500, write_graph=False, embeddings_freq=500)
+    TensorBoard(histogram_freq=500, write_graph=False)
   ]
 
   triples = generate_triples(train_datasets)
@@ -266,5 +280,5 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
       validation_data=(val_triples, generate_dummy(val_triples)))
 
   if i % SAVE_EPOCHS == 0:
-    print("Saving...')
+    print("Saving...")
     model.save_weights('./out/gradtype-' + str(i + RESHUFFLE_EPOCHS) + '.h5')
