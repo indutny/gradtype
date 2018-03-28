@@ -9,7 +9,8 @@ import keras.preprocessing
 from keras import backend as K
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
-from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM
+from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM, \
+  GaussianNoise
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR=28
@@ -142,8 +143,8 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   model = Sequential()
 
-  model.add(LSTM(128, input_shape=input_shape, dropout=0.5,
-                      recurrent_dropout=0.5))
+  model.add(GaussianNoise(0.1, input_shape=input_shape))
+  model.add(LSTM(128, dropout=0.5, recurrent_dropout=0.5))
 
   model.add(Dense(128, activation='relu'))
   model.add(Dropout(0.5))
@@ -172,7 +173,7 @@ def create_model():
 
   return Model(inputs=[ anchor, positive, negative ], outputs=merge)
 
-adam = Adam(lr=0.0001)
+adam = Adam(lr=0.001)
 
 model = create_model()
 model.compile(adam, loss=triple_loss, metrics=[
@@ -187,7 +188,7 @@ for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
-  model.fit(x=triples, y=generate_dummy(triples), batch_size=32,
+  model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
       epochs=CONTINUOUS_EPOCHS,
       validation_data=(val_triples, generate_dummy(val_triples)))
   model.save('./out/gradtype-' + str(i) + '.h5')
