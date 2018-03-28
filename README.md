@@ -5,7 +5,7 @@
 Submitting data to this project takes 2-3 minutes. If you'd like to do this -
 please follow the instructions below:
 
-1. Visit https://github.com/indutny/gradtype on your laptop/desktop
+1. Visit https://indutny.github.io/gradtype/ on your laptop/desktop
 2. Type 20-30 sentences terminated by dot (`.`) as they are displayed on the
    screen. _(NOTE: spelling is not important, so don't worry about getting
    everything right)_
