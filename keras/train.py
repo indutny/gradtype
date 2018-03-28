@@ -175,7 +175,7 @@ def create_model():
 adam = Adam(lr=0.0001)
 
 model = create_model()
-model.compile('adam', loss=triple_loss, metrics=[
+model.compile(adam, loss=triple_loss, metrics=[
   pmean, pvar,
   nmean, nvar
 ])
