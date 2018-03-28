@@ -11,12 +11,13 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
 from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU, \
-  GaussianNoise
+  Embedding
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = 27
 VALIDATE_PERCENT = 0.25
 
+EMBEDDING_DIM = 8
 FEATURE_COUNT = 128
 
 # Triple loss alpha
@@ -40,20 +41,21 @@ def parse_datasets():
       sequences = []
       for j in range(0, sequence_count):
         sequence_len = struct.unpack('<i', f.read(4))[0]
-        sequence = []
+        codes = []
+        deltas = []
         for k in range(0, sequence_len):
-          row = np.zeros(MAX_CHAR + 2, dtype='float32')
           code = struct.unpack('<i', f.read(4))[0]
           delta = struct.unpack('f', f.read(4))[0]
 
-          if code + 1 >= len(row):
+          if code < -1 or code > MAX_CHAR:
             print("Invalid code " + str(code))
             raise
-          elif code != -1:
-            row[0] = delta
-            row[code + 1] = 1
-          sequence.append(row)
-        sequences.append(np.array(sequence, dtype='float32'))
+
+          codes.append(code + 1)
+          deltas.append(delta)
+        codes = np.array(codes, dtype='int32')
+        deltas = np.array(deltas, dtype='float32')
+        sequences.append({ 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
   return datasets
 
@@ -62,16 +64,16 @@ def split_datasets(datasets):
   validate = []
   for ds in datasets:
     split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
-    train.append(np.array(ds[split_i:]))
-    validate.append(np.array(ds[0:split_i]))
+    train.append(ds[split_i:])
+    validate.append(ds[0:split_i])
   return (train, validate)
 
 print('Loading dataset')
 datasets = parse_datasets()
-sequence_len = len(datasets[0][0])
+sequence_len = len(datasets[0][0]['codes'])
 train_datasets, validate_datasets = split_datasets(datasets)
 
-input_shape = (sequence_len, MAX_CHAR + 2,)
+input_shape = (sequence_len,)
 
 def generate_triples(datasets):
   # TODO(indutny): use model to find better triples
@@ -99,10 +101,18 @@ def generate_triples(datasets):
       positive_list.append(positive)
       negative_list.append(negative)
 
+  def get_codes(item_list):
+    return np.array(list(map(lambda item: item['codes'], item_list)))
+  def get_deltas(item_list):
+    return np.array(list(map(lambda item: item['deltas'], item_list)))
+
   return {
-    'anchor': np.array(anchor_list),
-    'positive': np.array(positive_list),
-    'negative': np.array(negative_list)
+    'anchor_codes': get_codes(anchor_list),
+    'anchor_deltas': get_deltas(anchor_list),
+    'positive_codes': get_codes(positive_list),
+    'positive_deltas': get_deltas(positive_list),
+    'negative_codes': get_codes(negative_list),
+    'negative_deltas': get_deltas(negative_list),
   }
 
 #
@@ -147,42 +157,66 @@ def accuracy(y_true, y_pred):
       negative_distance2(y_pred) - positive_distance2(y_pred),
       0.0))
 
+class JoinInputs(keras.layers.Layer):
+  def call(self, inputs):
+    return K.concatenate([ inputs[0], K.expand_dims(inputs[1], axis=-1) ])
+
+  def compute_output_shape(self, input_shapes):
+    first = input_shapes[0]
+    return (first[0], first[1], first[2] + 1)
+
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     return K.l2_normalize(x, axis=1)
 
 def create_siamese():
-  model = Sequential()
+  codes = Input(shape=input_shape, dtype='int32', name='codes')
+  deltas = Input(shape=input_shape, name='deltas')
 
-  model.add(GaussianNoise(0.1, name='input_noise', input_shape=input_shape))
-  model.add(GRU(128, dropout=0.5, recurrent_dropout=0.5))
+  embedded_codes = Embedding(MAX_CHAR + 2, EMBEDDING_DIM)(codes)
+  joint_input = JoinInputs()([ embedded_codes, deltas ])
 
-  model.add(Dense(128, name='l1', activation='relu'))
+  x = GRU(128, dropout=0.5, recurrent_dropout=0.5)(joint_input)
+  x = Dense(128, name='l1', activation='relu')(x)
 
-  model.add(Dropout(0.5))
-  model.add(Dense(FEATURE_COUNT, name='features'))
-  model.add(NormalizeToSphere(name='normalize'))
-
-  return model
+  x = Dropout(0.5)(x)
+  x = Dense(FEATURE_COUNT, name='features')(x)
+  output = NormalizeToSphere(name='normalize')(x)
+  return Model(inputs=[ codes, deltas ], outputs=output)
 
 def create_model():
   siamese = create_siamese()
 
-  anchor = Input(shape=input_shape, name='anchor')
-  positive = Input(shape=input_shape, name='positive')
-  negative = Input(shape=input_shape, name = 'negative')
+  anchor = {
+    'codes': Input(shape=input_shape, dtype='int32', name='anchor_codes'),
+    'deltas': Input(shape=input_shape, name='anchor_deltas')
+  }
+  positive = {
+    'codes': Input(shape=input_shape, dtype='int32', name='positive_codes'),
+    'deltas': Input(shape=input_shape, name='positive_deltas')
+  }
+  negative = {
+    'codes': Input(shape=input_shape, dtype='int32', name='negative_codes'),
+    'deltas': Input(shape=input_shape, name='negative_deltas')
+  }
 
-  anchor_activations = siamese(anchor)
-  positive_activations = siamese(positive)
-  negative_activations = siamese(negative)
+  anchor_activations = siamese([ anchor['codes'], anchor['deltas'] ])
+  positive_activations = siamese([ positive['codes'], positive['deltas'] ])
+  negative_activations = siamese([ negative['codes'], negative['deltas'] ])
 
-  merge = keras.layers.concatenate([
+  inputs = [
+    anchor['codes'], anchor['deltas'],
+    positive['codes'], positive['deltas'],
+    negative['codes'], negative['deltas'],
+  ]
+
+  outputs = keras.layers.concatenate([
     anchor_activations,
     positive_activations,
     negative_activations
   ], axis=-1)
 
-  return Model(inputs=[ anchor, positive, negative ], outputs=merge)
+  return Model(inputs=inputs, outputs=outputs)
 
 adam = Adam(lr=0.001)
 
@@ -194,7 +228,7 @@ model.compile(adam, loss=triple_loss, metrics=[
 ])
 
 def generate_dummy(triples):
-  return np.zeros([ triples['anchor'].shape[0], FEATURE_COUNT ])
+  return np.zeros([ triples['anchor_codes'].shape[0], FEATURE_COUNT ])
 
 start_epoch = 0
 for i in range(0, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
@@ -209,7 +243,6 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
     TensorBoard(histogram_freq=10)
   ]
 
-  print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
   model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
