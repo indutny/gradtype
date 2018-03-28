@@ -159,11 +159,24 @@ def accuracy(y_true, y_pred):
 
 class JoinInputs(keras.layers.Layer):
   def call(self, inputs):
+    if not isinstance(inputs, list):
+      raise ValueError('`inputs` should be a list.')
     return K.concatenate([ inputs[0], K.expand_dims(inputs[1], axis=-1) ])
 
   def compute_output_shape(self, input_shapes):
+    if not isinstance(input_shapes, list):
+      raise ValueError('`input_shapes` should be a list.')
     first = input_shapes[0]
     return (first[0], first[1], first[2] + 1)
+
+  def compute_mask(self, inputs, masks=None):
+    if masks is None:
+      return None
+    if not isinstance(masks, list):
+      raise ValueError('`masks` should be a list.')
+    if not masks[1] is None:
+      raise ValueError('`masks[1]` should be None.')
+    return masks[0]
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
@@ -173,7 +186,7 @@ def create_siamese():
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
-  embedded_codes = Embedding(MAX_CHAR + 2, EMBEDDING_DIM)(codes)
+  embedded_codes = Embedding(MAX_CHAR + 2, EMBEDDING_DIM, mask_zero=True)(codes)
   joint_input = JoinInputs()([ embedded_codes, deltas ])
 
   x = GRU(128, dropout=0.5, recurrent_dropout=0.5)(joint_input)
