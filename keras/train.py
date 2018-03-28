@@ -9,6 +9,7 @@ import keras.preprocessing
 from keras import backend as K
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
+from keras.callbacks import TensorBoard
 from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM, \
   GaussianNoise
 
@@ -184,11 +185,16 @@ model.compile(adam, loss=triple_loss, metrics=[
 def generate_dummy(triples):
   return np.zeros([ triples['anchor'].shape[0], FEATURE_COUNT ])
 
+callbacks = [
+  TensorBoard()
+]
+
 for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
   model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
       epochs=CONTINUOUS_EPOCHS,
+      callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
   model.save('./out/gradtype-' + str(i) + '.h5')
