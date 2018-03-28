@@ -141,7 +141,7 @@ def nvar(y_true, y_pred):
 
 def accuracy(y_true, y_pred):
   return K.mean(K.greater(
-      positive_distance2(y_pred) - negative_distance2(y_pred),
+      negative_distance2(y_pred) - positive_distance2(y_pred),
       0.0))
 
 class NormalizeToSphere(keras.layers.Layer):
