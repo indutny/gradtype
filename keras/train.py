@@ -193,9 +193,9 @@ for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
-  model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
+  model.fit(x=triples, y=generate_dummy(triples), batch_size=1024,
       initial_epoch=i,
-      epochs=CONTINUOUS_EPOCHS,
+      epochs=i + CONTINUOUS_EPOCHS,
       callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
   model.save('./out/gradtype-' + str(i) + '.h5')
