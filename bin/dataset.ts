@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import { Dataset, Output } from '../src/dataset';
 
-const MAX_SEQUENCE_LEN = 25;
+const MAX_SEQUENCE_LEN = 40;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
