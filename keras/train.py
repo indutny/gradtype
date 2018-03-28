@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import re
-import dataset
 
 import keras.layers
 import keras.preprocessing
@@ -11,6 +10,10 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
 from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU, \
   Embedding
+
+# Internals
+import dataset
+import visualize
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = 27
@@ -26,7 +29,12 @@ TOTAL_EPOCHS = 2000000
 
 # Number of epochs before reshuffling triples
 RESHUFFLE_EPOCHS = 50
+
+# Save weights every `SAVE_EPOCHS` epochs
 SAVE_EPOCHS = 500
+
+# Number of epochs before generating image
+VISUALIZE_EPOCHS = 500
 
 #
 # Input parsing below
@@ -121,9 +129,9 @@ def create_siamese():
   output = NormalizeToSphere(name='normalize')(x)
   return Model(inputs=[ codes, deltas ], outputs=output)
 
-def create_model():
-  siamese = create_siamese()
+siamese = create_siamese()
 
+def create_model():
   anchor = {
     'codes': Input(shape=input_shape, dtype='int32', name='anchor_codes'),
     'deltas': Input(shape=input_shape, name='anchor_deltas')
@@ -193,15 +201,20 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
     TensorBoard(histogram_freq=500, write_graph=False)
   ]
+  end_epoch = i + RESHUFFLE_EPOCHS
 
   triples = dataset.gen_triples(train_datasets)
   val_triples = dataset.gen_triples(validate_datasets)
   model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
       initial_epoch=i,
-      epochs=i + RESHUFFLE_EPOCHS,
+      epochs=end_epoch,
       callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
 
   if i % SAVE_EPOCHS == 0:
     print("Saving...")
-    model.save_weights('./out/gradtype-' + str(i + RESHUFFLE_EPOCHS) + '.h5')
+    model.save_weights('./out/gradtype-' + str(end_epoch) + '.h5')
+
+  if i % VISUALIZE_EPOCHS == 0:
+    visualize.pca(siamese, datasets, end_epoch)
+
