@@ -214,7 +214,8 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
-    model.save_weights('./out/gradtype-' + str(end_epoch) + '.h5')
+    fname = './out/gradtype-{:06d}.h5'.format(end_epoch)
+    model.save_weights(fname)
 
   if end_epoch % VISUALIZE_EPOCHS == 0:
     print("Visualizing PCA...")
