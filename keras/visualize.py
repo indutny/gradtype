@@ -22,9 +22,9 @@ def pca(model, datasets, epoch):
   ax = Axes3D(fig, elev=-150, azim=110)
   pca = sklearn.decomposition.PCA(n_components=3)
 
-  ax.set_xlim(left=-1.5, right=1.5)
-  ax.set_ylim(bottom=-1.5, top=1.5)
-  ax.set_zlim(bottom=-1.5, top=1.5)
+  ax.set_xlim(left=-1.2, right=1.2)
+  ax.set_ylim(bottom=-1.2, top=1.2)
+  ax.set_zlim(bottom=-1.2, top=1.2)
 
   res = dataset.apply_model(model, datasets)
 

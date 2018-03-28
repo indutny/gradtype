@@ -5,6 +5,12 @@ import random
 import struct
 import json
 
+# Max attempts per candidate
+TRIPLE_MAX_ATTEMPTS = 3
+
+# Max attempts per dataset
+TRIPLE_MAX_NEGATIVE_ATTEMPTS = 3
+
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
 with open(index_json, 'r') as f:
@@ -40,10 +46,18 @@ def parse(max_char):
 def split(datasets, percent):
   train = []
   validate = []
-  for ds in datasets:
+
+  ds_split_i = int(math.floor(percent * len(datasets)))
+
+  # Add some datasets that wouldn't be on the training list at all
+  for ds in datasets[:ds_split_i]:
+    validate.append(ds)
+
+  for ds in datasets[ds_split_i:]:
     split_i = int(math.floor(percent * len(ds)))
     train.append(ds[split_i:])
     validate.append(ds[0:split_i])
+
   return (train, validate)
 
 def apply_model(model, datasets):
@@ -69,31 +83,74 @@ def apply_model(model, datasets):
     result.append(coordinates[offsets[0]:offsets[1]])
   return result
 
-def gen_triplets(model, datasets):
-  # TODO(indutny): use model to find better triplets
+def best_triplet_candidate(kind, anchor_feature, target_features):
+  best_distance = 0 if kind is 'positive' else math.inf
+  best_index = None
+  for i in range(0, TRIPLE_MAX_ATTEMPTS):
+    pick = random.randrange(0, len(target_features))
 
-  # Shuffle sequences in datasets first
-  for ds in datasets:
-    np.random.shuffle(ds)
+    distance = np.square(anchor_feature - target_features[pick]).sum(axis=-1)
+    distance = np.sqrt(distance)
+
+    # Find positives that are currently as far as possible
+    if kind is 'positive':
+      update = distance > best_distance
+
+    # Find negatives that are as close as possible
+    else:
+      update = distance < best_distance
+
+    if update:
+      best_distance = distance
+      best_index = pick
+  return ( best_index, best_distance )
+
+def gen_triplets(model, datasets):
+  features = apply_model(model, datasets)
 
   anchor_list = []
   positive_list = []
   negative_list = []
-  for i in range(0, len(datasets) - 1):
+  for i in range(0, len(datasets)):
     anchor_ds = datasets[i]
-    negative_i = 0
-    for j in range(0, len(anchor_ds) - 1, 2):
-      anchor = anchor_ds[j]
-      positive = anchor_ds[j + 1]
-      negative_ds = datasets[random.randrange(i + 1, len(datasets))]
-      if negative_i >= len(negative_ds):
-        break
-      negative = negative_ds[negative_i]
-      negative_i += 1
+    anchor_ds_features = features[i]
 
-      anchor_list.append(anchor)
-      positive_list.append(positive)
-      negative_list.append(negative)
+    for j in range(0, len(anchor_ds)):
+      anchor_features = anchor_ds_features[j]
+      while True:
+        positive_index, positive_distance  = best_triplet_candidate('positive',
+            anchor_features,
+            anchor_ds_features)
+        # Make sure we don't emit positive==anchor. Unlikely, but possible
+        if positive_index != j:
+          break
+
+      attempts = 0
+      best_negative_index = 0
+      best_negative_distance = math.inf
+      best_negative_ds = None
+      while True:
+        negative_ds_index = random.randrange(0, len(datasets))
+        if negative_ds_index == i:
+          continue
+
+        negative_ds_features = features[negative_ds_index]
+        negative_index, negative_distance = best_triplet_candidate('negative',
+            anchor_features, negative_ds_features)
+
+        if negative_distance < best_negative_distance:
+          best_negative_distance = negative_distance
+          best_negative_index = negative_index
+          best_negative_ds = datasets[negative_ds_index]
+
+        attempts += 1
+        if attempts >= TRIPLE_MAX_NEGATIVE_ATTEMPTS:
+          break
+
+      # Now we have both positive and negative sequences - emit!
+      anchor_list.append(anchor_ds[j])
+      positive_list.append(anchor_ds[positive_index])
+      negative_list.append(best_negative_ds[best_negative_index])
 
   def get_codes(item_list):
     return np.array(list(map(lambda item: item['codes'], item_list)))

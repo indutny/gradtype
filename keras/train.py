@@ -29,10 +29,10 @@ TOTAL_EPOCHS = 2000000
 RESHUFFLE_EPOCHS = 50
 
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 500
+SAVE_EPOCHS = 100
 
 # Number of epochs before generating image
-VISUALIZE_EPOCHS = 250
+VISUALIZE_EPOCHS = 50
 
 #
 # Input parsing below
@@ -206,7 +206,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
   triplets = dataset.gen_triplets(siamese, train_datasets)
   val_triplets = dataset.gen_triplets(siamese, validate_datasets)
-  model.fit(x=triplets, y=generate_dummy(triplets), batch_size=256,
+  model.fit(x=triplets, y=generate_dummy(triplets), batch_size=1024,
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
