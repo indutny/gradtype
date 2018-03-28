@@ -23,7 +23,9 @@ FEATURE_COUNT = 128
 ALPHA = 0.1
 
 TOTAL_EPOCHS = 50000
-CONTINUOUS_EPOCHS = 200
+
+# Number of epochs before reshuffling triples
+RESHUFFLE_EPOCHS = 50
 
 #
 # Input parsing below
@@ -132,18 +134,22 @@ def pmean(y_true, y_pred):
   return K.mean(positive_distance(y_pred))
 
 def pvar(y_true, y_pred):
-  return K.var(positive_distance(y_pred))
+  return K.var(positive_distance(y_pred)) / pmean(y_true, y_pred)
 
 def nmean(y_true, y_pred):
   return K.mean(negative_distance(y_pred))
 
 def nvar(y_true, y_pred):
-  return K.var(negative_distance(y_pred))
+  return K.var(negative_distance(y_pred)) / nmean(y_true, y_pred)
 
 def accuracy(y_true, y_pred):
   return K.mean(K.greater(
       negative_distance2(y_pred) - positive_distance2(y_pred),
       0.0))
+
+class NormalizeToSphere(keras.layers.Layer):
+  def call(self, x):
+    return K.l2_normalize(x, axis=1)
 
 def create_siamese():
   model = Sequential()
@@ -154,7 +160,8 @@ def create_siamese():
   model.add(Dense(128, name='l1', activation='relu'))
 
   model.add(Dropout(0.5))
-  model.add(Dense(FEATURE_COUNT, name='features', activation='relu'))
+  model.add(Dense(FEATURE_COUNT, name='features'))
+  model.add(NormalizeToSphere(name='normalize'))
 
   return model
 
@@ -189,7 +196,15 @@ model.compile(adam, loss=triple_loss, metrics=[
 def generate_dummy(triples):
   return np.zeros([ triples['anchor'].shape[0], FEATURE_COUNT ])
 
-for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
+start_epoch = 0
+for i in range(0, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
+  try:
+    model.load_weights('./out/gradtype-' + str(i) + '.h5')
+  except OSError:
+    break
+  start_epoch = i
+
+for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
     TensorBoard(histogram_freq=10)
   ]
@@ -199,7 +214,7 @@ for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   val_triples = generate_triples(validate_datasets)
   model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
       initial_epoch=i,
-      epochs=i + CONTINUOUS_EPOCHS,
+      epochs=i + RESHUFFLE_EPOCHS,
       callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
-  model.save('./out/gradtype-' + str(i) + '.h5')
+  model.save_weights('./out/gradtype-' + str(i + RESHUFFLE_EPOCHS) + '.h5')
