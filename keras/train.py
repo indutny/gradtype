@@ -22,7 +22,7 @@ FEATURE_COUNT = 128
 # Triple loss alpha
 ALPHA = 0.1
 
-TOTAL_EPOCHS = 50000
+TOTAL_EPOCHS = 2000000
 
 # Number of epochs before reshuffling triples
 RESHUFFLE_EPOCHS = 50
