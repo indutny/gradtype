@@ -55,24 +55,29 @@ input_shape = (sequence_len,)
 def positive_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - positive), axis=1)
+  return K.sum(K.square(2 * anchor - positive), axis=1)
 
 def negative_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - negative), axis=1)
+  return K.sum(K.square(2 * anchor - negative), axis=1)
 
-# Probably don't use these two in learning
-def positive_distance(y_pred):
-  return K.sqrt(positive_distance2(y_pred) + K.epsilon())
-
-def negative_distance(y_pred):
-  return K.sqrt(negative_distance2(y_pred) + K.epsilon())
-
+# Loss function from https://arxiv.org/pdf/1611.05301.pdf
 # See: https://arxiv.org/pdf/1412.6622.pdf
 def triplet_loss(y_true, y_pred):
   return K.maximum(0.0,
       positive_distance2(y_pred) - negative_distance2(y_pred) + ALPHA)
+
+# Probably don't use these two in learning
+def positive_distance(y_pred):
+  anchor = y_pred[:, 0:FEATURE_COUNT]
+  positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
+  return K.sqrt(K.sum(K.square(anchor - positive), axis=1) + K.epsilon())
+
+def negative_distance(y_pred):
+  anchor = y_pred[:, 0:FEATURE_COUNT]
+  negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
+  return K.sqrt(K.sum(K.square(anchor - negative), axis=1) + K.epsilon())
 
 def pmean(y_true, y_pred):
   return K.mean(positive_distance(y_pred))
@@ -88,7 +93,7 @@ def nvar(y_true, y_pred):
 
 def accuracy(y_true, y_pred):
   return K.mean(K.greater(
-      negative_distance2(y_pred) - positive_distance2(y_pred),
+      negative_distance(y_pred) - positive_distance(y_pred),
       0.0))
 
 class JoinInputs(keras.layers.Layer):
