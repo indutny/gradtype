@@ -64,7 +64,7 @@ datasets = parse_datasets()
 sequence_len = len(datasets[0][0])
 train_datasets, validate_datasets = split_datasets(datasets)
 
-input_shape = (sequence_len, MAX_CHAR + 2)
+input_shape = (sequence_len, MAX_CHAR + 2,)
 
 def generate_triples(datasets):
   # TODO(indutny): use model to find better triples
@@ -146,14 +146,14 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   model = Sequential()
 
-  model.add(GaussianNoise(0.1, input_shape=input_shape))
+  model.add(GaussianNoise(0.1, name='input_noise', input_shape=input_shape))
   model.add(LSTM(128, dropout=0.5, recurrent_dropout=0.5))
 
-  model.add(Dense(128, activation='relu'))
+  model.add(Dense(128, name='l1', activation='relu'))
   model.add(Dropout(0.5))
 
-  model.add(Dense(FEATURE_COUNT, activation='linear'))
-  model.add(NormalizeToSphere())
+  model.add(Dense(FEATURE_COUNT, name='features', activation='linear'))
+  model.add(NormalizeToSphere(name='normalize_to_sphere'))
 
   return model
 
