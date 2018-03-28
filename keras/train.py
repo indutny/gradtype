@@ -200,7 +200,7 @@ start_epoch = 0
 for i in range(0, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   try:
     model.load_weights('./out/gradtype-' + str(i) + '.h5')
-  except OSError:
+  except IOError:
     break
   start_epoch = i
 
