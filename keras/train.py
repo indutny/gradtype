@@ -40,9 +40,11 @@ def parse_datasets():
         sequence_len = struct.unpack('<i', f.read(4))[0]
         sequence = []
         for k in range(0, sequence_len):
-          row = np.zeros(MAX_CHAR + 1, dtype='float32')
+          row = np.zeros(MAX_CHAR + 2, dtype='float32')
           code = struct.unpack('<i', f.read(4))[0]
-          row[code] = struct.unpack('f', f.read(4))[0]
+          delta = struct.unpack('f', f.read(4))[0]
+          row[code] = delta
+          row[code + 1] = 1
           sequence.append(row)
         sequences.append(np.array(sequence, dtype='float32'))
       datasets.append(sequences)
@@ -62,7 +64,7 @@ datasets = parse_datasets()
 sequence_len = len(datasets[0][0])
 train_datasets, validate_datasets = split_datasets(datasets)
 
-input_shape = (sequence_len, MAX_CHAR + 1)
+input_shape = (sequence_len, MAX_CHAR + 2)
 
 def generate_triples(datasets):
   # TODO(indutny): use model to find better triples
