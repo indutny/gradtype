@@ -18,7 +18,7 @@ def pca(model, datasets, epoch):
   except:
     None
 
-  fig = plt.figure(1, figsize=(16, 16))
+  fig = plt.figure(1, figsize=(8, 6))
   ax = Axes3D(fig, elev=-150, azim=110)
   pca = sklearn.decomposition.PCA(n_components=3)
 
@@ -68,4 +68,3 @@ def pca(model, datasets, epoch):
   fname = './images/pca/{:06d}.png'.format(epoch)
   plt.savefig(fname=fname)
   print("Saved image to " + fname)
-  exit(0)
