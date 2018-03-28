@@ -135,6 +135,11 @@ def nmean(y_true, y_pred):
 def nvar(y_true, y_pred):
   return K.var(negative_distance(y_pred))
 
+def accuracy(y_true, y_pred):
+  return K.mean(K.greater(
+      positive_distance2(y_pred) - negative_distance2(y_pred),
+      0.0))
+
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     norm = K.sqrt(K.sum(K.square(x), axis=1) + K.epsilon())
@@ -181,7 +186,8 @@ adam = Adam(lr=0.001)
 model = create_model()
 model.compile(adam, loss=triple_loss, metrics=[
   pmean, pvar,
-  nmean, nvar
+  nmean, nvar,
+  accuracy
 ])
 
 def generate_dummy(triples):
