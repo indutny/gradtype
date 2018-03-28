@@ -1,25 +1,20 @@
 #!/usr/bin/env npx ts-node
 
+import * as assert from 'assert';
 import { Buffer } from 'buffer';
 import * as fs from 'fs';
 import * as path from 'path';
 
 import { Dataset, Output } from '../src/dataset';
 
+const MAX_SEQUENCE_LEN = 25;
+
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
 
-function encodeSequence(sequence, length) {
-  if (sequence.length > length) {
-    sequence = sequence.slice(0, length);
-  } else if (sequence.length < length) {
-    sequence = sequence.concat(new Array(length - sequence.length).fill({
-      code: 0,
-      delta: 0,
-    }));
-  }
+function encodeSequence(sequence) {
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
   for (let i = 0; i < sequence.length; i++) {
@@ -32,7 +27,7 @@ function encodeSequence(sequence, length) {
 let mean = 0;
 let count = 0;
 
-const datasets = labels.map((name) => {
+let datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
   return {
     data: JSON.parse(fs.readFileSync(file).toString()),
@@ -52,8 +47,45 @@ const datasets = labels.map((name) => {
   };
 });
 
+
+// Expand
 mean /= count;
 mean = Math.ceil(mean);
+datasets = datasets.map((ds) => {
+  const sequences = [];
+  const max = Math.min(mean, MAX_SEQUENCE_LEN);
+
+  function pad(sequence, length) {
+    if (sequence.length > length) {
+      return sequence.slice(0, length);
+    } else if (sequence.length < length) {
+      return sequence.concat(new Array(length - sequence.length).fill({
+        code: 0,
+        delta: 0,
+      }));
+    } else {
+      return sequence;
+    }
+  }
+
+  ds.sequences.forEach((seq) => {
+    if (seq.length <= max) {
+      sequences.push(seq);
+      return;
+    }
+
+    for (let i = 0; i < seq.length - max; i++) {
+      const slice = seq.slice(i, i + max);
+      assert.strictEqual(slice.length, max);
+      sequences.push(seq.slice(i, i + max));
+    }
+  });
+
+  return {
+    name: ds.name,
+    sequences: sequences.map((seq) => pad(seq, max)),
+  }
+});
 
 try {
   fs.mkdirSync(OUT_DIR);
@@ -73,7 +105,7 @@ datasets.forEach((ds) => {
   fs.writeSync(fd, count);
 
   for (const seq of ds.sequences) {
-    fs.writeSync(fd, encodeSequence(seq, mean));
+    fs.writeSync(fd, encodeSequence(seq));
   }
 });
 fs.closeSync(fd);
