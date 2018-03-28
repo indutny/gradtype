@@ -23,7 +23,7 @@ FEATURE_COUNT = 128
 ALPHA = 0.1
 
 TOTAL_EPOCHS = 50000
-CONTINUOUS_EPOCHS = 100
+CONTINUOUS_EPOCHS = 1000
 
 #
 # Input parsing below
@@ -185,11 +185,11 @@ model.compile(adam, loss=triple_loss, metrics=[
 def generate_dummy(triples):
   return np.zeros([ triples['anchor'].shape[0], FEATURE_COUNT ])
 
-callbacks = [
-  TensorBoard()
-]
-
 for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
+  callbacks = [
+    TensorBoard(histogram_freq=10)
+  ]
+
   print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
