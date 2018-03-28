@@ -11,7 +11,15 @@ const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
 
-function encodeSeq(sequence) {
+function encodeSequence(sequence, length) {
+  if (sequence.length > length) {
+    sequence = sequence.slice(0, length);
+  } else if (sequence.length < length) {
+    sequence = sequence.concat(new Array(length - sequence.length).fill({
+      code: 0,
+      delta: 0,
+    }));
+  }
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
   for (let i = 0; i < sequence.length; i++) {
@@ -20,6 +28,9 @@ function encodeSeq(sequence) {
   }
   return enc;
 }
+
+let mean = 0;
+let count = 0;
 
 const datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
@@ -32,9 +43,17 @@ const datasets = labels.map((name) => {
 
   return {
     name: entry.name,
-    sequences: d.generate(entry.data).map((sequence) => encodeSeq(sequence)),
+    sequences: d.generate(entry.data).map((sequence) => {
+      mean += sequence.length;
+      count++;
+
+      return sequence;
+    }),
   };
 });
+
+mean /= count;
+mean = Math.ceil(mean);
 
 try {
   fs.mkdirSync(OUT_DIR);
@@ -54,7 +73,7 @@ datasets.forEach((ds) => {
   fs.writeSync(fd, count);
 
   for (const seq of ds.sequences) {
-    fs.writeSync(fd, seq);
+    fs.writeSync(fd, encodeSequence(seq, mean));
   }
 });
 fs.closeSync(fd);

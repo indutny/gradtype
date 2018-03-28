@@ -1,14 +1,18 @@
+import math
 import numpy as np
 import os.path
+import random
 import struct
 
 import keras.layers
+import keras.preprocessing
 from keras import backend as K
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, Dropout, BatchNormalization
+from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM
 
-# [ prev char, next_char, normalized delta or one hot ]
-INPUT_SHAPE=(29 * 29 * 2,)
+# This must match the constant in `src/dataset.ts`
+MAX_CHAR=28
+VALIDATE_PERCENT = 0.25
 
 FEATURE_COUNT = 128
 
@@ -22,52 +26,72 @@ CONTINUOUS_EPOCHS = 100
 # Input parsing below
 #
 
-def parse_raw_single(name):
-  with open(name, 'rb') as f:
-    tables = []
-    while True:
-      word = f.read(4)
-      if len(word) == 0:
-        break
-      size = struct.unpack('<i', word)[0]
-      line = struct.unpack('f' * size, f.read(size * 4))
-      line = np.array(line, dtype='float32')
-      tables.append(line)
-    return np.stack(tables)
+def parse_datasets():
+  datasets = []
+  with open('./out/lstm.raw', 'rb') as f:
+    dataset_count = struct.unpack('<i', f.read(4))[0]
+    for i in range(0, dataset_count):
+      sequence_count = struct.unpack('<i', f.read(4))[0]
+      sequences = []
+      for j in range(0, sequence_count):
+        sequence_len = struct.unpack('<i', f.read(4))[0]
+        sequence = []
+        for k in range(0, sequence_len):
+          row = np.zeros(MAX_CHAR + 1, dtype='float32')
+          code = struct.unpack('<i', f.read(4))[0]
+          row[code] = struct.unpack('f', f.read(4))[0]
+          sequence.append(row)
+        sequences.append(np.array(sequence, dtype='float32'))
+      datasets.append(sequences)
+  return datasets
 
-def parse_dataset():
-  np_file = './out/dataset.npy.npz'
-  if os.path.isfile(np_file):
-    raw = np.load(np_file)
-  else:
-    train = parse_raw_single('./out/train.raw')
-    validate = parse_raw_single('./out/validate.raw')
-    np.savez_compressed(np_file, train=train, validate=validate)
-    raw = { 'train': train, 'validate': validate }
-
-  train = {
-    'anchor': raw['train'][0::3],
-    'positive': raw['train'][1::3],
-    'negative': raw['train'][2::3],
-  }
-
-  validate = {
-    'anchor': raw['validate'][0::3],
-    'positive': raw['validate'][1::3],
-    'negative': raw['validate'][2::3],
-  }
-
-  return { 'train': train, 'validate': validate }
-
-def create_dummy_y(subdataset):
-  return np.zeros([ subdataset['anchor'].shape[0], FEATURE_COUNT ])
+def split_datasets(datasets):
+  train = []
+  validate = []
+  for ds in datasets:
+    split_i = math.floor(VALIDATE_PERCENT * len(ds))
+    train.append(np.array(ds[split_i:]))
+    validate.append(np.array(ds[0:split_i]))
+  return (train, validate)
 
 print('Loading dataset')
-dataset = parse_dataset()
-dummy_y = {
-  'train': create_dummy_y(dataset['train']),
-  'validate': create_dummy_y(dataset['validate']),
-}
+datasets = parse_datasets()
+sequence_len = len(datasets[0][0])
+train_datasets, validate_datasets = split_datasets(datasets)
+
+input_shape = (sequence_len, MAX_CHAR + 1)
+
+def generate_triples(datasets):
+  # TODO(indutny): use model to find better triples
+
+  # Shuffle sequences in datasets first
+  for ds in datasets:
+    np.random.shuffle(ds)
+
+  anchor_list = []
+  positive_list = []
+  negative_list = []
+  for i in range(0, len(datasets) - 1):
+    anchor_ds = datasets[i]
+    negative_i = 0
+    for j in range(0, len(anchor_ds) - 1, 2):
+      anchor = anchor_ds[j]
+      positive = anchor_ds[j + 1]
+      negative_ds = datasets[random.randrange(i + 1, len(datasets))]
+      if negative_i >= len(negative_ds):
+        break
+      negative = negative_ds[negative_i]
+      negative_i += 1
+
+      anchor_list.append(anchor)
+      positive_list.append(positive)
+      negative_list.append(negative)
+
+  return {
+    'anchor': np.array(anchor_list),
+    'positive': np.array(positive_list),
+    'negative': np.array(negative_list)
+  }
 
 #
 # Network configuration
@@ -117,10 +141,8 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   model = Sequential()
 
-  model.add(Dropout(0.2, input_shape=INPUT_SHAPE))
-
-  model.add(Dense(512, activation='relu'))
-  model.add(Dropout(0.5))
+  model.add(LSTM(512, input_shape=input_shape, dropout=0.5,
+                      recurrent_dropout=0.2))
 
   model.add(Dense(256, activation='relu'))
   model.add(Dropout(0.5))
@@ -136,9 +158,9 @@ def create_siamese():
 def create_model():
   siamese = create_siamese()
 
-  anchor = Input(shape=INPUT_SHAPE, name='anchor')
-  positive = Input(shape=INPUT_SHAPE, name='positive')
-  negative = Input(shape=INPUT_SHAPE, name = 'negative')
+  anchor = Input(shape=input_shape, name='anchor')
+  positive = Input(shape=input_shape, name='positive')
+  negative = Input(shape=input_shape, name = 'negative')
 
   anchor_activations = siamese(anchor)
   positive_activations = siamese(positive)
@@ -158,9 +180,14 @@ model.compile('adam', loss=triple_loss, metrics=[
   nmean, nvar
 ])
 
+def generate_dummy(triples):
+  return np.zeros([ triples['anchor'].shape[0], FEATURE_COUNT ])
+
 for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   print('Run #' + str(i))
-  model.fit(x=dataset['train'], y=dummy_y['train'], batch_size=128,
+  triples = generate_triples(train_datasets)
+  val_triples = generate_triples(validate_datasets)
+  model.fit(x=triples, y=generate_dummy(triples), batch_size=128,
       epochs=CONTINUOUS_EPOCHS,
-      validation_data=(dataset['validate'], dummy_y['validate']))
+      validation_data=(val_triples, generate_dummy(val_triples)))
   model.save('./out/gradtype-' + str(i) + '.h5')
