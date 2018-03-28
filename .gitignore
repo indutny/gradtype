@@ -8,3 +8,4 @@ out/
 __pycache__/
 images/
 .DS_store
+*.mp4

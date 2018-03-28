@@ -39,8 +39,8 @@ def split(datasets, percent):
     validate.append(ds[0:split_i])
   return (train, validate)
 
-def gen_triples(datasets):
-  # TODO(indutny): use model to find better triples
+def gen_triplets(model, datasets):
+  # TODO(indutny): use model to find better triplets
 
   # Shuffle sequences in datasets first
   for ds in datasets:

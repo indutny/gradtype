@@ -28,7 +28,7 @@ ALPHA = 0.1
 
 TOTAL_EPOCHS = 2000000
 
-# Number of epochs before reshuffling triples
+# Number of epochs before reshuffling triplets
 RESHUFFLE_EPOCHS = 50
 
 # Save weights every `SAVE_EPOCHS` epochs
@@ -69,7 +69,8 @@ def positive_distance(y_pred):
 def negative_distance(y_pred):
   return K.sqrt(negative_distance2(y_pred) + K.epsilon())
 
-def triple_loss(y_true, y_pred):
+# See: https://arxiv.org/pdf/1412.6622.pdf
+def triplet_loss(y_true, y_pred):
   return K.maximum(0.0,
       positive_distance2(y_pred) - negative_distance2(y_pred) + ALPHA)
 
@@ -161,14 +162,14 @@ def create_model():
 adam = Adam(lr=0.001)
 
 model = create_model()
-model.compile(adam, loss=triple_loss, metrics=[
+model.compile(adam, loss=triplet_loss, metrics=[
   pmean, pvar,
   nmean, nvar,
   accuracy
 ])
 
-def generate_dummy(triples):
-  return np.zeros([ triples['anchor_codes'].shape[0], FEATURE_COUNT ])
+def generate_dummy(triplets):
+  return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
 
 start_epoch = 0
 
@@ -201,13 +202,13 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
-  triples = dataset.gen_triples(train_datasets)
-  val_triples = dataset.gen_triples(validate_datasets)
-  model.fit(x=triples, y=generate_dummy(triples), batch_size=256,
+  triplets = dataset.gen_triplets(siamese, train_datasets)
+  val_triplets = dataset.gen_triplets(siamese, validate_datasets)
+  model.fit(x=triplets, y=generate_dummy(triplets), batch_size=256,
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
-      validation_data=(val_triples, generate_dummy(val_triples)))
+      validation_data=(val_triplets, generate_dummy(val_triplets)))
 
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
