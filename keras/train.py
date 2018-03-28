@@ -8,6 +8,7 @@ import keras.layers
 import keras.preprocessing
 from keras import backend as K
 from keras.models import Model, Sequential
+from keras.optimizers import Adam
 from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM
 
 # This must match the constant in `src/dataset.ts`
@@ -141,13 +142,10 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   model = Sequential()
 
-  model.add(LSTM(512, input_shape=input_shape, dropout=0.5,
-                      recurrent_dropout=0.2))
+  model.add(LSTM(128, input_shape=input_shape, dropout=0.5,
+                      recurrent_dropout=0.5))
 
-  model.add(Dense(256, activation='relu'))
-  model.add(Dropout(0.5))
-
-  model.add(Dense(256, activation='relu'))
+  model.add(Dense(128, activation='relu'))
   model.add(Dropout(0.5))
 
   model.add(Dense(FEATURE_COUNT, activation='linear'))
@@ -173,6 +171,8 @@ def create_model():
   ], axis=-1)
 
   return Model(inputs=[ anchor, positive, negative ], outputs=merge)
+
+adam = Adam(lr=0.0001)
 
 model = create_model()
 model.compile('adam', loss=triple_loss, metrics=[
