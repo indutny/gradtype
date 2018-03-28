@@ -145,14 +145,6 @@ def accuracy(y_true, y_pred):
       negative_distance2(y_pred) - positive_distance2(y_pred),
       0.0))
 
-class NormalizeToSphere(keras.layers.Layer):
-  def call(self, x):
-    norm = K.sqrt(K.sum(K.square(x), axis=1) + K.epsilon())
-    return x / K.expand_dims(norm, 1)
-
-  def compute_output_shape(self, input_shape):
-    return input_shape
-
 def create_siamese():
   model = Sequential()
 
@@ -162,8 +154,7 @@ def create_siamese():
   model.add(Dense(128, name='l1', activation='relu'))
   model.add(Dropout(0.5))
 
-  model.add(Dense(FEATURE_COUNT, name='features', activation='linear'))
-  model.add(NormalizeToSphere(name='normalize_to_sphere'))
+  model.add(Dense(FEATURE_COUNT, name='features', activation='sigmoid'))
 
   return model
 
