@@ -265,6 +265,7 @@ for save in saved_epochs:
     continue
   start_epoch = save['epoch']
   print("Loaded weights from " + save['name'])
+  break
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
