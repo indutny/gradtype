@@ -18,9 +18,13 @@ def pca(model, datasets, epoch):
   except:
     None
 
-  fig = plt.figure(1, figsize=(8, 6))
+  fig = plt.figure(1, figsize=(16, 16))
   ax = Axes3D(fig, elev=-150, azim=110)
   pca = sklearn.decomposition.PCA(n_components=3)
+
+  ax.set_xlim(left=-1.5, right=1.5)
+  ax.set_ylim(bottom=-1.5, top=1.5)
+  ax.set_zlim(bottom=-1.5, top=1.5)
 
   res = dataset.apply_model(model, datasets)
 
@@ -46,7 +50,7 @@ def pca(model, datasets, epoch):
         fontsize=6,
         color=COLOR_MAP(i),
         horizontalalignment='center',
-        bbox=dict(alpha=.2, edgecolor=COLOR_MAP(i), facecolor='w'))
+        bbox=dict(alpha=.1, edgecolor=COLOR_MAP(i), facecolor='w'))
 
     colors += [ i ] * len(x)
     all_x.append(x)
@@ -64,3 +68,4 @@ def pca(model, datasets, epoch):
   fname = './images/pca/{:06d}.png'.format(epoch)
   plt.savefig(fname=fname)
   print("Saved image to " + fname)
+  exit(0)
