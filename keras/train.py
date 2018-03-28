@@ -214,7 +214,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
-    fname = './out/gradtype-{:06d}.h5'.format(end_epoch)
+    fname = './out/gradtype-{:08d}.h5'.format(end_epoch)
     model.save_weights(fname)
 
   if end_epoch % VISUALIZE_EPOCHS == 0:

@@ -65,6 +65,6 @@ def pca(model, datasets, epoch):
              cmap=COLOR_MAP, edgecolor='k', s=5, alpha=0.8, linewidths=0.0,
              edgecolors='none')
 
-  fname = './images/pca/{:06d}.png'.format(epoch)
+  fname = './images/pca/{:08d}.png'.format(epoch)
   plt.savefig(fname=fname)
   print("Saved image to " + fname)
