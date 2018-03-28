@@ -75,6 +75,7 @@ export class Dataset {
         yield reset();
         continue;
       }
+      assert(0 <= code && code <= MAX_CHAR);
 
       const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
 

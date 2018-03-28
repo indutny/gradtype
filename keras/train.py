@@ -14,7 +14,7 @@ from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM, \
   GaussianNoise
 
 # This must match the constant in `src/dataset.ts`
-MAX_CHAR=28
+MAX_CHAR = 27
 VALIDATE_PERCENT = 0.25
 
 FEATURE_COUNT = 128
@@ -44,11 +44,12 @@ def parse_datasets():
           code = struct.unpack('<i', f.read(4))[0]
           delta = struct.unpack('f', f.read(4))[0]
 
-          # Padding
-          if (code == -1):
-            continue
-          row[0] = delta
-          row[code + 1] = 1
+          if code + 1 >= len(row):
+            print("Invalid code " + str(code))
+            raise
+          elif code != -1:
+            row[0] = delta
+            row[code + 1] = 1
           sequence.append(row)
         sequences.append(np.array(sequence, dtype='float32'))
       datasets.append(sequences)
