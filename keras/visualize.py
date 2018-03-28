@@ -7,11 +7,11 @@ import sklearn.decomposition
 def pca(model, datasets, epoch):
   try:
     os.mkdir('./images')
-  except IOError:
+  except:
     None
   try:
     os.mkdir('./images/pca')
-  except IOError:
+  except:
     None
   colors = []
   coordinates = []

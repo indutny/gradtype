@@ -37,7 +37,7 @@ RESHUFFLE_EPOCHS = 50
 SAVE_EPOCHS = 500
 
 # Number of epochs before generating image
-VISUALIZE_EPOCHS = 500
+VISUALIZE_EPOCHS = 250
 
 #
 # Input parsing below
@@ -200,9 +200,12 @@ for save in saved_epochs:
   print("Loaded weights from " + save['name'])
   break
 
+print("Visualizing initial PCA...")
+visualize.pca(siamese, datasets, start_epoch)
+
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
-    TensorBoard(histogram_freq=500, write_graph=False)
+    TensorBoard(histogram_freq=2000, write_graph=False)
   ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
