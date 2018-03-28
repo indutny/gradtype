@@ -5,3 +5,4 @@ lib/
 gradtype.json
 *.csv
 out/
+__pycache__/
