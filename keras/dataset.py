@@ -1,7 +1,14 @@
 import math
+import os
 import numpy as np
 import random
 import struct
+import json
+
+package_directory = os.path.dirname(os.path.abspath(__file__))
+index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
+with open(index_json, 'r') as f:
+  LABELS = json.load(f)
 
 def parse(max_char):
   datasets = []
@@ -38,6 +45,29 @@ def split(datasets, percent):
     train.append(ds[split_i:])
     validate.append(ds[0:split_i])
   return (train, validate)
+
+def apply_model(model, datasets):
+  slice_offsets = []
+  codes = []
+  deltas = []
+
+  offset = 0
+  for i in range(0, len(datasets)):
+    start = offset
+    ds = datasets[i]
+    for seq in ds:
+      codes.append(seq['codes'])
+      deltas.append(seq['deltas'])
+      offset += 1
+    slice_offsets.append((start, offset))
+
+  codes = np.array(codes)
+  deltas = np.array(deltas)
+  coordinates = model.predict(x={ 'codes': codes, 'deltas': deltas })
+  result = []
+  for offsets in slice_offsets:
+    result.append(coordinates[offsets[0]:offsets[1]])
+  return result
 
 def gen_triplets(model, datasets):
   # TODO(indutny): use model to find better triplets

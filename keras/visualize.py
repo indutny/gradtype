@@ -1,40 +1,66 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import sklearn.decomposition
 
+# Internal
+import dataset
+
+COLOR_MAP = plt.cm.tab20b
+
 def pca(model, datasets, epoch):
   try:
-    os.mkdir('./images')
+    os.makedirs('./images/pca')
   except:
     None
-  try:
-    os.mkdir('./images/pca')
-  except:
-    None
-  colors = []
-  coordinates = []
-  for i in range(0, len(datasets)):
-    ds = datasets[i]
-    codes = []
-    deltas = []
-    for seq in ds:
-      codes.append(seq['codes'])
-      deltas.append(seq['deltas'])
-    codes = np.array(codes)
-    deltas = np.array(deltas)
-    result = model.predict(x={ 'codes': codes, 'deltas': deltas })
-    for c in result:
-      colors.append(i)
-      coordinates.append(c)
-
-  # Reduce features vector dimension
-  reduced = sklearn.decomposition.PCA(n_components=3).fit_transform(coordinates)
 
   fig = plt.figure(1, figsize=(8, 6))
   ax = Axes3D(fig, elev=-150, azim=110)
-  ax.scatter(reduced[:, 0], reduced[:, 1], reduced[:, 2], c=colors,
-             cmap=plt.cm.Set1, edgecolor='k', s=5, alpha=0.5, linewidths=0.0,
+  pca = sklearn.decomposition.PCA(n_components=3)
+
+  res = dataset.apply_model(model, datasets)
+
+  # Fit coordinates
+  for ds_coords in res:
+    pca.fit(ds_coords)
+
+  # Transform coordinates and print labels
+  colors = []
+  all_x = []
+  all_y = []
+  all_z = []
+  for i in range(0, len(res)):
+    label = dataset.LABELS[i]
+    ds_coords = pca.transform(res[i])
+
+    x = ds_coords[:, 0]
+    y = ds_coords[:, 1]
+    z = ds_coords[:, 2]
+
+    ax.text3D(x.mean(), y.mean(), z.mean(),
+        label,
+        fontsize=6,
+        color=COLOR_MAP(i),
+        horizontalalignment='center',
+        bbox=dict(alpha=.2, edgecolor=COLOR_MAP(i), facecolor='w'))
+
+    colors += [ i ] * len(x)
+    all_x.append(x)
+    all_y.append(y)
+    all_z.append(z)
+
+  all_x = np.concatenate(all_x)
+  all_y = np.concatenate(all_y)
+  all_z = np.concatenate(all_z)
+
+  ax.scatter(all_x, all_y, all_z, c=colors,
+             cmap=COLOR_MAP, edgecolor='k', s=5, alpha=0.8, linewidths=0.0,
              edgecolors='none')
-  plt.savefig(fname='./images/pca/{:06d}.png'.format(epoch))
+
+  fname = './images/pca/{:06d}.png'.format(epoch)
+  plt.savefig(fname=fname)
+  print("Saved image to " + fname)
