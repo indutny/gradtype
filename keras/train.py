@@ -23,7 +23,7 @@ FEATURE_COUNT = 128
 ALPHA = 0.1
 
 TOTAL_EPOCHS = 50000
-CONTINUOUS_EPOCHS = 50
+CONTINUOUS_EPOCHS = 200
 
 #
 # Input parsing below
@@ -205,7 +205,7 @@ for i in range(0, TOTAL_EPOCHS, CONTINUOUS_EPOCHS):
   print('Run #' + str(i))
   triples = generate_triples(train_datasets)
   val_triples = generate_triples(validate_datasets)
-  model.fit(x=triples, y=generate_dummy(triples), batch_size=1024,
+  model.fit(x=triples, y=generate_dummy(triples), batch_size=2048,
       initial_epoch=i,
       epochs=i + CONTINUOUS_EPOCHS,
       callbacks=callbacks,
