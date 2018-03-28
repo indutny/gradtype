@@ -10,7 +10,7 @@ from keras import backend as K
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
-from keras.layers import Input, Dense, Dropout, BatchNormalization, LSTM, \
+from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU, \
   GaussianNoise
 
 # This must match the constant in `src/dataset.ts`
@@ -149,12 +149,12 @@ def create_siamese():
   model = Sequential()
 
   model.add(GaussianNoise(0.1, name='input_noise', input_shape=input_shape))
-  model.add(LSTM(128, dropout=0.5, recurrent_dropout=0.5))
+  model.add(GRU(128, dropout=0.5, recurrent_dropout=0.5))
 
   model.add(Dense(128, name='l1', activation='relu'))
-  model.add(Dropout(0.5))
 
-  model.add(Dense(FEATURE_COUNT, name='features', activation='sigmoid'))
+  model.add(Dropout(0.5))
+  model.add(Dense(FEATURE_COUNT, name='features', activation='relu'))
 
   return model
 
