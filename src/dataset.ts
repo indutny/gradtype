@@ -2,7 +2,7 @@ import * as assert from 'assert';
 
 import { shuffle } from './utils';
 
-export const MAX_CHAR = 28;
+export const MAX_CHAR = 27;
 
 const CUTOFF_TIME = 3;
 const MOVING_AVG_WINDOW = 20;
@@ -99,23 +99,21 @@ export class Dataset {
   }
 
   private compress(code: number): number | undefined {
-    // 0 - is reserved for padding
-
     // a - z
     if (0x61 <= code && code <= 0x7a) {
-      return 1 + code - 0x61;
+      return code - 0x61;
 
     // A - Z
     } else if (0x41 <= code && code <= 0x5a) {
-      return 1 + code - 0x41;
+      return code - 0x41;
 
     // ' '
     } else if (code === 0x20) {
-      return 27;
+      return 26;
 
     // ','
     } else if (code === 0x2c) {
-      return 28;
+      return 27;
     } else {
       return undefined;
     }

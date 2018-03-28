@@ -18,7 +18,7 @@ function encodeSequence(sequence) {
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
   for (let i = 0; i < sequence.length; i++) {
-    enc.writeUInt32LE(sequence[i].code, 4 + i * 8);
+    enc.writeInt32LE(sequence[i].code, 4 + i * 8);
     enc.writeFloatLE(sequence[i].delta, 4 + i * 8 + 4);
   }
   return enc;
@@ -60,7 +60,7 @@ datasets = datasets.map((ds) => {
       return sequence.slice(0, length);
     } else if (sequence.length < length) {
       return sequence.concat(new Array(length - sequence.length).fill({
-        code: 0,
+        code: -1,
         delta: 0,
       }));
     } else {

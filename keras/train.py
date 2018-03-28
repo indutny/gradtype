@@ -43,7 +43,11 @@ def parse_datasets():
           row = np.zeros(MAX_CHAR + 2, dtype='float32')
           code = struct.unpack('<i', f.read(4))[0]
           delta = struct.unpack('f', f.read(4))[0]
-          row[code] = delta
+
+          # Padding
+          if (code == -1):
+            continue
+          row[0] = delta
           row[code + 1] = 1
           sequence.append(row)
         sequences.append(np.array(sequence, dtype='float32'))
