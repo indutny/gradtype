@@ -27,6 +27,7 @@ TOTAL_EPOCHS = 2000000
 
 # Number of epochs before reshuffling triples
 RESHUFFLE_EPOCHS = 50
+SAVE_EPOCHS = 500
 
 #
 # Input parsing below
@@ -253,7 +254,7 @@ for i in range(0, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
-    TensorBoard(histogram_freq=10)
+    TensorBoard(histogram_freq=500, write_graph=False, embeddings_freq=500)
   ]
 
   triples = generate_triples(train_datasets)
@@ -263,4 +264,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
       epochs=i + RESHUFFLE_EPOCHS,
       callbacks=callbacks,
       validation_data=(val_triples, generate_dummy(val_triples)))
-  model.save_weights('./out/gradtype-' + str(i + RESHUFFLE_EPOCHS) + '.h5')
+
+  if i % SAVE_EPOCHS == 0:
+    print("Saving...')
+    model.save_weights('./out/gradtype-' + str(i + RESHUFFLE_EPOCHS) + '.h5')
