@@ -49,7 +49,7 @@ def split_datasets(datasets):
   train = []
   validate = []
   for ds in datasets:
-    split_i = math.floor(VALIDATE_PERCENT * len(ds))
+    split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
     train.append(np.array(ds[split_i:]))
     validate.append(np.array(ds[0:split_i]))
   return (train, validate)
