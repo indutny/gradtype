@@ -19,6 +19,12 @@ FEATURE_COUNT = 128
 # Triplet loss margin
 MARGIN = 0.1
 
+# Saddle-point fix steepness
+STEEPNESS = 4.0
+
+# Amount of kick to get out of saddle-point (must be positive)
+KICK = 0.5
+
 # Just a common regularizer
 L2 = regularizers.l2(0.01)
 
@@ -29,17 +35,17 @@ L2 = regularizers.l2(0.01)
 def positive_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
-  return K.sum(K.square(2 * anchor - positive), axis=1)
+  return K.sum(K.square(anchor - positive), axis=1)
 
 def negative_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
-  return K.sum(K.square(2 * anchor - negative), axis=1)
+  return K.sum(K.square(anchor - negative), axis=1)
 
-# See: https://arxiv.org/pdf/1611.05301.pdf
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  return K.maximum(0.0, delta + MARGIN)
+  denom = 1.0 + KICK - K.exp(K.minimum(0.0, delta) / (STEEPNESS * MARGIN))
+  return K.maximum(0.0, delta + MARGIN) / denom
 
 # Probably don't use these two in learning
 def positive_distance(y_pred):
@@ -154,7 +160,7 @@ def create(sequence_len):
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
 
-  adam = Adam(lr=0.0003)
+  adam = Adam(lr=0.001)
 
   model.compile(adam, loss=triplet_loss, metrics=[
     pmean, pvar,
