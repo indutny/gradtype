@@ -9,3 +9,4 @@ __pycache__/
 images/
 .DS_store
 *.mp4
+*.pyc
