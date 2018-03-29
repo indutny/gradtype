@@ -50,7 +50,7 @@ for save in saved_epochs:
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
-    TensorBoard(histogram_freq=2000, write_graph=False)
+    TensorBoard(histogram_freq=1000, write_graph=False)
   ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
