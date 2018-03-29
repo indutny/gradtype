@@ -207,7 +207,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
   triplets = dataset.gen_triplets(siamese, train_datasets)
   val_triplets = dataset.gen_triplets(siamese, validate_datasets)
-  model.fit(x=triplets, y=generate_dummy(triplets), batch_size=256,
+  model.fit(x=triplets, y=generate_dummy(triplets), batch_size=512,
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
