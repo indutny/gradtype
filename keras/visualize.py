@@ -29,8 +29,7 @@ def pca(model, datasets, epoch):
   res = dataset.apply_model(model, datasets)
 
   # Fit coordinates
-  for ds_coords in res:
-    pca.fit(ds_coords)
+  pca.fit(np.concatenate(res))
 
   # Transform coordinates and print labels
   colors = []
