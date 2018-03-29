@@ -3,7 +3,6 @@ import numpy as np
 import keras.layers
 from keras import backend as K
 from keras import regularizers
-from keras.optimizers import Adam
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, \
     GaussianNoise
@@ -163,15 +162,13 @@ def create(sequence_len):
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
 
-  adam = Adam(lr=0.00001)
-
-  model.compile(adam, loss=triplet_loss, metrics=[
-    pmean, pvar,
-    nmean, nvar,
-    accuracy
-  ])
-
   return (siamese, model)
 
 def generate_dummy(triplets):
   return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
+
+metrics = [
+  pmean, pvar,
+  nmean, nvar,
+  accuracy
+]

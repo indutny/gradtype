@@ -3,6 +3,7 @@ import re
 
 import keras.layers
 from keras.callbacks import TensorBoard
+from keras.optimizers import Adam
 
 # Internals
 import dataset
@@ -48,6 +49,11 @@ for save in saved_epochs:
   print("Loaded weights from " + save['name'])
   break
 
+adam = Adam(lr=0.00001)
+
+model.compile(adam, loss=gradtype_model.triplet_loss,
+              metrics=gradtype_model.metrics)
+
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
     TensorBoard(histogram_freq=1000, write_graph=False)
@@ -58,6 +64,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   val_triplets = dataset.gen_triplets(siamese, validate_datasets)
   y = gradtype_model.generate_dummy(triplets)
   val_y = gradtype_model.generate_dummy(val_triplets)
+
   model.fit(x=triplets, y=y,
       batch_size=512,
       initial_epoch=i,

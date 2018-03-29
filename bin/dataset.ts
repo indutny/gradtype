@@ -7,6 +7,8 @@ import * as path from 'path';
 
 import { Dataset, Output } from '../src/dataset';
 
+let totalSequences = 0;
+
 const MAX_SEQUENCE_LEN = 40;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
@@ -15,6 +17,8 @@ const OUT_DIR = path.join(__dirname, '..', 'out');
 const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
 
 function encodeSequence(sequence) {
+  totalSequences++;
+
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
   for (let i = 0; i < sequence.length; i++) {
@@ -109,3 +113,5 @@ datasets.forEach((ds) => {
   }
 });
 fs.closeSync(fd);
+
+console.log('Total sequence count: %d', totalSequences);
