@@ -60,7 +60,8 @@ def negative_distance2(y_pred):
   return K.sum(K.square(2 * anchor - negative), axis=1)
 
 # Loss function from https://arxiv.org/pdf/1611.05301.pdf
-# See: https://arxiv.org/pdf/1412.6622.pdf
+# Also see: https://arxiv.org/pdf/1412.6622.pdf
+# TODO(indutny): give it a kick when positive distance equals negative distance
 def triplet_loss(y_true, y_pred):
   return K.maximum(0.0,
       positive_distance2(y_pred) - negative_distance2(y_pred) + MARGIN)
