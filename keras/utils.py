@@ -1,7 +1,7 @@
 import os
 import re
 
-weight_file_re = re.compile(r'.*(\d+)\.h5$')
+weight_file_re = re.compile(r'.*?(\d+)\.h5$')
 
 def load_weights(model, prefix):
   weight_files = [
@@ -22,7 +22,7 @@ def load_weights(model, prefix):
       model.load_weights(os.path.join('./out', save['name']))
     except IOError:
       continue
-    start_epoch = save['epoch']
     print("Loaded weights from " + save['name'])
-    break
+    return save['epoch']
 
+  return 0

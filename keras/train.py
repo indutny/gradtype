@@ -23,10 +23,8 @@ print('Loading dataset')
 datasets, sequence_len = dataset.parse()
 train_datasets, validate_datasets = dataset.split(datasets)
 
-start_epoch = 0
-
 siamese, model = gradtype_model.create(sequence_len)
-gradtype_utils.load_weights(model, 'gradtype-')
+start_epoch = gradtype_utils.load_weights(model, 'gradtype-')
 
 adam = Adam(lr=0.00001)
 
