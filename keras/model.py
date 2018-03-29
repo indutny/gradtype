@@ -167,10 +167,13 @@ def create(sequence_len):
 def generate_dummy(triplets):
   return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
 
-def generate_one_hot_features(index):
-  result = np.zeros([ FEATURE_COUNT ], dtype='int32')
-  result[index] = 1
-  return result
+def generate_one_hot_features(indices):
+  result = []
+  for index in indices:
+    one_hot = np.zeros([ FEATURE_COUNT ], dtype='int32')
+    one_hot[index] = 1
+    result.append(one_hot)
+  return np.array(result)
 
 # Standard set of metrics
 metrics = [

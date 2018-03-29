@@ -45,11 +45,11 @@ def parse():
           deltas.append(delta)
         codes = np.array(codes, dtype='int32')
         deltas = np.array(deltas, dtype='float32')
-        sequences.append({ 'codes': codes, 'deltas': deltas })
+        sequences.append({ 'index': i, 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
   return datasets, sequence_len
 
-def split(datasets):
+def split(datasets, kind='triple'):
   train = []
   validate = []
 
@@ -57,7 +57,9 @@ def split(datasets):
 
   # Add some datasets that wouldn't be on the training list at all
   for ds in datasets[:ds_split_i]:
-    validate.append(ds)
+    # No need to add this to regression training
+    if kind is 'triple':
+      validate.append(ds)
 
   for ds in datasets[ds_split_i:]:
     split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
@@ -181,3 +183,19 @@ def gen_triplets(model, datasets):
     'negative_codes': get_codes(negative_list),
     'negative_deltas': get_deltas(negative_list),
   }
+
+def gen_regression(datasets):
+  codes = []
+  deltas = []
+  indices = []
+
+  for ds in datasets:
+    for seq in ds:
+      codes.append(seq['codes'])
+      deltas.append(seq['deltas'])
+      indices.append(seq['index'])
+
+  codes = np.array(codes)
+  deltas = np.array(deltas)
+
+  return { 'codes': codes, 'deltas': deltas, 'indices': indices }

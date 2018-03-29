@@ -16,12 +16,16 @@ RESHUFFLE_EPOCHS = 50
 SAVE_EPOCHS = 50
 
 #
-# Input parsing below
+# Prepare dataset
 #
 
 print('Loading dataset')
 datasets, sequence_len = dataset.parse()
 train_datasets, validate_datasets = dataset.split(datasets)
+
+#
+# Load model
+#
 
 siamese, model = gradtype_model.create(sequence_len)
 start_epoch = gradtype_utils.load_weights(model, 'gradtype-')
@@ -30,6 +34,10 @@ adam = Adam(lr=0.00001)
 
 model.compile(adam, loss=gradtype_model.triplet_loss,
               metrics=gradtype_model.metrics)
+
+#
+# Train
+#
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [
