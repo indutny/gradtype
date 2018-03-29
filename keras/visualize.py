@@ -47,10 +47,10 @@ def pca(model, datasets, epoch):
 
     ax.text3D(x.mean(), y.mean(), z.mean(),
         label,
-        fontsize=6,
+        fontsize=7,
         color=COLOR_MAP(i),
         horizontalalignment='center',
-        bbox=dict(alpha=.1, edgecolor=COLOR_MAP(i), facecolor='w'))
+        bbox=dict(alpha=.3, edgecolor=COLOR_MAP(i), facecolor='w'))
 
     colors += [ i ] * len(x)
     all_x.append(x)
