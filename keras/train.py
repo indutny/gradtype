@@ -29,10 +29,10 @@ TOTAL_EPOCHS = 2000000
 RESHUFFLE_EPOCHS = 50
 
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 100
+SAVE_EPOCHS = 50
 
 # Number of epochs before generating image
-VISUALIZE_EPOCHS = 50
+VISUALIZE_EPOCHS = 50000
 
 #
 # Input parsing below
