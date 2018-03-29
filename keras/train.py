@@ -52,19 +52,17 @@ input_shape = (sequence_len,)
 def positive_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
-  return K.sum(K.square(2 * anchor - positive), axis=1)
+  return K.sum(K.square(anchor - positive), axis=1)
 
 def negative_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
-  return K.sum(K.square(2 * anchor - negative), axis=1)
+  return K.sum(K.square(anchor - negative), axis=1)
 
-# Loss function from https://arxiv.org/pdf/1611.05301.pdf
-# Also see: https://arxiv.org/pdf/1412.6622.pdf
-# TODO(indutny): give it a kick when positive distance equals negative distance
 def triplet_loss(y_true, y_pred):
-  return K.maximum(0.0,
-      positive_distance2(y_pred) - negative_distance2(y_pred) + MARGIN)
+  delta = positive_distance2(y_pred) - negative_distance2(y_pred)
+  denom = 1.1 - K.exp(-delta / 2.0)
+  return K.maximum(0.0, delta + MARGIN) / denom
 
 # Probably don't use these two in learning
 def positive_distance(y_pred):
