@@ -5,7 +5,7 @@
 Submitting data to this project takes 2-3 minutes. If you'd like to do this -
 please follow the instructions below:
 
-1. Visit https://indutny.github.io/gradtype/ on your laptop/desktop
+1. Visit https://indutny.github.io/gradtype/ on your **laptop/desktop**
 2. Type 20-30 sentences terminated by dot (`.`) as they are displayed on the
    screen. _(NOTE: spelling is not important, so don't worry about getting
    everything right)_
@@ -13,7 +13,10 @@ please follow the instructions below:
 4. Copy JSON file contents to the gist
 5. Either open an [issue][0] with a link to gist, or DM it to me privately on:
    [twitter][1], or on IRC freenode (my handle is `indutny`). Please kindly let
-   me know if you want your data to be posted under a pseudonym.
+   me know if you want your data to be posted under a pseudonym, and if the data
+   wasn't generated using **laptop/desktop**.
+
+Thank you!
 
 ## What data is collected
 
