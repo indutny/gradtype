@@ -20,8 +20,8 @@ VALIDATE_PERCENT = 0.25
 
 FEATURE_COUNT = 128
 
-# Triple loss alpha
-ALPHA = 0.1
+# Triplet loss margin
+MARGIN = 0.1
 
 TOTAL_EPOCHS = 2000000
 
@@ -63,7 +63,7 @@ def negative_distance2(y_pred):
 # See: https://arxiv.org/pdf/1412.6622.pdf
 def triplet_loss(y_true, y_pred):
   return K.maximum(0.0,
-      positive_distance2(y_pred) - negative_distance2(y_pred) + ALPHA)
+      positive_distance2(y_pred) - negative_distance2(y_pred) + MARGIN)
 
 # Probably don't use these two in learning
 def positive_distance(y_pred):
