@@ -34,7 +34,7 @@ def negative_distance2(y_pred):
 
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  denom = 1.1 - K.exp(K.minimum(0.0, delta) / 2.0)
+  denom = 1.1 - K.exp(2 * K.minimum(0.0, delta) / MARGIN)
   return K.maximum(0.0, delta + MARGIN) / denom
 
 # Probably don't use these two in learning
