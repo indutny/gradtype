@@ -28,7 +28,7 @@ train_datasets, validate_datasets = dataset.split(datasets)
 #
 
 siamese, model = gradtype_model.create(sequence_len)
-start_epoch = gradtype_utils.load_weights(model, 'gradtype-')
+start_epoch = gradtype_utils.load_weights(siamese, 'gradtype-')
 
 adam = Adam(lr=0.00001)
 
@@ -60,4 +60,4 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
     fname = './out/gradtype-{:08d}.h5'.format(end_epoch)
-    model.save_weights(fname)
+    siamese.save_weights(fname)

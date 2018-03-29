@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
   datasets, sequence_len = dataset.parse()
   siamese, model = gradtype_model.create(sequence_len)
-  model.load_weights(sys.argv[1])
+  siamese.load_weights(sys.argv[1])
 
   train_datasets, validate_datasets = dataset.split(datasets)
   train_coords = dataset.evaluate_model(siamese, train_datasets)
