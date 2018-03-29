@@ -10,4 +10,19 @@ clean:
 	rm -rf logs/
 	rm -rf images/
 
-.PHONY: train dataset clean
+MODEL_WEIGHTS=$(wildcard out/gradtype-*.h5)
+PCA_IMAGES_PRE=$(subst out/gradtype-,images/pca/, $(MODEL_WEIGHTS))
+PCA_IMAGES=$(subst .h5,.png, $(PCA_IMAGES_PRE))
+
+images/pca.mp4: visualize
+	ffmpeg -v quiet -y -r 10 -pattern_type glob -i "images/pca/*.png" -pix_fmt yuv420p $@
+
+visualize: images/pca $(PCA_IMAGES)
+
+images/pca:
+	mkdir -p images/pca
+
+images/pca/%.png: out/gradtype-%.h5
+	python3 ./keras/visualize.py $< $@
+
+.PHONY: train dataset clean visualize

@@ -1,7 +1,10 @@
 import matplotlib
-matplotlib.use('Agg')
+import sys
 
-import os
+# Do not display GUI only when generating output
+if __name__ != '__main__' or len(sys.argv) >= 3:
+  matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -9,36 +12,30 @@ import sklearn.decomposition
 
 # Internal
 import dataset
+import model as gradtype_model
 
 COLOR_MAP = plt.cm.tab20b
 
-def pca(model, datasets, epoch):
-  try:
-    os.makedirs('./images/pca')
-  except:
-    None
-
+def pca(coords, fname):
   fig = plt.figure(1, figsize=(8, 6))
   ax = Axes3D(fig, elev=-150, azim=110)
-  pca = sklearn.decomposition.PCA(n_components=3)
+  pca = sklearn.decomposition.PCA(n_components=3, random_state=0x7ed1ae6e)
 
   ax.set_xlim(left=-1.2, right=1.2)
   ax.set_ylim(bottom=-1.2, top=1.2)
   ax.set_zlim(bottom=-1.2, top=1.2)
 
-  res = dataset.apply_model(model, datasets)
-
   # Fit coordinates
-  pca.fit(np.concatenate(res))
+  pca.fit(np.concatenate(coords))
 
   # Transform coordinates and print labels
   colors = []
   all_x = []
   all_y = []
   all_z = []
-  for i in range(0, len(res)):
+  for i in range(0, len(coords)):
     label = dataset.LABELS[i]
-    ds_coords = pca.transform(res[i])
+    ds_coords = pca.transform(coords[i])
 
     x = ds_coords[:, 0]
     y = ds_coords[:, 1]
@@ -64,6 +61,18 @@ def pca(model, datasets, epoch):
              cmap=COLOR_MAP, edgecolor='k', s=5, alpha=0.8, linewidths=0.0,
              edgecolors='none')
 
-  fname = './images/pca/{:08d}.png'.format(epoch)
-  plt.savefig(fname=fname)
-  print("Saved image to " + fname)
+  if fname == None:
+    plt.show()
+  else:
+    plt.savefig(fname=fname)
+    print("Saved image to " + fname)
+
+if __name__ == '__main__':
+  import sys
+
+  datasets, sequence_len = dataset.parse()
+  siamese, model = gradtype_model.create(sequence_len)
+  model.load_weights(sys.argv[1])
+
+  coordinates = dataset.evaluate_model(siamese, datasets)
+  pca(coordinates, sys.argv[2] if len(sys.argv) >= 3 else  None)

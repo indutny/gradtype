@@ -11,12 +11,18 @@ TRIPLE_MAX_ATTEMPTS = 3
 # Max attempts per dataset
 TRIPLE_MAX_NEGATIVE_ATTEMPTS = 3
 
+# Maximum character code
+MAX_CHAR = 27
+
+# Percent of validation data
+VALIDATE_PERCENT = 0.25
+
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
 with open(index_json, 'r') as f:
   LABELS = json.load(f)
 
-def parse(max_char):
+def parse():
   datasets = []
   with open('./out/lstm.raw', 'rb') as f:
     dataset_count = struct.unpack('<i', f.read(4))[0]
@@ -31,7 +37,7 @@ def parse(max_char):
           code = struct.unpack('<i', f.read(4))[0]
           delta = struct.unpack('f', f.read(4))[0]
 
-          if code < -1 or code > max_char:
+          if code < -1 or code > MAX_CHAR:
             print("Invalid code " + str(code))
             raise
 
@@ -41,26 +47,26 @@ def parse(max_char):
         deltas = np.array(deltas, dtype='float32')
         sequences.append({ 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
-  return datasets
+  return datasets, sequence_len
 
-def split(datasets, percent):
+def split(datasets):
   train = []
   validate = []
 
-  ds_split_i = int(math.floor(percent * len(datasets)))
+  ds_split_i = int(math.floor(VALIDATE_PERCENT * len(datasets)))
 
   # Add some datasets that wouldn't be on the training list at all
   for ds in datasets[:ds_split_i]:
     validate.append(ds)
 
   for ds in datasets[ds_split_i:]:
-    split_i = int(math.floor(percent * len(ds)))
+    split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
     train.append(ds[split_i:])
     validate.append(ds[0:split_i])
 
   return (train, validate)
 
-def apply_model(model, datasets):
+def evaluate_model(model, datasets):
   slice_offsets = []
   codes = []
   deltas = []
@@ -106,7 +112,7 @@ def best_triplet_candidate(kind, anchor_feature, target_features):
   return ( best_index, best_distance )
 
 def gen_triplets(model, datasets):
-  features = apply_model(model, datasets)
+  features = evaluate_model(model, datasets)
 
   # Shuffle sequences in datasets first
   for ds in datasets:
