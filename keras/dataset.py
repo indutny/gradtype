@@ -108,6 +108,10 @@ def best_triplet_candidate(kind, anchor_feature, target_features):
 def gen_triplets(model, datasets):
   features = apply_model(model, datasets)
 
+  # Shuffle sequences in datasets first
+  for ds in datasets:
+    np.random.shuffle(ds)
+
   anchor_list = []
   positive_list = []
   negative_list = []
@@ -115,15 +119,14 @@ def gen_triplets(model, datasets):
     anchor_ds = datasets[i]
     anchor_ds_features = features[i]
 
-    for j in range(0, len(anchor_ds)):
+    # Take anchors from first half, positives from the second
+    half_anchor_ds = int(len(anchor_ds) / 2)
+    for j in range(0, half_anchor_ds):
       anchor_features = anchor_ds_features[j]
-      while True:
-        positive_index, positive_distance  = best_triplet_candidate('positive',
-            anchor_features,
-            anchor_ds_features)
-        # Make sure we don't emit positive==anchor. Unlikely, but possible
-        if positive_index != j:
-          break
+      positive_index, positive_distance  = best_triplet_candidate('positive',
+          anchor_features,
+          anchor_ds_features[half_anchor_ds:])
+      positive_index += half_anchor_ds
 
       attempts = 0
       best_negative_index = 0
