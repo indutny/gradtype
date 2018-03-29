@@ -2,9 +2,10 @@ import numpy as np
 
 import keras.layers
 from keras import backend as K
+from keras import regularizers
 from keras.optimizers import Adam
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU, \
+from keras.layers import Input, Dense, BatchNormalization, GRU, \
     GaussianNoise
 
 # Internals
@@ -93,10 +94,20 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs()([ codes, noisy_deltas ])
 
-  x = GRU(128, dropout=0.2, recurrent_dropout=0.2)(joint_input)
+  x = GRU(128)(joint_input)
 
-  x = Dropout(0.5)(x)
-  x = Dense(FEATURE_COUNT, name='features')(x)
+  # Residual layers (aka side-chain)
+  sc = Dense(128, name='residual_l2',
+             kernel_regularizer=regularizers.l2(0.01),
+             activity_regularizer=regularizers.l2(0.01))(x)
+
+  # Merge
+  x = keras.layers.Add()([ x, sc ])
+
+  x = Dense(FEATURE_COUNT, name='features',
+            kernel_regularizer=regularizers.l2(0.01),
+            activity_regularizer=regularizers.l2(0.01))(x)
+
   output = NormalizeToSphere(name='normalize')(x)
   return Model(inputs=[ codes, deltas ], outputs=output)
 
