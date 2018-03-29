@@ -22,6 +22,9 @@ MARGIN = 0.1
 # Saddle-point fix steepness
 STEEPNESS = 4.0
 
+# Amount of kick to get out of saddle-point (must be positive)
+KICK = 0.5
+
 #
 # Network configuration
 #
@@ -38,7 +41,7 @@ def negative_distance2(y_pred):
 
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  denom = 1.1 - K.exp(K.minimum(0.0, delta) / (STEEPNESS * MARGIN))
+  denom = 1.0 + KICK - K.exp(K.minimum(0.0, delta) / (STEEPNESS * MARGIN))
   return K.maximum(0.0, delta + MARGIN) / denom
 
 # Probably don't use these two in learning
