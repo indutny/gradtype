@@ -84,7 +84,7 @@ def apply_model(model, datasets):
   return result
 
 def best_triplet_candidate(kind, anchor_feature, target_features):
-  best_distance = 0 if kind is 'positive' else math.inf
+  best_distance = 0 if kind is 'positive' else float('inf')
   best_index = None
   for i in range(0, TRIPLE_MAX_ATTEMPTS):
     pick = random.randrange(0, len(target_features))
@@ -130,7 +130,7 @@ def gen_triplets(model, datasets):
 
       attempts = 0
       best_negative_index = 0
-      best_negative_distance = math.inf
+      best_negative_distance = float('inf')
       best_negative_ds = None
       while True:
         negative_ds_index = random.randrange(0, len(datasets))
