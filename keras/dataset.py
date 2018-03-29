@@ -6,10 +6,10 @@ import struct
 import json
 
 # Max attempts per candidate
-TRIPLE_MAX_ATTEMPTS = 3
+TRIPLE_MAX_ATTEMPTS = 5
 
 # Max attempts per dataset
-TRIPLE_MAX_NEGATIVE_ATTEMPTS = 3
+TRIPLE_MAX_NEGATIVE_ATTEMPTS = 5
 
 # Maximum character code
 MAX_CHAR = 27
