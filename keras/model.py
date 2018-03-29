@@ -34,7 +34,7 @@ def negative_distance2(y_pred):
 
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  denom = 1.1 - K.exp(-K.maximum(0.0, delta) / 2.0)
+  denom = 1.1 - K.exp(K.minimum(0.0, delta) / 2.0)
   return K.maximum(0.0, delta + MARGIN) / denom
 
 # Probably don't use these two in learning
@@ -138,7 +138,7 @@ def create(sequence_len):
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
 
-  adam = Adam(lr=0.0003)
+  adam = Adam(lr=0.001)
 
   model.compile(adam, loss=triplet_loss, metrics=[
     pmean, pvar,
