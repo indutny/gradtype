@@ -19,6 +19,6 @@ const datasets = process.argv.slice(2).map((name) => {
     if (item === 'reset') {
       continue;
     }
-    console.log([ item.fromCode, item.toCode, item.delta ].join(','));
+    console.log([ item.code, item.delta ].join(','));
   }
 });
