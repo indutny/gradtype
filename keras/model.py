@@ -163,7 +163,7 @@ def create(sequence_len):
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
 
-  adam = Adam(lr=0.0001)
+  adam = Adam(lr=0.00001)
 
   model.compile(adam, loss=triplet_loss, metrics=[
     pmean, pvar,
