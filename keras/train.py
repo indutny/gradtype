@@ -1,6 +1,3 @@
-import os
-import re
-
 import keras.layers
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
@@ -8,6 +5,7 @@ from keras.optimizers import Adam
 # Internals
 import dataset
 import model as gradtype_model
+import utils as gradtype_utils
 
 TOTAL_EPOCHS = 2000000
 
@@ -27,27 +25,8 @@ train_datasets, validate_datasets = dataset.split(datasets)
 
 start_epoch = 0
 
-weight_files = [ name for name in os.listdir('./out') if name.endswith('.h5') ]
-
-saved_epochs = []
-weight_file_re = re.compile(r"^gradtype-(\d+)\.h5$")
-for name in weight_files:
-  match = weight_file_re.match(name)
-  if match == None:
-    continue
-  saved_epochs.append({ 'name': name, 'epoch': int(match.group(1)) })
-saved_epochs.sort(key=lambda entry: entry['epoch'], reverse=True)
-
 siamese, model = gradtype_model.create(sequence_len)
-
-for save in saved_epochs:
-  try:
-    model.load_weights(os.path.join('./out', save['name']))
-  except IOError:
-    continue
-  start_epoch = save['epoch']
-  print("Loaded weights from " + save['name'])
-  break
+gradtype_utils.load_weights(model, 'gradtype-')
 
 adam = Adam(lr=0.00001)
 
