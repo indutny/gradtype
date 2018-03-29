@@ -54,5 +54,5 @@ for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
       validation_data=(validate_x, validate_y))
 
   print("Saving...")
-  fname = './out/gradtype-{:08d}.h5'.format(end_epoch)
+  fname = './out/gradtype-regr-{:08d}.h5'.format(end_epoch)
   model.save_weights(fname)
