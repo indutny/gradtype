@@ -112,10 +112,17 @@ def gen_triplets(model, datasets):
   for ds in datasets:
     np.random.shuffle(ds)
 
+  # Shuffle dataset indicies
+  dataset_indices = list(range(0, len(datasets)))
+  np.random.shuffle(dataset_indices)
+
+  # Keep the first half
+  dataset_indices = dataset_indices[:int(len(dataset_indices) / 2)]
+
   anchor_list = []
   positive_list = []
   negative_list = []
-  for i in range(0, len(datasets)):
+  for i in dataset_indices:
     anchor_ds = datasets[i]
     anchor_ds_features = features[i]
 
