@@ -19,11 +19,11 @@ FEATURE_COUNT = 128
 # Triplet loss margin
 MARGIN = 0.1
 
-# Saddle-point fix steepness
+# Saddle-point fix inverse steepness
 STEEPNESS = 4.0
 
 # Amount of kick to get out of saddle-point (must be positive)
-KICK = 0.5
+KICK = 0.1
 
 # Just a common regularizer
 L2 = regularizers.l2(0.01)
@@ -160,7 +160,7 @@ def create(sequence_len):
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
 
-  adam = Adam(lr=0.001)
+  adam = Adam(lr=0.0001)
 
   model.compile(adam, loss=triplet_loss, metrics=[
     pmean, pvar,
