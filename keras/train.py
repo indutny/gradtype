@@ -8,7 +8,8 @@ from keras import backend as K
 from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard
-from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU
+from keras.layers import Input, Dense, Dropout, BatchNormalization, GRU, \
+    GaussianNoise
 
 # Internals
 import dataset
@@ -116,8 +117,9 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese():
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
+  noisy_deltas = GaussianNoise(0.1)(deltas)
 
-  joint_input = JoinInputs()([ codes, deltas ])
+  joint_input = JoinInputs()([ codes, noisy_deltas ])
 
   x = GRU(128, dropout=0.2, recurrent_dropout=0.2)(joint_input)
 
@@ -160,7 +162,7 @@ def create_model():
 
   return Model(inputs=inputs, outputs=outputs)
 
-adam = Adam(lr=0.001)
+adam = Adam(lr=0.0003)
 
 model = create_model()
 model.compile(adam, loss=triplet_loss, metrics=[
