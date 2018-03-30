@@ -40,10 +40,9 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 # Train
 #
 
+tb = TensorBoard(histogram_freq=1000, write_graph=False)
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
-  callbacks = [
-    TensorBoard(histogram_freq=1000, write_graph=False)
-  ]
+  callbacks = [ tb  ]
   end_epoch = i + SAVE_EPOCHS
 
   model.fit(x=train_x, y=train_y,

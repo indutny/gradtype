@@ -39,10 +39,10 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
+tb = TensorBoard(histogram_freq=1000, write_graph=False)
+
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
-  callbacks = [
-    TensorBoard(histogram_freq=1000, write_graph=False)
-  ]
+  callbacks = [ tb ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
   triplets = dataset.gen_triplets(siamese, train_datasets)
