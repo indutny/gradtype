@@ -96,7 +96,7 @@ class JoinInputs(keras.layers.Layer):
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
-    return K.l2_normalize(x, axis=1)
+    return K.l2_normalize(x + K.epsilon(), axis=1)
 
 def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
