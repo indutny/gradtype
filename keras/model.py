@@ -163,7 +163,7 @@ def create_regression(input_shape, siamese):
   x = siamese([ codes, deltas ])
 
   # Reduce number of features
-  x = Dense(len(dataset.LABELS), activation='softmax')(x)
+  x = Dense(len(dataset.LABELS), name='reduction', activation='softmax')(x)
 
   return Model(name='regression', inputs=[ codes, deltas ], outputs=x)
 
