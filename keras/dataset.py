@@ -47,6 +47,7 @@ def parse():
         deltas = np.array(deltas, dtype='float32')
         sequences.append({ 'index': i, 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
+  print("Sequence len: " + str(sequence_len))
   return datasets, sequence_len
 
 def split(datasets, kind='triple'):

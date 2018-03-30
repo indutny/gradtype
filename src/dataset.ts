@@ -4,9 +4,7 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 27;
 
-const CUTOFF_TIME = 3;
-const MOVING_AVG_WINDOW = 20;
-const EPSILON = 1e-8;
+const CUTOFF_TIME = Infinity;
 const MIN_SEQUENCE = 8;
 
 export interface IInputEntry {
@@ -50,11 +48,6 @@ export class Dataset {
   }
 
   private *preprocess(events: Input): Iterator<IntermediateEntry> {
-    // Moving average
-    let average = 0;
-    let square = 0;
-    const deltaList: number[] = [];
-
     let lastTS: number | undefined;
 
     const reset = (): IntermediateEntry => {
@@ -79,19 +72,8 @@ export class Dataset {
 
       const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
 
-      average += delta / MOVING_AVG_WINDOW;
-      square += Math.pow(delta, 2) / MOVING_AVG_WINDOW;
-      if (deltaList.length >= MOVING_AVG_WINDOW) {
-        const first = deltaList[deltaList.length - MOVING_AVG_WINDOW];
-
-        average -= first / MOVING_AVG_WINDOW;
-        square -= Math.pow(first, 2) / MOVING_AVG_WINDOW;
-      }
-      deltaList.push(delta);
-
-      const variance = Math.sqrt(square - Math.pow(average, 2));
       yield {
-        delta: (delta - average) / (variance + EPSILON),
+        delta,
         code,
       };
 

@@ -9,7 +9,7 @@ import { Dataset, Output } from '../src/dataset';
 
 let totalSequences = 0;
 
-const MAX_SEQUENCE_LEN = 40;
+const MAX_SEQUENCE_LEN = 2;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -21,10 +21,14 @@ function encodeSequence(sequence) {
 
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
+  let nonEmpty = false;
   for (let i = 0; i < sequence.length; i++) {
+    if (sequence[i].code !== -1)
+      nonEmpty = true;
     enc.writeInt32LE(sequence[i].code, 4 + i * 8);
     enc.writeFloatLE(sequence[i].delta, 4 + i * 8 + 4);
   }
+  assert(nonEmpty);
   return enc;
 }
 

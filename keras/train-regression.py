@@ -1,6 +1,7 @@
 import keras.layers
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
+import tensorflow as tf
 
 # Internals
 import dataset
@@ -10,7 +11,7 @@ import utils as gradtype_utils
 TOTAL_EPOCHS = 2000000
 
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 50
+SAVE_EPOCHS = 25
 
 #
 # Prepare dataset
@@ -32,7 +33,7 @@ validate_y = gradtype_model.generate_one_hot_features(validate_x['indices'])
 model, _ = gradtype_model.create(sequence_len)
 start_epoch = gradtype_utils.load_weights(model, 'gradtype-regr-')
 
-adam = Adam(lr=0.001)
+adam = Adam(lr=0.00001)
 
 model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 
@@ -40,9 +41,10 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 # Train
 #
 
+tb = TensorBoard(histogram_freq=25, write_graph=True)
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
   callbacks = [
-    TensorBoard(histogram_freq=1000, write_graph=False)
+    tb
   ]
   end_epoch = i + SAVE_EPOCHS
 

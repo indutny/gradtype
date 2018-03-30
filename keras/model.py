@@ -4,7 +4,7 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, \
+from keras.layers import Input, Dense, BatchNormalization, LSTM, \
     GaussianNoise
 
 # Internals
@@ -96,33 +96,17 @@ class JoinInputs(keras.layers.Layer):
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
-    return K.l2_normalize(x, axis=1)
+    return K.l2_normalize(x + K.epsilon(), axis=1)
 
 def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
-  noisy_deltas = GaussianNoise(0.1)(deltas)
 
-  joint_input = JoinInputs()([ codes, noisy_deltas ])
+  joint_input = JoinInputs()([ codes, deltas ])
 
-  x = GRU(128, kernel_regularizer=L2,
-          recurrent_regularizer=L2,
-          bias_regularizer=L2)(joint_input)
+  x = LSTM(128)(joint_input)
 
-  # Residual layers (aka side-chain)
-  sc = Dense(128, name='residual_l2',
-             kernel_regularizer=L2,
-             activity_regularizer=L2)(x)
-
-  # Merge
-  x = keras.layers.Add()([ x, sc ])
-
-  x = Dense(FEATURE_COUNT, name='features',
-            kernel_regularizer=L2,
-            activity_regularizer=L2)(x)
-
-  output = NormalizeToSphere(name='normalize')(x)
-  return Model(inputs=[ codes, deltas ], outputs=output)
+  return Model(inputs=[ codes, deltas ], outputs=x)
 
 def create_model(input_shape, siamese):
   anchor = {
