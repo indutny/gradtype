@@ -113,7 +113,7 @@ def create_siamese(input_shape):
              activation='relu')(sc)
 
   # Merge
-  x = keras.layers.Add(name='residula_combine')([ x, sc ])
+  x = keras.layers.Add(name='residual_combine')([ x, sc ])
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
