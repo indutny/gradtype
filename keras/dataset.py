@@ -45,7 +45,7 @@ def parse():
           deltas.append(delta)
         codes = np.array(codes, dtype='int32')
         deltas = np.array(deltas, dtype='float32')
-        sequences.append({ 'index': i, 'codes': codes, 'deltas': deltas })
+        sequences.append({ 'label': i, 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
   return datasets, sequence_len
 
@@ -187,15 +187,15 @@ def gen_triplets(model, datasets):
 def gen_regression(datasets):
   codes = []
   deltas = []
-  indices = []
+  labels = []
 
   for ds in datasets:
     for seq in ds:
       codes.append(seq['codes'])
       deltas.append(seq['deltas'])
-      indices.append(seq['index'])
+      labels.append(seq['label'])
 
   codes = np.array(codes)
   deltas = np.array(deltas)
 
-  return { 'codes': codes, 'deltas': deltas, 'indices': indices }
+  return { 'codes': codes, 'deltas': deltas, 'labels': labels }

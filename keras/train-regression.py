@@ -22,8 +22,8 @@ train_datasets, validate_datasets = dataset.split(datasets, 'regression')
 
 train_x = dataset.gen_regression(train_datasets)
 validate_x = dataset.gen_regression(validate_datasets)
-train_y = gradtype_model.generate_one_hot_features(train_x['indices'])
-validate_y = gradtype_model.generate_one_hot_features(validate_x['indices'])
+train_y = gradtype_model.generate_one_hot_features(train_x['labels'])
+validate_y = gradtype_model.generate_one_hot_features(validate_x['labels'])
 
 #
 # Load model
