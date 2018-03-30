@@ -13,8 +13,8 @@ clean:
 	rm -rf logs/
 	rm -rf images/
 
-MODEL_WEIGHTS=$(wildcard out/gradtype-*.h5)
-PCA_IMAGES_PRE=$(subst out/gradtype-,images/pca/, $(MODEL_WEIGHTS))
+MODEL_WEIGHTS=$(wildcard out/gradtype-triplet-*.h5)
+PCA_IMAGES_PRE=$(subst out/gradtype-triplet-,images/pca/, $(MODEL_WEIGHTS))
 PCA_IMAGES=$(subst .h5,.png, $(PCA_IMAGES_PRE))
 
 images/pca.mp4: visualize
@@ -26,7 +26,7 @@ visualize: images/pca $(PCA_IMAGES)
 images/pca:
 	mkdir -p images/pca
 
-images/pca/%.png: out/gradtype-%.h5
+images/pca/%.png: out/gradtype-triplet-%.h5
 	python3 ./keras/visualize.py $< $@
 
 .PHONY: train regression dataset clean visualize
