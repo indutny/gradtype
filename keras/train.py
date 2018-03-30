@@ -39,7 +39,8 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
-tb = TensorBoard(histogram_freq=1000, write_graph=False)
+tb = TensorBoard(histogram_freq=1000, write_graph=False,
+                 log_dir=gradtype_utils.get_tensorboard_logdir())
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [ tb ]

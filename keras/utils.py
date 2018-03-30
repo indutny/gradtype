@@ -1,5 +1,6 @@
 import os
 import re
+import time
 
 weight_file_re = re.compile(r'.*?(\d+)\.h5$')
 
@@ -26,3 +27,6 @@ def load_weights(model, prefix):
     return save['epoch']
 
   return 0
+
+def get_tensorboard_logdir():
+  return os.path.join('./logs', time.asctime())

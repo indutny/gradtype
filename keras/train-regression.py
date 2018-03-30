@@ -40,7 +40,8 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 # Train
 #
 
-tb = TensorBoard(histogram_freq=1000, write_graph=False)
+tb = TensorBoard(histogram_freq=1000, write_graph=False,
+                 log_dir=gradtype_utils.get_tensorboard_logdir())
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
   callbacks = [ tb ]
   end_epoch = i + SAVE_EPOCHS
