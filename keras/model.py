@@ -82,8 +82,8 @@ class JoinInputs(keras.layers.Layer):
     if not isinstance(inputs, list):
       raise ValueError('`inputs` should be a list.')
     return K.concatenate([
+      K.cast(K.expand_dims(inputs[1], axis=-1), 'float32'),
       K.one_hot(inputs[0], MAX_CHAR + 2),
-      K.expand_dims(inputs[1], axis=-1)
     ])
 
   def compute_output_shape(self, input_shapes):
