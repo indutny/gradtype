@@ -21,10 +21,17 @@ function encodeSequence(sequence) {
 
   const enc = Buffer.alloc(4 + sequence.length * 8);
   enc.writeUInt32LE(sequence.length, 0);
+
+  let nonEmpty = false;
   for (let i = 0; i < sequence.length; i++) {
-    enc.writeInt32LE(sequence[i].code, 4 + i * 8);
+    const code = sequence[i].code;
+    if (code !== -1) {
+      nonEmpty = true;
+    }
+    enc.writeInt32LE(code, 4 + i * 8);
     enc.writeFloatLE(sequence[i].delta, 4 + i * 8 + 4);
   }
+  assert(nonEmpty);
   return enc;
 }
 
