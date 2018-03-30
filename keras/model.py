@@ -106,7 +106,10 @@ def create_siamese(input_shape):
   x = GRU(128, kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
 
   # Residual layers (aka side-chain)
-  sc = Dense(128, name='residual_l2', kernel_regularizer=L2)(x)
+  sc = Dense(128, name='residual_l2', kernel_regularizer=L2,
+             activation='relu')(x)
+  sc = Dense(128, name='residual_l3', kernel_regularizer=L2,
+             activation='relu')(sc)
 
   # Merge
   x = keras.layers.Add()([ x, sc ])
