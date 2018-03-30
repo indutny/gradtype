@@ -4,8 +4,7 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, \
-    GaussianNoise
+from keras.layers import Input, Dense, BatchNormalization, GRU
 
 # Internals
 import dataset
@@ -101,9 +100,8 @@ class NormalizeToSphere(keras.layers.Layer):
 def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
-  noisy_deltas = GaussianNoise(0.1)(deltas)
 
-  joint_input = JoinInputs()([ codes, noisy_deltas ])
+  joint_input = JoinInputs()([ codes, deltas ])
 
   x = GRU(128, kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
 
