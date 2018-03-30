@@ -105,21 +105,15 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs()([ codes, noisy_deltas ])
 
-  x = GRU(128, kernel_regularizer=L2,
-          recurrent_regularizer=L2,
-          bias_regularizer=L2)(joint_input)
+  x = GRU(128, kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
 
   # Residual layers (aka side-chain)
-  sc = Dense(128, name='residual_l2',
-             kernel_regularizer=L2,
-             activity_regularizer=L2)(x)
+  sc = Dense(128, name='residual_l2', kernel_regularizer=L2)(x)
 
   # Merge
   x = keras.layers.Add()([ x, sc ])
 
-  x = Dense(FEATURE_COUNT, name='features',
-            kernel_regularizer=L2,
-            activity_regularizer=L2)(x)
+  x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)
