@@ -122,7 +122,7 @@ def create_siamese(input_shape):
             activity_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
-  return Model(inputs=[ codes, deltas ], outputs=output)
+  return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)
 
 def create_model(input_shape, siamese):
   anchor = {
@@ -154,15 +154,27 @@ def create_model(input_shape, siamese):
     negative_activations
   ], axis=-1)
 
-  return Model(inputs=inputs, outputs=outputs)
+  return Model(name='triplet', inputs=inputs, outputs=outputs)
+
+def create_regression(input_shape, siamese):
+  codes = Input(shape=input_shape, dtype='int32', name='codes')
+  deltas = Input(shape=input_shape, name='deltas')
+
+  x = siamese([ codes, deltas ])
+
+  # Reduce number of features
+  x = Dense(len(dataset.LABELS), activation='softmax')(x)
+
+  return Model(name='regression', inputs=[ codes, deltas ], outputs=x)
 
 def create(sequence_len):
   input_shape = (sequence_len,)
 
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)
+  regression = create_regression(input_shape, siamese)
 
-  return (siamese, model)
+  return (siamese, model, regression)
 
 def generate_dummy(triplets):
   return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])

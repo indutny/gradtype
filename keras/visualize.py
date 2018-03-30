@@ -126,7 +126,7 @@ if __name__ == '__main__':
   import sys
 
   datasets, sequence_len = dataset.parse()
-  siamese, model = gradtype_model.create(sequence_len)
+  siamese, _, _ = gradtype_model.create(sequence_len)
   siamese.load_weights(sys.argv[1])
 
   train_datasets, validate_datasets = dataset.split(datasets)
