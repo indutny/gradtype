@@ -18,7 +18,8 @@ PCA_IMAGES_PRE=$(subst out/gradtype-triplet-,images/pca/, $(MODEL_WEIGHTS))
 PCA_IMAGES=$(subst .h5,.png, $(PCA_IMAGES_PRE))
 
 images/pca.mp4: visualize
-	ffmpeg -v quiet -y -r 10 -pattern_type glob -i "images/pca/*.png" \
+	ffmpeg -v quiet -y -r 10 -pattern_type glob \
+		-i "images/pca/gradtype-triplet-*.png" \
 		-vcodec libx264 -preset veryslow -pix_fmt yuv420p $@
 
 visualize: images/pca $(PCA_IMAGES)
