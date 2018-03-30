@@ -10,6 +10,7 @@ import { Dataset, Output } from '../src/dataset';
 let totalSequences = 0;
 
 const MAX_SEQUENCE_LEN = 40;
+const OVERLAP = 5;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -85,7 +86,7 @@ datasets = datasets.map((ds) => {
       return;
     }
 
-    for (let i = 0; i < seq.length - max; i++) {
+    for (let i = 0; i < seq.length - max; i += OVERLAP) {
       const slice = seq.slice(i, i + max);
       assert.strictEqual(slice.length, max);
       sequences.push(seq.slice(i, i + max));
