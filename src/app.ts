@@ -3,7 +3,7 @@ import leven = require('leven');
 
 const API_ENDPOINT = 'https://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
-const INITIAL_COUNTER = 23;
+const INITIAL_COUNTER = 5;
 const TOLERANCE = 0.5;
 
 const elems = {
@@ -91,14 +91,21 @@ function save() {
 
   const xhr = new XMLHttpRequest();
 
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState === XMLHttpRequest.DONE){
-      if (xhr.status === 200) {
-        complete();
-      } else {
-        error();
-      }
+  xhr.onload = () => {
+    let response: any;
+    try {
+      response = JSON.parse(xhr.responseText);
+    } catch (e) {
+      error();
+      return;
     }
+
+    if (!response.code) {
+      error();
+      return;
+    }
+
+    complete(response.code);
   };
 
   xhr.open('PUT', API_ENDPOINT, true);
@@ -106,11 +113,16 @@ function save() {
   xhr.send(json);
 };
 
-function complete() {
+function complete(code?: string) {
   if (window.localStorage) {
     window.localStorage.setItem(LS_KEY, 'submitted');
   }
-  elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
+  if (code === undefined) {
+    elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
+  } else {
+    elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>' +
+      `<h1 style="color:red">Your code is ${code}</h1>`;
+  }
 }
 
 function error() {
