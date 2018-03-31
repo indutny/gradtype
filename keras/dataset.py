@@ -134,14 +134,14 @@ def gen_triplets(model, datasets):
     anchor_ds = datasets[i]
     anchor_ds_features = features[i]
 
-    # Take anchors from first half, positives from the second
-    half_anchor_ds = int(len(anchor_ds) / 2)
-    for j in range(0, half_anchor_ds):
+    for j in range(0, len(anchor_ds)):
       anchor_features = anchor_ds_features[j]
-      positive_index, positive_distance  = best_triplet_candidate('positive',
-          anchor_features,
-          anchor_ds_features[half_anchor_ds:])
-      positive_index += half_anchor_ds
+      while True:
+        positive_index, positive_distance  = best_triplet_candidate('positive',
+            anchor_features,
+            anchor_ds_features)
+        if positive_index != j:
+          break
 
       attempts = 0
       best_negative_index = 0
