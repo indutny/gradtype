@@ -15,5 +15,5 @@ const files: string[] = fs.readdirSync(MTURK_DIR)
 files.forEach((name) => {
   const content = fs.readFileSync(path.join(MTURK_DIR, name + '.json'));
   fs.writeFileSync(path.join(DATASETS_DIR,
-    'sv-' + name.slice(0, 8) + '.json'));
+    'sv-' + name.slice(0, 8) + '.json'), content);
 });
