@@ -53,16 +53,16 @@ def split(datasets, kind='triple'):
 
   ds_split_i = int(math.floor(VALIDATE_PERCENT * len(datasets)))
 
+  for ds in datasets[ds_split_i:]:
+    split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
+    train.append(ds[split_i:])
+    validate.append(ds[0:split_i])
+
   # Add some datasets that wouldn't be on the training list at all
   for ds in datasets[:ds_split_i]:
     # No need to add this to regression training
     if kind is 'triple':
       validate.append(ds)
-
-  for ds in datasets[ds_split_i:]:
-    split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
-    train.append(ds[split_i:])
-    validate.append(ds[0:split_i])
 
   return (train, validate)
 
