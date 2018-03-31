@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 import keras.layers
@@ -74,7 +75,7 @@ def nvar(y_true, y_pred):
 def accuracy(y_true, y_pred):
   return K.mean(K.greater(
       negative_distance(y_pred) - positive_distance(y_pred),
-      K.sqrt(MARGIN) / 2))
+      math.sqrt(MARGIN) / 2.0))
 
 class JoinInputs(keras.layers.Layer):
   def call(self, inputs):
