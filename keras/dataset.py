@@ -135,41 +135,34 @@ def gen_triplets(model, datasets):
     anchor_ds = datasets[i]
     anchor_ds_features = features[i]
 
-    # Take anchors from first half, positives from the second
-    half_anchor_ds = int(len(anchor_ds) / 2)
-    for j in range(0, half_anchor_ds):
-      anchor_features = anchor_ds_features[j]
-      positive_index, positive_distance  = best_triplet_candidate('positive',
-          anchor_features,
-          anchor_ds_features[half_anchor_ds:])
-      positive_index += half_anchor_ds
+    for j in range(0, len(anchor_ds)):
+      for positive_index in range(j + 1, len(anchor_ds)):
+        attempts = 0
+        best_negative_index = 0
+        best_negative_distance = float('inf')
+        best_negative_ds = None
+        while True:
+          negative_ds_index = random.randrange(0, len(datasets))
+          if negative_ds_index == i:
+            continue
 
-      attempts = 0
-      best_negative_index = 0
-      best_negative_distance = float('inf')
-      best_negative_ds = None
-      while True:
-        negative_ds_index = random.randrange(0, len(datasets))
-        if negative_ds_index == i:
-          continue
+          negative_ds_features = features[negative_ds_index]
+          negative_index, negative_distance = best_triplet_candidate('negative',
+              anchor_features, negative_ds_features)
 
-        negative_ds_features = features[negative_ds_index]
-        negative_index, negative_distance = best_triplet_candidate('negative',
-            anchor_features, negative_ds_features)
+          if negative_distance < best_negative_distance:
+            best_negative_distance = negative_distance
+            best_negative_index = negative_index
+            best_negative_ds = datasets[negative_ds_index]
 
-        if negative_distance < best_negative_distance:
-          best_negative_distance = negative_distance
-          best_negative_index = negative_index
-          best_negative_ds = datasets[negative_ds_index]
+          attempts += 1
+          if attempts >= TRIPLE_MAX_NEGATIVE_ATTEMPTS:
+            break
 
-        attempts += 1
-        if attempts >= TRIPLE_MAX_NEGATIVE_ATTEMPTS:
-          break
-
-      # Now we have both positive and negative sequences - emit!
-      anchor_list.append(anchor_ds[j])
-      positive_list.append(anchor_ds[positive_index])
-      negative_list.append(best_negative_ds[best_negative_index])
+        # Now we have both positive and negative sequences - emit!
+        anchor_list.append(anchor_ds[j])
+        positive_list.append(anchor_ds[positive_index])
+        negative_list.append(best_negative_ds[best_negative_index])
 
   def get_codes(item_list):
     return np.array(list(map(lambda item: item['codes'], item_list)))
