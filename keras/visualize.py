@@ -70,7 +70,7 @@ def pca(train_coords, validate_coords, fname):
     marker = 'o' if is_train else '^'
     size = 5 if is_train else 8
     ax.scatter(all_x, all_y, all_z, c=colors, marker=marker,
-               edgecolor='k', s=size, alpha=0.75, linewidths=0.0,
+               edgecolor='k', s=size, alpha=0.25, linewidths=0.0,
                edgecolors='none')
 
   if fname == None:
