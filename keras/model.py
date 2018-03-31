@@ -24,7 +24,7 @@ STEEPNESS = 4.0
 KICK = 0.1
 
 # Just a common regularizer
-L2 = regularizers.l2(0.00002)
+L2 = regularizers.l2(0.002)
 
 #
 # Network configuration
