@@ -14,7 +14,7 @@ const MIN_SEQUENCE_LEN = 100;
 const OUT_DIR = path.join(__dirname, 'datasets');
 const KEY_FILE = process.env.KEY_FILE;
 const CERT_FILE = process.env.CERT_FILE;
-const HMAC_KEY = Buffer.from(HMAC_KEY, 'hex');
+const HMAC_KEY = Buffer.from(process.env.HMAC_KEY, 'hex');
 
 const options = {
   key: fs.readFileSync(KEY_FILE),
