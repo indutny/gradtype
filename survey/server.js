@@ -47,7 +47,7 @@ const server = microHttps(async (req, res) => {
     return '';
   }
 
-  if (req.method === 'GET') {
+  if (req.method === 'GET' && /^\/check\//.test(req.url)) {
     const match = req.url.match(/^\/check\/([a-z0-9]{64,64})$/);
     if (match === null) {
       send(res, 400, { error: 'invalid check' });
@@ -65,7 +65,7 @@ const server = microHttps(async (req, res) => {
   }
 
   if (req.method !== 'PUT') {
-    send(res, 404, { error: 'not found' });
+    send(res, 200, { ok: true });
     return;
   }
 
