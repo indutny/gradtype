@@ -74,7 +74,7 @@ def nvar(y_true, y_pred):
 def accuracy(y_true, y_pred):
   return K.mean(K.greater(
       negative_distance(y_pred) - positive_distance(y_pred),
-      0.0))
+      K.sqrt(MARGIN) / 2))
 
 class JoinInputs(keras.layers.Layer):
   def call(self, inputs):
