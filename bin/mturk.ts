@@ -27,10 +27,16 @@ hashes.forEach((hash) => {
   // Skip fake datasets
   if (d.generate(parsed).length < 20) {
     console.error('Suspect: %j', hash);
-    return;
+    return false;
+  }
+
+  if (fs.existsSync(path.join(MTURK_DIR, hash + '.check'))) {
+    console.error('Duplicate: %j', hash);
+    return false;
   }
 
   fs.writeFileSync(path.join(DATASETS_DIR,
     'sv-' + hash.slice(0, 8) + '.json'), content);
   console.error('Success: %j', hash);
+  fs.writeFileSync(path.join(MTURK_DIR, hash + '.check'));
 });
