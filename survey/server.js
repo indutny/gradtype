@@ -1,15 +1,27 @@
 'use strict';
 
 const fs = require('fs');
+const https = require('https');
 const crypto = require('crypto');
 const path = require('path');
 const util = require('util');
-const { send, json } = require('micro');
+const { run, send, json } = require('micro');
 
 const Joi = require('joi');
 
 const MIN_SEQUENCE_LEN = 1;
 const OUT_DIR = path.join(__dirname, 'datasets');
+const KEY_FILE = process.env.KEY_FILE;
+const CERT_FILE = process.env.CERT_FILE;
+
+const options = {
+  key: fs.readFileSync(KEY_FILE),
+  cert: fs.readFileSync(CERT_FILE)
+};
+
+const microHttps = fn => https.createServer(options, (req, res) => {
+  return run(req, res, fn);
+});
 
 try {
   fs.mkdirSync(OUT_DIR);
@@ -23,7 +35,7 @@ const Dataset = Joi.array().items(
   })
 ).min(MIN_SEQUENCE_LEN);
 
-module.exports = async (req, res) => {
+const server = microHttps(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://indutny.github.io');
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT');
@@ -65,4 +77,6 @@ module.exports = async (req, res) => {
   }
 
   return 'ok';
-};
+});
+
+server.listen(process.env.PORT, 1443);
