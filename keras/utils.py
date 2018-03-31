@@ -29,4 +29,7 @@ def load_weights(model, prefix):
   return 0
 
 def get_tensorboard_logdir():
-  return os.path.join('./logs', time.asctime())
+  name = os.environ.get('GRADTYPE_RUN')
+  if name is None:
+    name = time.asctime()
+  return os.path.join('./logs', name)
