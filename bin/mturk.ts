@@ -10,21 +10,27 @@ const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const MTURK_DIR = path.join(__dirname, '..', 'mturk', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
-const files: string[] = fs.readdirSync(MTURK_DIR)
-  .filter((file) => /\.json$/.test(file))
-.map((file) => file.replace(/\.json$/, ''));
+const hashes = fs.readFileSync(process.argv[2]).toString().toLowerCase()
+  .split(/[\n,"]/g).filter((word) => /^[a-z0-9]{64,64}$/.test(word));
 
 const d = new Dataset();
 
-files.forEach((name) => {
-  const content = fs.readFileSync(path.join(MTURK_DIR, name + '.json'));
+hashes.forEach((hash) => {
+  if (!fs.existsSync(path.join(MTURK_DIR, hash + '.json'))) {
+    console.error('Not found: %j', hash);
+    return false;
+  }
+
+  const content = fs.readFileSync(path.join(MTURK_DIR, hash + '.json'));
   const parsed = JSON.parse(content);
 
   // Skip fake datasets
   if (d.generate(parsed).length < 20) {
+    console.error('Suspect: %j', hash);
     return;
   }
 
   fs.writeFileSync(path.join(DATASETS_DIR,
-    'sv-' + name.slice(0, 8) + '.json'), content);
+    'sv-' + hash.slice(0, 8) + '.json'), content);
+  console.error('Success: %j', hash);
 });
