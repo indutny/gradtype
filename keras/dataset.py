@@ -15,8 +15,8 @@ TRIPLET_MAX_NEGATIVE_ATTEMPTS = 3
 # Maximum character code
 MAX_CHAR = 27
 
-# Percent of validation data
-VALIDATE_PERCENT = 0.25
+# Percent of validation data (it'll end up being more in the end, so be gentle)
+VALIDATE_PERCENT = 0.1
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
