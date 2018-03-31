@@ -10,10 +10,10 @@ import utils as gradtype_utils
 TOTAL_EPOCHS = 2000000
 
 # Number of epochs before reshuffling triplets
-RESHUFFLE_EPOCHS = 50
+RESHUFFLE_EPOCHS = 5
 
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 50
+SAVE_EPOCHS = 5
 
 #
 # Prepare dataset
