@@ -3,7 +3,7 @@ import leven = require('leven');
 
 const API_ENDPOINT = 'http://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
-const INITIAL_COUNTER = 10;
+const INITIAL_COUNTER = 23;
 const TOLERANCE = 0.5;
 
 const elems = {
