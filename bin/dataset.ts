@@ -15,7 +15,9 @@ const OVERLAP = 1;
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
-const labels: string[] = require(path.join(DATASETS_DIR, 'index.json'));
+const labels: string[] = fs.readdirSync(DATASETS_DIR)
+  .filter((file) => /\.json$/.test(file))
+  .map((file) => file.replace(/\.json$/, ''));
 
 function encodeSequence(sequence) {
   totalSequences++;
