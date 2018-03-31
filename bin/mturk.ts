@@ -35,8 +35,13 @@ hashes.forEach((hash) => {
     return false;
   }
 
-  fs.writeFileSync(path.join(DATASETS_DIR,
-    'sv-' + hash.slice(0, 8) + '.json'), content);
+  const target = path.join(DATASETS_DIR, 'sv-' + hash.slice(0, 8) + '.json');
+  if (fs.existsSync(target)) {
+    console.error('Duplicate (previous run): %j', hash);
+    return false;
+  }
+
+  fs.writeFileSync(target, content);
   console.error('Success: %j', hash);
   fs.writeFileSync(path.join(MTURK_DIR, hash + '.check'));
 });
