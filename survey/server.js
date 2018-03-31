@@ -41,8 +41,30 @@ const server = microHttps(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method !== 'PUT') {
+  if (req.method === 'GET' && req.url === '') {
     return '';
+  }
+
+  if (req.method === 'GET') {
+    const match = req.url.match(/^\/check\/([a-z0-9]{64,64})$/);
+    if (match === null) {
+      send(res, 400, { error: 'invalid check' });
+      return;
+    }
+
+    const file = path.join(OUT_DIR, match[1] + '.json');
+    const exists = await util.promisify(fs.exists)(file);
+    if (exists) {
+      return { ok: 'found' };
+    }
+
+    send(res, 404, { error: 'check not found' });
+    return;
+  }
+
+  if (req.method !== 'PUT') {
+    send(res, 404, { error: 'not found' });
+    return;
   }
 
   let data;
