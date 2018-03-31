@@ -136,6 +136,7 @@ def gen_triplets(model, datasets):
     anchor_ds_features = features[i]
 
     for j in range(0, len(anchor_ds)):
+      anchor_features = anchor_ds_features[j]
       for positive_index in range(j + 1, len(anchor_ds)):
         attempts = 0
         best_negative_index = 0
