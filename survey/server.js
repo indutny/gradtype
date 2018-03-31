@@ -101,7 +101,8 @@ const server = microHttps(async (req, res) => {
     return;
   }
 
-  return { ok: true, code: hash };
+  send(res, 200, { ok: true, code: hash });
+  return;
 });
 
 server.listen(process.env.PORT, 1443);
