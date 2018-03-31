@@ -107,7 +107,9 @@ function save() {
 };
 
 function complete() {
-  window.localStorage.setItem(LS_KEY, 'submitted');
+  if (window.localStorage) {
+    window.localStorage.setItem(LS_KEY, 'submitted');
+  }
   elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
 }
 
@@ -115,7 +117,7 @@ function error() {
   elems.wrap.innerHTML = '<h1>Server error, please retry later!</h1>';
 }
 
-if (window.localStorage.getItem(LS_KEY)) {
+if (window.localStorage && window.localStorage.getItem(LS_KEY)) {
   complete();
 } else {
   next();
