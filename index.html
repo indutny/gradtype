@@ -14,25 +14,19 @@
         font-size: 24px;
         margin-bottom: 16px;
       }
-      #save {
-        font-size: 24px;
-        height: 48px;
-        border-radius: 3px;
-      }
     </style>
     <title>Gradtype collector</title>
   </head>
   <body>
-    <h4>Please type the text displayed below:</h4>
+    <h4>Please type the text displayed, until the counter below is 0:</h4>
+    <p><i>(NOTE: each sentence is terminated with a dot ".")</i></p>
     <p><i>(NOTE: 100% correct spelling is not important)</i></p>
     <section id=display>
     </section>
     <section id=wrap>
       <input id=input />
-      <button id=save style="display: none">save</button>
-      <p id=counter>0</p>
+      <p>Remaining sentences: <span id=counter>60</span></p>
     </section>
-    <section id=download></section>
 
     <script src="dist/bundle.js"></script>
   </body>

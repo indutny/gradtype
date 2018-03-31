@@ -1,4 +1,18 @@
 import * as wilde from '../data/wilde.txt';
+import leven = require('leven');
+
+const API_ENDPOINT = 'http://gradtype-survey.darksi.de/';
+const LS_KEY = 'gradtype-survey-v1';
+const INITIAL_COUNTER = 10;
+const TOLERANCE = 0.5;
+
+const elems = {
+  display: document.getElementById('display')!,
+  input: document.getElementById('input')! as HTMLInputElement,
+  download: document.getElementById('download')!,
+  counter: document.getElementById('counter')!,
+  wrap: document.getElementById('wrap')!,
+};
 
 interface ILogEvent {
   readonly ts: number;
@@ -6,35 +20,52 @@ interface ILogEvent {
 }
 
 const text: string = wilde.toString().replace(/\s+/g, ' ');
-const sentences = text.split(/\.+(?!")/g).map((line) => line.trim());
-
-const elems = {
-  display: document.getElementById('display')!,
-  input: document.getElementById('input')! as HTMLInputElement,
-  save: document.getElementById('save')! as HTMLButtonElement,
-  download: document.getElementById('download')!,
-  counter: document.getElementById('counter')!,
-};
+const sentences = text.split(/\.+/g)
+  .filter((line) => !/["?!]/.test(line))
+  .map((line) => line.trim())
+  .filter((line) => line.length > 15);
 
 let index = Math.floor(Math.random() * (sentences.length - 1));
-let counter = 0;
+
+let counter = INITIAL_COUNTER;
+elems.counter.textContent = counter.toString();
+
+const log: ILogEvent[] = [];
 
 function next() {
-  elems.display.textContent = sentences[index++] + '.';
+  const prior = elems.display.textContent || '';
+  const sentence = sentences[index++];
+  elems.display.textContent = sentence + '.';
   if (index === sentences.length) {
     index = 0;
   }
 
+  const entered = elems.input.value;
+  if (prior !== '') {
+    const distance = leven(entered, prior);
+
+    // Remove last sentence
+    if (distance > TOLERANCE * prior.length) {
+      let i: number = 0;
+      for (i = log.length - 1; i >= 0; i--) {
+        if (log[i].k === '.') {
+          break;
+        }
+      }
+
+      log.splice(i, log.length - i);
+      counter++;
+    }
+  }
+
   elems.input.focus();
   elems.input.value = '';
-  elems.counter.textContent = (counter++).toString();
+  elems.counter.textContent = (--counter).toString();
 
-  if (counter === 21) {
-    elems.save.style.display = 'inherit';
+  if (counter === 0) {
+    save();
   }
 }
-
-const log: ILogEvent[] = [];
 
 const ts = window.performance === undefined ? () => Date.now() :
   () => window.performance.now();
@@ -50,30 +81,42 @@ elems.input.onkeypress = (e: KeyboardEvent) => {
   }
 };
 
-elems.save.onclick = (e: Event) => {
-  e.preventDefault();
-
+function save() {
   const json = JSON.stringify(log.map((event) => {
     return { ts: (event.ts - start) / 1000, k: event.k };
   }));
 
-  const blob = new File([ json ], 'gradtype.json', {
-    type: 'application/json',
-  });
+  elems.wrap.innerHTML =
+    '<h1>Uploading, please do not close this window...</h1>';
 
-  const url = URL.createObjectURL(blob);
+  const xhr = new XMLHttpRequest();
 
-  const a = document.createElement('a') as HTMLAnchorElement;
-  a.href = url;
-  a.download = 'gradtype.json';
-  a.style.display = 'none';
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState === XMLHttpRequest.DONE){
+      if (xhr.status === 200) {
+        complete();
+      } else {
+        error();
+      }
+    }
+  };
 
-  elems.download.textContent = '';
-  elems.download.appendChild(a);
-
-  a.click();
-
-  URL.revokeObjectURL(url);
+  xhr.open('PUT', API_ENDPOINT, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.send(json);
 };
 
-next();
+function complete() {
+  window.localStorage.setItem(LS_KEY, 'submitted');
+  elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
+}
+
+function error() {
+  elems.wrap.innerHTML = '<h1>Server error, please retry later!</h1>';
+}
+
+if (window.localStorage.getItem(LS_KEY)) {
+  complete();
+} else {
+  next();
+}

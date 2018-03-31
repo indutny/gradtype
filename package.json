@@ -22,5 +22,9 @@
   },
   "keywords": [],
   "author": "Fedor Indutny <fedor@indutny.com> (http://darksi.de/)",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@types/leven": "^2.1.1",
+    "leven": "^2.1.0"
+  }
 }
