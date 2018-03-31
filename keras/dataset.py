@@ -113,6 +113,7 @@ def best_triplet_candidate(kind, anchor_feature, target_features):
       best_index = pick
   return ( best_index, best_distance )
 
+# Inspired by: https://arxiv.org/pdf/1503.03832.pdf
 def gen_triplets(model, datasets):
   # Shuffle sequences in datasets first
   for ds in datasets:
