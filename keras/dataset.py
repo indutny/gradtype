@@ -114,11 +114,11 @@ def best_triplet_candidate(kind, anchor_feature, target_features):
   return ( best_index, best_distance )
 
 def gen_triplets(model, datasets):
-  features = evaluate_model(model, datasets)
-
   # Shuffle sequences in datasets first
   for ds in datasets:
     np.random.shuffle(ds)
+
+  features = evaluate_model(model, datasets)
 
   # Shuffle dataset indicies
   dataset_indices = list(range(0, len(datasets)))
