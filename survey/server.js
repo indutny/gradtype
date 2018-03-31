@@ -39,6 +39,7 @@ const server = microHttps(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://indutny.github.io');
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method !== 'PUT') {
     return '';
