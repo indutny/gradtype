@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const https = require('https');
+const Buffer = require('buffer').Buffer;
 const crypto = require('crypto');
 const path = require('path');
 const util = require('util');
@@ -13,6 +14,7 @@ const MIN_SEQUENCE_LEN = 100;
 const OUT_DIR = path.join(__dirname, 'datasets');
 const KEY_FILE = process.env.KEY_FILE;
 const CERT_FILE = process.env.CERT_FILE;
+const HMAC_KEY = Buffer.from(HMAC_KEY, 'hex');
 
 const options = {
   key: fs.readFileSync(KEY_FILE),
@@ -82,7 +84,7 @@ const server = microHttps(async (req, res) => {
   }
 
   data = JSON.stringify(value);
-  const hash = crypto.createHash('sha256').update(data).digest('hex');
+  const hash = crypto.createHmac('sha256', HMAC_KEY).update(data).digest('hex');
 
   const file = path.join(OUT_DIR, hash + '.json');
 
@@ -99,7 +101,7 @@ const server = microHttps(async (req, res) => {
     return;
   }
 
-  return 'ok';
+  return { ok: true, code: hash };
 });
 
 server.listen(process.env.PORT, 1443);
