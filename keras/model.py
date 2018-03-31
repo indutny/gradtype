@@ -34,20 +34,16 @@ L2 = regularizers.l2(0.002)
 def positive_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - positive), axis=1)
+  return K.sum(K.square(2 * anchor - positive), axis=1)
 
 def negative_distance2(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - negative), axis=1)
+  return K.sum(K.square(2 * anchor - negative), axis=1)
 
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  denom = 1.0 + KICK - K.exp(K.minimum(0.0, delta) / (STEEPNESS * MARGIN))
-
-  # Slow down
-  denom /= KICK
-  return K.maximum(0.0, delta + MARGIN) / denom
+  return K.maximum(0.0, delta + MARGIN)
 
 # Probably don't use these two in learning
 def positive_distance(y_pred):
