@@ -45,7 +45,7 @@ function next() {
     const distance = leven(entered, prior);
 
     // Remove last sentence
-    if (distance > TOLERANCE * prior.length) {
+    if (entered.length < 5 || distance > TOLERANCE * prior.length) {
       let i: number = 0;
       for (i = log.length - 1; i >= 0; i--) {
         if (log[i].k === '.') {
