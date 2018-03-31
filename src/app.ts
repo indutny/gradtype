@@ -77,7 +77,7 @@ elems.input.onkeypress = (e: KeyboardEvent) => {
   if (e.key === '.') {
     next();
     e.preventDefault();
-    return false;
+    return;
   }
 };
 
