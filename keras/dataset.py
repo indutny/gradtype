@@ -7,16 +7,13 @@ import time
 import json
 
 # Mini-batch size
-TRIPLET_MINI_BATCH = 30
-
-# Max attempts per dataset
-TRIPLET_MAX_NEGATIVE_ATTEMPTS = 3
+TRIPLET_MINI_BATCH = 16
 
 # Maximum character code
 MAX_CHAR = 27
 
 # Percent of validation data (it'll end up being more in the end, so be gentle)
-VALIDATE_PERCENT = 0.1
+VALIDATE_PERCENT = 0.2
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
@@ -92,66 +89,104 @@ def evaluate_model(model, datasets):
     result.append(coordinates[offsets[0]:offsets[1]])
   return result
 
-# Inspired by: https://arxiv.org/pdf/1503.03832.pdf
-def gen_triplets(model, datasets):
-  start = time.time()
-
-  # Shuffle sequences in datasets first, and cut them
-  mini_datasets = []
-  for ds in datasets:
-    np.random.shuffle(ds)
-    mini_datasets.append(ds[:TRIPLET_MINI_BATCH])
-
-  print('Shuffled {}'.format(time.time() - start))
-
-  # Evaluate network on those mini batches
-  features = evaluate_model(model, mini_datasets)
-  print('Evaluated {}'.format(time.time() - start))
-
+def gen_triplets_in_mini_batch(datasets, features):
   anchor_list = []
   positive_list = []
   negative_list = []
-  for i in range(0, len(mini_datasets)):
-    anchor_ds = mini_datasets[i]
+
+  for i in range(0, len(datasets)):
+    anchor_ds = datasets[i]
     anchor_ds_features = features[i]
 
+    negative_datasets = datasets[:i] + datasets[i + 1:]
+    negative_features = features[:i] + features[i + 1:]
+
     for j in range(0, len(anchor_ds)):
+      anchor = anchor_ds[j]
       anchor_features = anchor_ds_features[j]
 
+      # Compute distances
+      best_negative_per_ds = []
+      for neg_feature in negative_features:
+        distance = neg_feature - anchor_features
+        distance **= 2;
+        distance = np.mean(distance, axis=-1)
+        best_index = np.argmin(distance, axis=-1)
+        best_negative_per_ds.append(best_index)
+
+      best_negative_ds = np.argmin(best_negative_per_ds, axis=-1)
+
+      negative = negative_datasets[best_negative_ds]
+      negative = negative[best_negative_per_ds[best_negative_ds]]
+
       # Fully connected mini-batch
-      for positive_index in range(j + 1, len(anchor_ds)):
+      for positive in anchor_ds[j + 1:]:
         attempts = 0
         best_negative_index = 0
         best_negative_distance = float('inf')
         best_negative_ds = None
-        while True:
-          negative_ds_index = random.randrange(0, len(mini_datasets))
-          if negative_ds_index == i:
-            continue
-
-          negative_ds_features = features[negative_ds_index]
-
-          # Compute distances
-          negative_ds_distances = negative_ds_features - anchor_features
-          negative_ds_distances **= 2;
-          negative_ds_distances = np.mean(negative_ds_distances, axis=-1)
-
-          negative_index = np.argmin(negative_ds_distances)
-          negative_distance = negative_ds_distances[negative_index]
-
-          if negative_distance < best_negative_distance:
-            best_negative_distance = negative_distance
-            best_negative_index = negative_index
-            best_negative_ds = mini_datasets[negative_ds_index]
-
-          attempts += 1
-          if attempts >= TRIPLET_MAX_NEGATIVE_ATTEMPTS:
-            break
 
         # Now we have both positive and negative sequences - emit!
-        anchor_list.append(anchor_ds[j])
-        positive_list.append(anchor_ds[positive_index])
-        negative_list.append(best_negative_ds[best_negative_index])
+        anchor_list.append(anchor)
+        positive_list.append(positive)
+        negative_list.append(negative)
+
+  return anchor_list, positive_list, negative_list
+
+# Inspired by: https://arxiv.org/pdf/1503.03832.pdf
+def gen_triplets(model, datasets):
+  print('Generating triplets...')
+  start = time.time()
+
+  # Shuffle sequences in datasets first
+  for ds in datasets:
+    np.random.shuffle(ds)
+  print('{} Shuffled'.format(time.time() - start))
+
+  # Evaluate network on shuffled datasets
+  features = evaluate_model(model, datasets)
+  print('{} Evaluated'.format(time.time() - start))
+
+  # Split into mini batches
+  batch_slices = []
+  for i in range(0, len(datasets)):
+    ds = datasets[i]
+    ds_features = features[i]
+
+    slices = []
+    for j in range(0, len(ds), TRIPLET_MINI_BATCH):
+      slices.append({
+        'dataset': ds[j:j + TRIPLET_MINI_BATCH],
+        'features': ds_features[j:j + TRIPLET_MINI_BATCH],
+      })
+    batch_slices.append(slices)
+  print('{} Split into mini batches'.format(time.time() - start))
+
+  anchor_list = []
+  positive_list = []
+  negative_list = []
+
+  while True:
+    mini_batch = []
+    mini_features = []
+    for i in range(0, len(batch_slices)):
+      b = batch_slices[i]
+      if (len(b) == 0):
+        continue
+      mini_batch.append(b[0]['dataset'])
+      mini_features.append(b[0]['features'])
+      batch_slices[i] = b[1:]
+
+    # No way to select negative
+    if len(mini_batch) < 2:
+      break
+    print('{} Processing mini batch, len={}'.format(
+          time.time() - start, len(mini_batch)))
+
+    a, p, n = gen_triplets_in_mini_batch(mini_batch, mini_features)
+    anchor_list += a
+    positive_list += p
+    negative_list += n
 
   def get_codes(item_list):
     return np.array(list(map(lambda item: item['codes'], item_list)))
