@@ -3,13 +3,14 @@ import os
 import numpy as np
 import random
 import struct
+import time
 import json
 
-# Max attempts per candidate
-TRIPLE_MAX_ATTEMPTS = 5
+# Mini-batch size
+TRIPLET_MINI_BATCH = 30
 
 # Max attempts per dataset
-TRIPLE_MAX_NEGATIVE_ATTEMPTS = 5
+TRIPLET_MAX_NEGATIVE_ATTEMPTS = 3
 
 # Maximum character code
 MAX_CHAR = 27
@@ -91,73 +92,60 @@ def evaluate_model(model, datasets):
     result.append(coordinates[offsets[0]:offsets[1]])
   return result
 
-def best_triplet_candidate(kind, anchor_feature, target_features):
-  best_distance = 0 if kind is 'positive' else float('inf')
-  best_index = None
-  for i in range(0, TRIPLE_MAX_ATTEMPTS):
-    pick = random.randrange(0, len(target_features))
-
-    distance = np.square(anchor_feature - target_features[pick]).sum(axis=-1)
-    distance = np.sqrt(distance)
-
-    # Find positives that are currently as far as possible
-    if kind is 'positive':
-      update = distance > best_distance
-
-    # Find negatives that are as close as possible
-    else:
-      update = distance < best_distance
-
-    if update:
-      best_distance = distance
-      best_index = pick
-  return ( best_index, best_distance )
-
 # Inspired by: https://arxiv.org/pdf/1503.03832.pdf
 def gen_triplets(model, datasets):
-  # Shuffle sequences in datasets first
+  start = time.time()
+
+  # Shuffle sequences in datasets first, and cut them
+  mini_datasets = []
   for ds in datasets:
     np.random.shuffle(ds)
+    mini_datasets.append(ds[:TRIPLET_MINI_BATCH])
 
-  features = evaluate_model(model, datasets)
+  print('Shuffled {}'.format(time.time() - start))
 
-  # Shuffle dataset indicies
-  dataset_indices = list(range(0, len(datasets)))
-  np.random.shuffle(dataset_indices)
-
-  # Keep the first half
-  dataset_indices = dataset_indices[:int(len(dataset_indices) / 2)]
+  # Evaluate network on those mini batches
+  features = evaluate_model(model, mini_datasets)
+  print('Evaluated {}'.format(time.time() - start))
 
   anchor_list = []
   positive_list = []
   negative_list = []
-  for i in dataset_indices:
-    anchor_ds = datasets[i]
+  for i in range(0, len(mini_datasets)):
+    anchor_ds = mini_datasets[i]
     anchor_ds_features = features[i]
 
     for j in range(0, len(anchor_ds)):
       anchor_features = anchor_ds_features[j]
+
+      # Fully connected mini-batch
       for positive_index in range(j + 1, len(anchor_ds)):
         attempts = 0
         best_negative_index = 0
         best_negative_distance = float('inf')
         best_negative_ds = None
         while True:
-          negative_ds_index = random.randrange(0, len(datasets))
+          negative_ds_index = random.randrange(0, len(mini_datasets))
           if negative_ds_index == i:
             continue
 
           negative_ds_features = features[negative_ds_index]
-          negative_index, negative_distance = best_triplet_candidate('negative',
-              anchor_features, negative_ds_features)
+
+          # Compute distances
+          negative_ds_distances = negative_ds_features - anchor_features
+          negative_ds_distances **= 2;
+          negative_ds_distances = np.mean(negative_ds_distances, axis=-1)
+
+          negative_index = np.argmin(negative_ds_distances)
+          negative_distance = negative_ds_distances[negative_index]
 
           if negative_distance < best_negative_distance:
             best_negative_distance = negative_distance
             best_negative_index = negative_index
-            best_negative_ds = datasets[negative_ds_index]
+            best_negative_ds = mini_datasets[negative_ds_index]
 
           attempts += 1
-          if attempts >= TRIPLE_MAX_NEGATIVE_ATTEMPTS:
+          if attempts >= TRIPLET_MAX_NEGATIVE_ATTEMPTS:
             break
 
         # Now we have both positive and negative sequences - emit!
@@ -169,6 +157,8 @@ def gen_triplets(model, datasets):
     return np.array(list(map(lambda item: item['codes'], item_list)))
   def get_deltas(item_list):
     return np.array(list(map(lambda item: item['deltas'], item_list)))
+
+  print('Computed {}'.format(time.time() - start))
 
   return {
     'anchor_codes': get_codes(anchor_list),
