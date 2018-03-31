@@ -17,7 +17,11 @@ const OUT_DIR = path.join(__dirname, '..', 'out');
 
 const labels: string[] = fs.readdirSync(DATASETS_DIR)
   .filter((file) => /\.json$/.test(file))
-  .map((file) => file.replace(/\.json$/, ''));
+  .map((file) => file.replace(/\.json$/, ''))
+  .filter((file) => file !== 'index');
+
+fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
+  labels, null, 2));
 
 function encodeSequence(sequence) {
   totalSequences++;
