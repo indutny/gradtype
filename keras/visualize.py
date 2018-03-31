@@ -40,6 +40,8 @@ def pca(train_coords, validate_coords, fname):
   #   legend.append(mpatches.Patch(color=color, label=dataset.LABELS[i]))
   # ax.legend(handles=legend, fontsize=8)
 
+  pairs = {}
+
   all_coords = [ train_coords, validate_coords ]
   for coord_type in range(0, len(all_coords)):
     colors = []
@@ -56,7 +58,24 @@ def pca(train_coords, validate_coords, fname):
       y = ds_coords[:, 1]
       z = ds_coords[:, 2]
 
+      label = dataset.LABELS[i]
       color = COLOR_MAP(to_color(i))
+
+      mean_x = x.mean()
+      mean_y = y.mean()
+      mean_z = z.mean()
+
+      if pairs.get(label) is None:
+        pairs[label] = { 'x': [], 'y': [], 'z': [] }
+
+      pairs[label]['x'].append(mean_x)
+      pairs[label]['y'].append(mean_y)
+      pairs[label]['z'].append(mean_z)
+
+      marker = 'o' if is_train else '^'
+      size = 24 if is_train else 32
+      ax.scatter(mean_x, mean_y, mean_z, c=color, marker=marker,
+                 edgecolor='white', s=size, alpha=1.0)
 
       colors += [ color ] * len(x)
       all_x.append(x)
@@ -70,8 +89,18 @@ def pca(train_coords, validate_coords, fname):
     marker = 'o' if is_train else '^'
     size = 5 if is_train else 8
     ax.scatter(all_x, all_y, all_z, c=colors, marker=marker,
-               edgecolor='k', s=size, alpha=0.25, linewidths=0.0,
+               edgecolor='k', s=size, alpha=0.1, linewidths=0.0,
                edgecolors='none')
+
+  for i in range(0, len(dataset.LABELS)):
+    entry = pairs.get(dataset.LABELS[i])
+    if entry is None:
+      continue
+    if len(entry['x']) != 2:
+      continue
+
+    color = COLOR_MAP(to_color(i))
+    ax.plot(entry['x'], entry['y'], entry['z'], color=color)
 
   if fname == None:
     plt.show()
