@@ -108,6 +108,10 @@ function save() {
     complete(response.code);
   };
 
+  xhr.onerror = () => {
+    error();
+  };
+
   xhr.open('PUT', API_ENDPOINT, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.send(json);
