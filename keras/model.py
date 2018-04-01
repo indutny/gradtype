@@ -104,13 +104,9 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  x = GRU(64, name='gru_large', kernel_regularizer=L2,
-          return_sequences=True)(joint_input)
-  x = TimeDistributed(Dense(32, name='reduce_gru', kernel_regularizer=L2))(x)
-  x = GRU(32, name='gru_small', kernel_regularizer=L2)(x)
+  x = GRU(32, name='gru_large', kernel_regularizer=L2)(joint_input)
 
-  x = Dense(FEATURE_COUNT, name='features',
-            kernel_regularizer=L2)(x)
+  x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)
@@ -154,7 +150,8 @@ def create_regression(input_shape, siamese):
   x = siamese([ codes, deltas ])
 
   # Reduce number of features
-  x = Dense(len(dataset.LABELS), name='reduction', activation='softmax')(x)
+  x = Dense(len(dataset.LABELS), name='reduction', activation='softmax',
+            kernel_regularizer=L2)(x)
 
   return Model(name='regression', inputs=[ codes, deltas ], outputs=x)
 
