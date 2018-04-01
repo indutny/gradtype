@@ -5,7 +5,7 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, TimeDistributed
+from keras.layers import Input, Dense, BatchNormalization, GRU, Activation
 
 # Internals
 import dataset
@@ -149,10 +149,7 @@ def create_regression(input_shape, siamese):
 
   x = siamese([ codes, deltas ])
 
-  # Reduce number of features
-  x = Dense(len(dataset.LABELS), name='reduction', activation='softmax',
-            kernel_regularizer=L2)(x)
-
+  x = Activation('softmax')(x)
   return Model(name='regression', inputs=[ codes, deltas ], outputs=x)
 
 def create(sequence_len):
@@ -167,7 +164,7 @@ def create(sequence_len):
 def generate_one_hot_regression(indices):
   result = []
   for index in indices:
-    one_hot = np.zeros([ len(dataset.LABELS) ], dtype='int32')
+    one_hot = np.zeros([ FEATURE_COUNT ], dtype='int32')
     one_hot[index] = 1
     result.append(one_hot)
   return np.array(result)
