@@ -167,6 +167,9 @@ class TripletGenerator(Sequence):
         negatives = negative_seqs[:other_half]
         negative_seqs = negative_seqs[other_half:]
 
+        if len(positives) == 0 or len(negatives) == 0:
+          break
+
         batches.append({
           'positives': positives,
           'negatives': negatives,
@@ -195,7 +198,7 @@ class TripletGenerator(Sequence):
 
         triplets['anchors'].append(anchor)
         triplets['positives'].append(positive)
-        triplets['negative'].append(negative)
+        triplets['negatives'].append(negative)
 
         j += 1
         if j == len(negative_seqs):

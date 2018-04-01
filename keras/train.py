@@ -39,7 +39,7 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
-tb = TensorBoard(histogram_freq=1000, write_graph=False,
+tb = TensorBoard(write_graph=False,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
@@ -47,9 +47,9 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   end_epoch = i + RESHUFFLE_EPOCHS
 
   train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
-      batch_size=64)
+      batch_size=16)
   validate_gen = dataset.TripletGenerator('validate', siamese,
-      validate_datasets, batch_size=64)
+      validate_datasets, batch_size=16)
 
   model.fit_generator(train_gen,
       initial_epoch=i,
