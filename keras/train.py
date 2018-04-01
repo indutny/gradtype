@@ -56,6 +56,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
       epochs=end_epoch,
       callbacks=callbacks,
       workers=8,
+      use_multiprocessing=True,
       shuffle=False,
       validation_data=validate_gen)
 
