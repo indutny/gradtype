@@ -5,7 +5,7 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, Concatenate
+from keras.layers import Input, Dense, BatchNormalization, GRU, TimeDistributed
 
 # Internals
 import dataset
@@ -104,8 +104,12 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  x = GRU(32, name='gru',
-          kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
+  x = GRU(64, name='gru_large',
+          kernel_regularizer=L2, recurrent_regularizer=L2,
+          return_sequences=True)(joint_input)
+  x = TimeDistributed(Dense(32, name='reduce_gru', kernel_regularizer=L2))(x)
+  x = GRU(32, name='gru_small',
+          kernel_regularizer=L2, recurrent_regularizer=L2)(x)
 
   x = Dense(FEATURE_COUNT, name='features',
             kernel_regularizer=L2)(x)
