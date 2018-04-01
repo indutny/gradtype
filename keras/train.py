@@ -42,6 +42,11 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 tb = TensorBoard(write_graph=False,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
 
+if start_epoch == 0:
+  print("Saving initial...")
+  fname = './out/gradtype-triplet-{:08d}.h5'.format(start_epoch)
+  siamese.save_weights(fname)
+
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [ tb ]
   end_epoch = i + RESHUFFLE_EPOCHS
