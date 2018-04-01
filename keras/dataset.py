@@ -197,7 +197,7 @@ class TripletGenerator(Sequence):
       anchor = positive_seqs[i]
       j = 0
       for k in range(i + 1, len(positive_seqs)):
-        positive = positive_seqs[i]
+        positive = positive_seqs[k]
         negative = negative_seqs[j]
 
         triplets['anchors'].append(anchor)
