@@ -47,9 +47,9 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   end_epoch = i + RESHUFFLE_EPOCHS
 
   train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
-      batch_size=16)
+      batch_size=64)
   validate_gen = dataset.TripletGenerator('validate', siamese,
-      validate_datasets, batch_size=16)
+      validate_datasets, batch_size=64)
 
   model.fit_generator(train_gen,
       initial_epoch=i,
