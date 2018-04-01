@@ -104,9 +104,9 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  forward = GRU(64, name='gru_fwd', kernel_initializer='he_normal',
+  forward = GRU(64, name='gru_fwd',
                 kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
-  backward = GRU(64, name='gru_bwd', kernel_initializer='he_normal',
+  backward = GRU(64, name='gru_bwd',
                  go_backwards=True,
                  kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
   x = Concatenate(name='concat')([ forward, backward ])
@@ -114,16 +114,14 @@ def create_siamese(input_shape):
 
   # Residual layers (aka side-chain)
   sc = Dense(128, name='residual_l1', kernel_regularizer=L2,
-             kernel_initializer='he_normal',
              activation='relu')(x)
   sc = Dense(128, name='residual_l2', kernel_regularizer=L2,
-             kernel_initializer='he_normal',
              activation='relu')(sc)
 
   # Merge
   x = keras.layers.Add(name='residual_combine')([ x, sc ])
 
-  x = Dense(FEATURE_COUNT, name='features', kernel_initializer='he_normal',
+  x = Dense(FEATURE_COUNT, name='features',
             kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
