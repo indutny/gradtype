@@ -167,7 +167,7 @@ class TripletGenerator(Sequence):
         negatives = negative_seqs[:other_half]
         negative_seqs = negative_seqs[other_half:]
 
-        if len(positives) == 0 or len(negatives) == 0:
+        if len(positives) != half or len(negatives) != other_half:
           break
 
         batches.append({
