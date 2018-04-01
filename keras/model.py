@@ -9,11 +9,10 @@ from keras.layers import Input, Dense, BatchNormalization, GRU
 
 # Internals
 import dataset
+from common import FEATURE_COUNT
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
-
-FEATURE_COUNT = 128
 
 # Triplet loss margin
 MARGIN = 0.2
@@ -177,9 +176,6 @@ def create(sequence_len):
   regression = create_regression(input_shape, siamese)
 
   return (siamese, model, regression)
-
-def generate_dummy(triplets):
-  return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
 
 def generate_one_hot_regression(indices):
   result = []

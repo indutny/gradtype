@@ -6,8 +6,10 @@ import struct
 import time
 import json
 
-# Mini-batch size
-TRIPLET_MINI_BATCH = 16
+from keras.utils import Sequence
+
+# Internal
+from common import FEATURE_COUNT
 
 # Maximum character code
 MAX_CHAR = 27
@@ -89,120 +91,117 @@ def evaluate_model(model, datasets):
     result.append(coordinates[offsets[0]:offsets[1]])
   return result
 
-def gen_triplets_in_mini_batch(datasets, features):
-  anchor_list = []
-  positive_list = []
-  negative_list = []
-
-  for i in range(0, len(datasets)):
-    anchor_ds = datasets[i]
-    anchor_ds_features = features[i]
-
-    negative_datasets = datasets[:i] + datasets[i + 1:]
-    negative_features = features[:i] + features[i + 1:]
-
-    for j in range(0, len(anchor_ds)):
-      anchor = anchor_ds[j]
-      anchor_features = anchor_ds_features[j]
-
-      # Compute distances
-      best_negative_per_ds = []
-      for neg_feature in negative_features:
-        distance = neg_feature - anchor_features
-        distance **= 2;
-        distance = np.mean(distance, axis=-1)
-        best_index = np.argmin(distance, axis=-1)
-        best_negative_per_ds.append(best_index)
-
-      best_negative_ds = np.argmin(best_negative_per_ds, axis=-1)
-
-      negative = negative_datasets[best_negative_ds]
-      negative = negative[best_negative_per_ds[best_negative_ds]]
-
-      # Fully connected mini-batch
-      for positive in anchor_ds[j + 1:]:
-        attempts = 0
-        best_negative_index = 0
-        best_negative_distance = float('inf')
-        best_negative_ds = None
-
-        # Now we have both positive and negative sequences - emit!
-        anchor_list.append(anchor)
-        positive_list.append(positive)
-        negative_list.append(negative)
-
-  return anchor_list, positive_list, negative_list
-
 # Inspired by: https://arxiv.org/pdf/1503.03832.pdf
-def gen_triplets(model, datasets):
-  print('Generating triplets...')
-  start = time.time()
+class TripletGenerator(Sequence):
+  def __init__(self, kind, model, datasets, batch_size = 32):
+    self.kind = kind
 
-  # Shuffle sequences in datasets first
-  for ds in datasets:
-    np.random.shuffle(ds)
-  print('{} Shuffled'.format(time.time() - start))
+    # Shuffle sequences in datasets first
+    for ds in datasets:
+      np.random.shuffle(ds)
 
-  # Evaluate network on shuffled datasets
-  features = evaluate_model(model, datasets)
-  print('{} Evaluated'.format(time.time() - start))
+    if kind == 'train':
+      all_features = evaluate_model(model, datasets)
+      augmented_datasets = []
+      for (ds, ds_features) in zip(datasets, all_features):
+        augmented_ds = []
+        for (seq, features) in zip(ds, ds_features):
+          single = { 'features': features }
+          single.update(seq)
+          augmented_ds.append(single)
+        augmented_datasets.append(augmented_ds)
+      datasets = augmented_datasets
+    self.batches = self.build_batches(datasets, batch_size)
 
-  # Split into mini batches
-  batch_slices = []
-  for i in range(0, len(datasets)):
-    ds = datasets[i]
-    ds_features = features[i]
+  def __len__(self):
+    return len(self.batches)
 
-    slices = []
-    for j in range(0, len(ds), TRIPLET_MINI_BATCH):
-      slices.append({
-        'dataset': ds[j:j + TRIPLET_MINI_BATCH],
-        'features': ds_features[j:j + TRIPLET_MINI_BATCH],
-      })
-    batch_slices.append(slices)
-  print('{} Split into mini batches'.format(time.time() - start))
+  def __getitem__(self, i):
+    batch = self.batches[i]
+    positive_seqs = batch['positives']
+    negative_seqs = batch['negatives']
 
-  anchor_list = []
-  positive_list = []
-  negative_list = []
+    # We don't really care, it is fine that they're random
+    if self.kind == 'validate':
+      triplets = self.build_validate_triplets(positive_seqs, negative_seqs)
+      x = triplets_to_x(triplets)
+      return x, generate_dummy(x)
 
-  while True:
-    mini_batch = []
-    mini_features = []
-    for i in range(0, len(batch_slices)):
-      b = batch_slices[i]
-      if (len(b) == 0):
-        continue
-      mini_batch.append(b[0]['dataset'])
-      mini_features.append(b[0]['features'])
-      batch_slices[i] = b[1:]
+    negative_features = [ e['features'] for e in negative_seqs ]
 
-    # No way to select negative
-    if len(mini_batch) < 2:
-      break
-    print('{} Processing mini batch, len={}'.format(
-          time.time() - start, len(mini_batch)))
+    # Construct triplets
+    triplets = { 'anchors': [], 'positives': [], 'negatives': [] }
+    for i in range(0, len(positive_seqs)):
+      anchor = positive_seqs[i]
+      for j in range(i + 1, len(positive_seqs)):
+        positive = positive_seqs[j]
+        negative_i = self.find_best_negative(anchor['features'],
+            positive['features'], negative_features)
+        negative = negative_seqs[negative_i]
 
-    a, p, n = gen_triplets_in_mini_batch(mini_batch, mini_features)
-    anchor_list += a
-    positive_list += p
-    negative_list += n
+        triplets['anchors'].append(anchor)
+        triplets['positives'].append(positive)
+        triplets['negatives'].append(negative)
 
-  def get_codes(item_list):
-    return np.array(list(map(lambda item: item['codes'], item_list)))
-  def get_deltas(item_list):
-    return np.array(list(map(lambda item: item['deltas'], item_list)))
+    x = triplets_to_x(triplets)
+    return x, generate_dummy(x)
 
-  print('Computed {}'.format(time.time() - start))
+  def build_batches(self, datasets, batch_size):
+    half = int(batch_size / 2)
+    other_half = batch_size - half
 
-  return {
-    'anchor_codes': get_codes(anchor_list),
-    'anchor_deltas': get_deltas(anchor_list),
-    'positive_codes': get_codes(positive_list),
-    'positive_deltas': get_deltas(positive_list),
-    'negative_codes': get_codes(negative_list),
-    'negative_deltas': get_deltas(negative_list),
-  }
+    batches = []
+    for i in range(0, len(datasets)):
+      ds = datasets[i]
+      negative_datasets = datasets[:i] + datasets[i + 1:]
+      negative_seqs = np.concatenate(negative_datasets, axis=0)
+      np.random.shuffle(negative_seqs)
+
+      for j in range(0, len(ds), half):
+        batch = []
+
+        # Fill half of the batch with positives
+        positives = ds[j:j + half]
+
+        # Fill other half with negatives
+        negatives = negative_seqs[:other_half]
+        negative_seqs = negative_seqs[other_half:]
+
+        batches.append({
+          'positives': positives,
+          'negatives': negatives,
+        })
+
+    return batches
+
+  def find_best_negative(self, anchor, positive, negative_features):
+    limit = np.mean((anchor - positive) ** 2, axis=-1)
+    distances = np.mean((anchor - negative_features) ** 2, axis=-1)
+    distances = np.where(distances > limit, distances, float('inf'))
+    return np.argmin(distances, axis=-1)
+
+  def build_validate_triplets(self, positive_seqs, negative_seqs):
+    triplets = { 'anchors': [], 'positives': [], 'negatives': [] }
+    # Nothing to generate from
+    if len(negative_seqs) == 0:
+      return triplets
+
+    for i in range(0, len(positive_seqs)):
+      anchor = positive_seqs[i]
+      j = 0
+      for k in range(i + 1, len(positive_seqs)):
+        positive = positive_seqs[i]
+        negative = negative_seqs[j]
+
+        triplets['anchors'].append(anchor)
+        triplets['positives'].append(positive)
+        triplets['negative'].append(negative)
+
+        j += 1
+        if j == len(negative_seqs):
+          break
+
+    return triplets
 
 def gen_regression(datasets):
   codes = []
@@ -219,3 +218,24 @@ def gen_regression(datasets):
   deltas = np.array(deltas)
 
   return { 'codes': codes, 'deltas': deltas, 'labels': labels }
+
+def generate_dummy(triplets):
+  return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
+
+# Internal
+
+def triplets_to_x(triplets):
+  def get_codes(item_list):
+    return np.array(list(map(lambda item: item['codes'], item_list)))
+
+  def get_deltas(item_list):
+    return np.array(list(map(lambda item: item['deltas'], item_list)))
+
+  return {
+    'anchor_codes': get_codes(triplets['anchors']),
+    'anchor_deltas': get_deltas(triplets['anchors']),
+    'positive_codes': get_codes(triplets['positives']),
+    'positive_deltas': get_deltas(triplets['positives']),
+    'negative_codes': get_codes(triplets['negatives']),
+    'negative_deltas': get_deltas(triplets['negatives']),
+  }

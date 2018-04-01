@@ -46,17 +46,18 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   callbacks = [ tb ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
-  triplets = dataset.gen_triplets(siamese, train_datasets)
-  val_triplets = dataset.gen_triplets(siamese, validate_datasets)
-  y = gradtype_model.generate_dummy(triplets)
-  val_y = gradtype_model.generate_dummy(val_triplets)
+  train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
+      batch_size=64)
+  validate_gen = dataset.TripletGenerator('validate', siamese,
+      validate_datasets, batch_size=64)
 
-  model.fit(x=triplets, y=y,
-      batch_size=512,
+  model.fit_generator(train_gen,
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
-      validation_data=(val_triplets, val_y))
+      workers=8,
+      shuffle=False,
+      validation_data=validate_gen)
 
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
