@@ -99,26 +99,13 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  x = GRU(128, name='gru',
+  x = GRU(256, name='gru',
           kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
 
-  # Residual layers (aka side-chain)
-  sc = Dense(128, name='residual_l2', kernel_regularizer=L2,
-             activation='relu')(x)
-  sc = Dense(128, name='residual_l3', kernel_regularizer=L2,
-             activation='relu')(sc)
-
-  # Merge
-  x = keras.layers.Add(name='residual_combine_1')([ x, sc ])
-
-  # Residual layers (aka side-chain)
-  sc = Dense(128, name='residual_l4', kernel_regularizer=L2,
-             activation='relu')(x)
-  sc = Dense(128, name='residual_l5', kernel_regularizer=L2,
-             activation='relu')(sc)
-
-  # Merge
-  x = keras.layers.Add(name='residual_combine_2')([ x, sc ])
+  x = Dense(128, name='hidden_1', kernel_regularizer=L2,
+            activation='relu')(x)
+  x = Dense(128, name='hidden_2', kernel_regularizer=L2,
+            activation='relu')(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
