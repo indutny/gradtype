@@ -5,7 +5,7 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU
+from keras.layers import Input, Dense, BatchNormalization, GRU, Concatenate
 
 # Internals
 import dataset
@@ -94,17 +94,27 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  x = GRU(128, name='gru',
-          kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
+  forward = GRU(64, name='gru_fwd', kernel_initializer='he_normal',
+                kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
+  backward = GRU(64, name='gru_bwd', kernel_initializer='he_normal',
+                 go_backwards=True,
+                 kernel_regularizer=L2, recurrent_regularizer=L2)(joint_input)
+  x = Concatenate(name='concat')([ forward, backward ])
+
 
   # Residual layers (aka side-chain)
   sc = Dense(128, name='residual_l1', kernel_regularizer=L2,
+             kernel_initializer='he_normal',
              activation='relu')(x)
+  sc = Dense(128, name='residual_l2', kernel_regularizer=L2,
+             kernel_initializer='he_normal',
+             activation='relu')(sc)
 
   # Merge
   x = keras.layers.Add(name='residual_combine')([ x, sc ])
 
-  x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
+  x = Dense(FEATURE_COUNT, name='features', kernel_initializer='he_normal',
+            kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)

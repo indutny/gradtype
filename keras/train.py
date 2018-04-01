@@ -39,8 +39,7 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
-tb = TensorBoard(write_graph=False,
-                 log_dir=gradtype_utils.get_tensorboard_logdir())
+tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
 if start_epoch == 0:
   print("Saving initial...")
