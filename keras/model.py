@@ -16,7 +16,7 @@ MAX_CHAR = dataset.MAX_CHAR
 FEATURE_COUNT = 128
 
 # Triplet loss margin
-MARGIN = 0.1
+MARGIN = 0.2
 
 # Saddle-point fix inverse steepness
 STEEPNESS = 4.0
@@ -110,7 +110,7 @@ def create_siamese(input_shape):
              activation='relu')(sc)
 
   # Merge
-  x = keras.layers.Add(name='residual_combine')([ x, sc ])
+  x = keras.layers.Add(name='residual_combine_1')([ x, sc ])
 
   # Residual layers (aka side-chain)
   sc = Dense(128, name='residual_l4', kernel_regularizer=L2,
@@ -119,7 +119,7 @@ def create_siamese(input_shape):
              activation='relu')(sc)
 
   # Merge
-  x = keras.layers.Add(name='residual_combine')([ x, sc ])
+  x = keras.layers.Add(name='residual_combine_2')([ x, sc ])
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
