@@ -17,12 +17,6 @@ MAX_CHAR = dataset.MAX_CHAR
 # Triplet loss margin
 MARGIN = 0.2
 
-# Saddle-point fix inverse steepness
-STEEPNESS = 4.0
-
-# Amount of kick to get out of saddle-point (must be positive)
-KICK = 0.1
-
 # Just a common regularizer
 L2 = regularizers.l2(0.002)
 
@@ -68,9 +62,8 @@ def nvar(y_true, y_pred):
   return K.var(negative_distance(y_pred)) / nmean(y_true, y_pred)
 
 def accuracy(y_true, y_pred):
-  return K.mean(K.greater(
-      negative_distance(y_pred) - positive_distance(y_pred),
-      math.sqrt(MARGIN) / 2.0))
+  delta = negative_distance2(y_pred) - positive_distance2(y_pred)
+  return K.mean(K.greater(delta, MARGIN));
 
 class JoinInputs(keras.layers.Layer):
   def call(self, inputs):
