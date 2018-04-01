@@ -101,18 +101,9 @@ def gen_triplets_in_mini_batch(datasets, features):
     negative_datasets = datasets[:i] + datasets[i + 1:]
     negative_features = features[:i] + features[i + 1:]
 
-    # Form a circle of in `anchor_ds`
     for j in range(0, len(anchor_ds)):
       anchor = anchor_ds[j]
       anchor_features = anchor_ds_features[j]
-
-      positive = anchor_ds[(j + 1) % len(anchor_ds)]
-      positive_features = anchor_ds_features[(j + 1) % len(anchor_ds)]
-
-      # Limit from https://arxiv.org/pdf/1503.03832.pdf (4)
-      limit = anchor_features - positive_features
-      limit **= 2
-      limit = np.mean(limit, axis=-1)
 
       # Compute distances
       best_negative_per_ds = []
@@ -120,7 +111,6 @@ def gen_triplets_in_mini_batch(datasets, features):
         distance = neg_feature - anchor_features
         distance **= 2;
         distance = np.mean(distance, axis=-1)
-        distance = np.where(distance > limit, distance, float('inf'))
         best_index = np.argmin(distance, axis=-1)
         best_negative_per_ds.append(best_index)
 
@@ -129,10 +119,17 @@ def gen_triplets_in_mini_batch(datasets, features):
       negative = negative_datasets[best_negative_ds]
       negative = negative[best_negative_per_ds[best_negative_ds]]
 
-      # Now we have both positive and negative sequences - emit!
-      anchor_list.append(anchor)
-      positive_list.append(positive)
-      negative_list.append(negative)
+      # Fully connected mini-batch
+      for positive in anchor_ds[j + 1:]:
+        attempts = 0
+        best_negative_index = 0
+        best_negative_distance = float('inf')
+        best_negative_ds = None
+
+        # Now we have both positive and negative sequences - emit!
+        anchor_list.append(anchor)
+        positive_list.append(positive)
+        negative_list.append(negative)
 
   return anchor_list, positive_list, negative_list
 
