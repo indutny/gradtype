@@ -17,6 +17,8 @@ MAX_CHAR = dataset.MAX_CHAR
 # Triplet loss margin
 MARGIN = 0.2
 
+ACCURACY_PERCENT = 0.75
+
 # Just a common regularizer
 L2 = regularizers.l2(0.002)
 
@@ -63,7 +65,7 @@ def nvar(y_true, y_pred):
 
 def accuracy(y_true, y_pred):
   delta = negative_distance2(y_pred) - positive_distance2(y_pred)
-  return K.mean(K.greater(delta, MARGIN));
+  return K.mean(K.greater(delta, MARGIN * ACCURACY_PERCENT));
 
 class JoinInputs(keras.layers.Layer):
   def call(self, inputs):
