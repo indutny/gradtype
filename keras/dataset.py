@@ -8,6 +8,7 @@ import json
 
 # Mini-batch size
 TRIPLET_MINI_BATCH = 16
+TRIPLET_MINI_BATCH_WIDTH = 24
 
 # Maximum character code
 MAX_CHAR = 27
@@ -163,33 +164,43 @@ def gen_triplets(model, datasets):
         'features': ds_features[j:j + TRIPLET_MINI_BATCH],
       })
     batch_slices.append(slices)
+
+  # Shuffle batch slices, because we're going to sub-slice them below
+  np.random.shuffle(batch_slices)
+
   print('{} Split into mini batches'.format(time.time() - start))
 
   anchor_list = []
   positive_list = []
   negative_list = []
 
-  while True:
-    mini_batch = []
-    mini_features = []
-    for i in range(0, len(batch_slices)):
-      b = batch_slices[i]
-      if (len(b) == 0):
+  changed = True
+  while changed:
+    changed = False
+    for i in range(0, len(batch_slices), TRIPLET_MINI_BATCH_WIDTH):
+      mini_batch = []
+      mini_batch_size = 0
+      mini_features = []
+      for j in range(i, min(TRIPLET_MINI_BATCH_WIDTH, len(batch_slices))):
+        b = batch_slices[j]
+        if (len(b) == 0):
+          continue
+        mini_batch_size += len(b[0]['dataset'])
+        mini_batch.append(b[0]['dataset'])
+        mini_features.append(b[0]['features'])
+        batch_slices[j] = b[1:]
+
+      # No way to select negative
+      if len(mini_batch) < 2:
         continue
-      mini_batch.append(b[0]['dataset'])
-      mini_features.append(b[0]['features'])
-      batch_slices[i] = b[1:]
+      print('{} Processing mini batch, len={}, size={}'.format(
+            time.time() - start, len(mini_batch), mini_batch_size))
 
-    # No way to select negative
-    if len(mini_batch) < 2:
-      break
-    print('{} Processing mini batch, len={}'.format(
-          time.time() - start, len(mini_batch)))
-
-    a, p, n = gen_triplets_in_mini_batch(mini_batch, mini_features)
-    anchor_list += a
-    positive_list += p
-    negative_list += n
+      a, p, n = gen_triplets_in_mini_batch(mini_batch, mini_features)
+      anchor_list += a
+      positive_list += p
+      negative_list += n
+      changed = True
 
   def get_codes(item_list):
     return np.array(list(map(lambda item: item['codes'], item_list)))
