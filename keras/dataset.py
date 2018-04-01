@@ -147,9 +147,6 @@ class TripletGenerator(Sequence):
     return x, generate_dummy(x)
 
   def build_batches(self, datasets, batch_size):
-    half = int(batch_size / 2)
-    other_half = batch_size - half
-
     batches = []
     for i in range(0, len(datasets)):
       ds = datasets[i]
@@ -157,17 +154,17 @@ class TripletGenerator(Sequence):
       negative_seqs = np.concatenate(negative_datasets, axis=0)
       np.random.shuffle(negative_seqs)
 
-      for j in range(0, len(ds), half):
+      for j in range(0, len(ds), batch_size):
         batch = []
 
         # Fill half of the batch with positives
-        positives = ds[j:j + half]
+        positives = ds[j:j + batch_size]
 
         # Fill other half with negatives
-        negatives = negative_seqs[:other_half]
-        negative_seqs = negative_seqs[other_half:]
+        negatives = negative_seqs[:batch_size]
+        negative_seqs = negative_seqs[batch_size:]
 
-        if len(positives) != half or len(negatives) != other_half:
+        if len(positives) != batch_size or len(negatives) != batch_size:
           break
 
         batches.append({
