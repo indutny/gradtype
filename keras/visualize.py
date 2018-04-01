@@ -25,9 +25,9 @@ def pca(train_coords, validate_coords, fname):
   ax = Axes3D(fig, elev=-150, azim=110)
   pca = sklearn.decomposition.PCA(n_components=3, random_state=0x7ed1ae6e)
 
-  ax.set_xlim(left=-1.2, right=1.2)
-  ax.set_ylim(bottom=-1.2, top=1.2)
-  ax.set_zlim(bottom=-1.2, top=1.2)
+  ax.set_xlim(left=-0.9, right=0.9)
+  ax.set_ylim(bottom=-0.9, top=0.9)
+  ax.set_zlim(bottom=-0.9, top=0.9)
 
   # Fit coordinates
   pca.fit(np.concatenate(train_coords))
