@@ -181,6 +181,10 @@ class TripletGenerator(Sequence):
     limit = np.mean((anchor - positive) ** 2, axis=-1)
     distances = np.mean((anchor - negative_features) ** 2, axis=-1)
     distances = np.where(distances > limit, distances, float('inf'))
+
+    # Kind of an assert
+    if len(distances) == 0:
+      return None
     return np.argmin(distances, axis=-1)
 
   def build_validate_triplets(self, positive_seqs, negative_seqs):
