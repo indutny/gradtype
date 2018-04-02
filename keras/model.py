@@ -12,7 +12,7 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
-GRU_MAJOR_SIZE = 64
+GRU_MAJOR_SIZE = 128
 GRU_MINOR_SIZE = 64
 
 # This must match the constant in `src/dataset.ts`

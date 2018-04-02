@@ -54,7 +54,5 @@ for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
       validation_data=(validate_x, validate_y))
 
   print("Saving...")
-  fname_siamese = './out/gradtype-regr-siamese-{:08d}.h5'.format(end_epoch)
-  fname_full = './out/gradtype-regr-full-{:08d}.h5'.format(end_epoch)
-  siamese.save_weights(fname_siamese)
-  model.save_weights(fname_full)
+  fname = './out/gradtype-regr-{:08d}.h5'.format(end_epoch)
+  model.save_weights(fname)
