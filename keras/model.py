@@ -6,12 +6,13 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    Conv1D
+    Conv1D, Embedding
 
 # Internals
 import dataset
 from common import FEATURE_COUNT
 
+EMBEDDING_SIZE = 64
 CONV_SIZE = 64
 CONV_WINDOW = 3
 GRU_MAJOR_SIZE = 64
@@ -89,14 +90,14 @@ class JoinInputs(keras.layers.Layer):
     if not isinstance(inputs, list):
       raise ValueError('`inputs` should be a list.')
     return K.concatenate([
-      K.cast(K.expand_dims(inputs[1], axis=-1), 'float32'),
-      K.one_hot(inputs[0], MAX_CHAR + 2),
+      inputs[0],
+      K.expand_dims(inputs[1], axis=-1),
     ])
 
   def compute_output_shape(self, input_shapes):
     if not isinstance(input_shapes, list):
       raise ValueError('`input_shapes` should be a list.')
-    return input_shapes[0] + (MAX_CHAR + 3,)
+    return input_shapes[1] + (EMBEDDING_SIZE + 1,)
 
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
@@ -106,7 +107,8 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
-  joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
+  embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
+  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
   x = Conv1D(CONV_SIZE, CONV_WINDOW, activation='relu')(joint_input)
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
