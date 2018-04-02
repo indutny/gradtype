@@ -1,5 +1,5 @@
 import keras.layers
-from keras.callbacks import TensorBoard
+from keras.callbacks import TensorBoard, ReduceLROnPlateau
 from keras.optimizers import Adam
 
 # Internals
@@ -41,13 +41,16 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 
 tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
+lr_reducer = ReduceLROnPlateau(patience=5, verbose=1)
+
+callbacks = [ tb, lr_reducer ]
+
 if start_epoch == 0:
   print("Saving initial...")
   fname = './out/gradtype-triplet-{:08d}.h5'.format(start_epoch)
   siamese.save_weights(fname)
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
-  callbacks = [ tb ]
   end_epoch = i + RESHUFFLE_EPOCHS
 
   train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
