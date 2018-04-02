@@ -12,7 +12,7 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
-GRU_MAJOR_SIZE = 128
+GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
 
 # This must match the constant in `src/dataset.ts`
@@ -112,6 +112,8 @@ def create_siamese(input_shape):
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
+
+  x = Dense(64, name='hidden', kernel_regularizer=L2, activation='selu')(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
