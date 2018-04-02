@@ -115,19 +115,19 @@ def create_siamese(input_shape):
 
   # Residual connection
   rc = Dense(64, name='rc_1_dense', kernel_regularizer=L2,
-             activation='selu')(x)
+             activation='relu')(x)
 
   # Merge residual connection
   x = keras.layers.Add(name='rc_1_merge_add')([ x, rc ])
-  x = Activation('selu', name='rc_1_merge_selu')(x)
+  x = Activation('relu', name='rc_1_merge_relu')(x)
 
   # Residual connection
   rc = Dense(64, name='rc_2_dense', kernel_regularizer=L2,
-             activation='selu')(x)
+             activation='relu')(x)
 
   # Merge residual connection
   x = keras.layers.Add(name='rc_2_merge_add')([ x, rc ])
-  x = Activation('selu', name='rc_2_merge_selu')(x)
+  x = Activation('relu', name='rc_2_merge_relu')(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
