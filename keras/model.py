@@ -113,7 +113,11 @@ def create_siamese(input_shape):
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
 
-  x = Dense(64, name='hidden', kernel_regularizer=L2, activation='selu')(x)
+  # Residual connection
+  rc = Dense(64, name='hidden', kernel_regularizer=L2, activation='selu')(x)
+
+  # Merge residual connection
+  x = keras.layers.Add(name='merge_add')([ x, rc ])
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
