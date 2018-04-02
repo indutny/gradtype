@@ -42,8 +42,11 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 
 tb = TensorBoard(histogram_freq=1000, write_graph=False,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
+lr_reducer = ReduceLROnPlateau(patience=5, verbose=1)
+
+callbacks = [ tb, lr_reducer ]
+
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
-  callbacks = [ tb ]
   end_epoch = i + SAVE_EPOCHS
 
   model.fit(x=train_x, y=train_y,
