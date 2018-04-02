@@ -58,4 +58,4 @@ for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
 
   print("Saving...")
   fname = './out/gradtype-regr-{:08d}.h5'.format(end_epoch)
-  model.save_weights(fname)
+  siamese.save_weights(fname)
