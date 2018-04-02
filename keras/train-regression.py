@@ -40,7 +40,7 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 # Train
 #
 
-tb = TensorBoard(histogram_freq=1000, write_graph=False,
+tb = TensorBoard(histogram_freq=50,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
 lr_reducer = ReduceLROnPlateau(patience=5, verbose=1)
 
