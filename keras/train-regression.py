@@ -1,5 +1,5 @@
 import keras.layers
-from keras.callbacks import TensorBoard, ReduceLROnPlateau
+from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
 
 # Internals
@@ -42,9 +42,8 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
 
 tb = TensorBoard(histogram_freq=50,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
-lr_reducer = ReduceLROnPlateau(patience=5, verbose=1)
 
-callbacks = [ tb, lr_reducer ]
+callbacks = [ tb ]
 
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
   end_epoch = i + SAVE_EPOCHS

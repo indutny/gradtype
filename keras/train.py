@@ -1,5 +1,5 @@
 import keras.layers
-from keras.callbacks import TensorBoard, ReduceLROnPlateau
+from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
 
 # Internals
@@ -41,9 +41,7 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 
 tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
-lr_reducer = ReduceLROnPlateau(patience=5, verbose=1)
-
-callbacks = [ tb, lr_reducer ]
+callbacks = [ tb ]
 
 if start_epoch == 0:
   print("Saving initial...")
