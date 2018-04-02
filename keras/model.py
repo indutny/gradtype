@@ -113,7 +113,7 @@ def create_siamese(input_shape):
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
 
-  for i in range(0, 2):
+  for i in range(0, 8):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(x)
