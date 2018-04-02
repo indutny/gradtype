@@ -114,16 +114,20 @@ def create_siamese(input_shape):
           recurrent_dropout=0.3)(x)
 
   # Residual connection
-  rc = Dense(64, name='rc_1_dense', kernel_regularizer=L2,
+  rc = Dense(32, name='rc_1_dense_minor', kernel_regularizer=L2,
              activation='relu')(x)
+  rc = Dense(64, name='rc_1_dense_major', kernel_regularizer=L2,
+             activation='relu')(rc)
 
   # Merge residual connection
   x = keras.layers.Add(name='rc_1_merge_add')([ x, rc ])
   x = Activation('relu', name='rc_1_merge_relu')(x)
 
   # Residual connection
-  rc = Dense(64, name='rc_2_dense', kernel_regularizer=L2,
+  rc = Dense(32, name='rc_2_dense_minor', kernel_regularizer=L2,
              activation='relu')(x)
+  rc = Dense(64, name='rc_2_dense_major', kernel_regularizer=L2,
+             activation='relu')(rc)
 
   # Merge residual connection
   x = keras.layers.Add(name='rc_2_merge_add')([ x, rc ])
