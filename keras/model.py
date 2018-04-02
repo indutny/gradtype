@@ -12,8 +12,8 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
-GRU_MAJOR_SIZE = 32
-GRU_MINOR_SIZE = 32
+GRU_MAJOR_SIZE = 64
+GRU_MINOR_SIZE = 64
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -30,7 +30,7 @@ KICK = 0.1
 ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
-L2 = regularizers.l2(0.002)
+L2 = regularizers.l2(0.01)
 
 #
 # Network configuration
