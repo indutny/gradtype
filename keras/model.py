@@ -129,6 +129,22 @@ def create_siamese(input_shape):
   # Merge residual connection
   x = keras.layers.Add(name='rc_2_merge_add')([ x, rc ])
 
+  # Residual connection
+  rc = Dropout(0.2, name='rc_3_dropout')(x)
+  rc = Dense(64, name='rc_3_dense', kernel_regularizer=L2,
+             activation='selu')(rc)
+
+  # Merge residual connection
+  x = keras.layers.Add(name='rc_3_merge_add')([ x, rc ])
+
+  # Residual connection
+  rc = Dropout(0.2, name='rc_4_dropout')(x)
+  rc = Dense(64, name='rc_4_dense', kernel_regularizer=L2,
+             activation='selu')(rc)
+
+  # Merge residual connection
+  x = keras.layers.Add(name='rc_4_merge_add')([ x, rc ])
+
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
