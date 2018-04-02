@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    TimeDistributed
+    TimeDistributed, Dropout
 
 # Internals
 import dataset
@@ -114,7 +114,8 @@ def create_siamese(input_shape):
           recurrent_dropout=0.3)(x)
 
   # Residual connection
-  rc = Dense(64, name='hidden', kernel_regularizer=L2, activation='selu')(x)
+  rc = Dropout(0.2)(x)
+  rc = Dense(64, name='hidden', kernel_regularizer=L2, activation='selu')(rc)
 
   # Merge residual connection
   x = keras.layers.Add(name='merge_add')([ x, rc ])

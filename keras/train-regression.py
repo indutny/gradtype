@@ -1,5 +1,5 @@
 import keras.layers
-from keras.callbacks import TensorBoard
+from keras.callbacks import TensorBoard, ReduceLROnPlateau
 from keras.optimizers import Adam
 
 # Internals
