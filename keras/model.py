@@ -30,6 +30,7 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.01)
+RESIDUAL_L2 = regularizers.l2(0.001)
 
 #
 # Network configuration
@@ -115,8 +116,9 @@ def create_siamese(input_shape):
   for i in range(0, 2):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
-               kernel_regularizer=L2)(x)
-    rc = Dense(64, name='rc{}_dense_major'.format(i), kernel_regularizer=L2)(rc)
+               kernel_regularizer=RESIDUAL_L2)(x)
+    rc = Dense(64, name='rc{}_dense_major'.format(i),
+               kernel_regularizer=RESIDUAL_L2)(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
