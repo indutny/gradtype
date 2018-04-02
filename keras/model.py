@@ -12,6 +12,9 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
+GRU_MAJOR_SIZE = 32
+GRU_MINOR_SIZE = 32
+
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
 
@@ -105,10 +108,10 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
-  x = GRU(32, name='gru_large', kernel_regularizer=L2,
-          return_sequences=True)(joint_input)
-  x = TimeDistributed(Dense(16, name='downscale'))(x)
-  x = GRU(16, name='gru_small', kernel_regularizer=L2)(x)
+  x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
+          recurrent_dropout=0.25, return_sequences=True)(joint_input)
+  x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
+          recurrent_dropout=0.25)(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
