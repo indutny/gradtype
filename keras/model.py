@@ -5,12 +5,15 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, Activation
+from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
+    Conv1D
 
 # Internals
 import dataset
 from common import FEATURE_COUNT
 
+CONV_SIZE = 64
+CONV_WINDOW = 3
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
 
@@ -95,9 +98,6 @@ class JoinInputs(keras.layers.Layer):
       raise ValueError('`input_shapes` should be a list.')
     return input_shapes[0] + (MAX_CHAR + 3,)
 
-  def compute_mask(self, inputs, masks=None):
-    return K.not_equal(inputs[0], 0)
-
 class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     return K.l2_normalize(x + K.epsilon(), axis=1)
@@ -108,8 +108,9 @@ def create_siamese(input_shape):
 
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
+  x = Conv1D(CONV_SIZE, CONV_WINDOW, activation='relu')(joint_input)
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
-          recurrent_dropout=0.3, return_sequences=True)(joint_input)
+          recurrent_dropout=0.3, return_sequences=True)(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
 
