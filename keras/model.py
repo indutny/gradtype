@@ -109,9 +109,9 @@ def create_siamese(input_shape):
   joint_input = JoinInputs(name='join_inputs')([ codes, deltas ])
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
-          recurrent_dropout=0.25, return_sequences=True)(joint_input)
+          recurrent_dropout=0.3, return_sequences=True)(joint_input)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
-          recurrent_dropout=0.25)(x)
+          recurrent_dropout=0.3)(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
