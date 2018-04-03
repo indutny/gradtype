@@ -14,8 +14,8 @@ from common import FEATURE_COUNT
 # Maximum character code
 MAX_CHAR = 27
 
-VALIDATE_PERCENT = 0.4
-VALIDATE_SEP_PERCENT = 0.1
+VALIDATE_PERCENT = 0.2
+VALIDATE_SEP_PERCENT = 0.25
 
 # Sequence length
 SEQUENCE_LEN = 30
