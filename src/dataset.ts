@@ -70,6 +70,10 @@ export class Dataset {
       let k: string = event.k;
       if (k === 'Spacebar') {
         k = ' ';
+      } else if (k === 'Backspace') {
+        // Skip backspace
+        // XXX(indutny)
+        continue;
       }
 
       // TODO(indutny): backspace?

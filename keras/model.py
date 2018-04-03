@@ -111,21 +111,6 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  # Expand input
-  x = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
-             padding='causal', activation='relu')(x)
-
-  for i in range(0, RESIDUAL_DEPTH):
-    # Residual connection
-    rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='rc{}_conv'.format(i),
-                padding='causal', activation='relu')(x)
-    rc = TimeDistributed(
-        BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
-
-    # Merge residual connection
-    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
-    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
-
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
   x = BatchNormalization(name='gru_minor_batch_norm')(x)
