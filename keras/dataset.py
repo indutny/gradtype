@@ -18,7 +18,7 @@ VALIDATE_PERCENT = 0.4
 VALIDATE_SEP_PERCENT = 0.1
 
 # Sequence length
-SEQUENCE_LEN = 40
+SEQUENCE_LEN = 80
 OVERLAP = 1
 
 package_directory = os.path.dirname(os.path.abspath(__file__))

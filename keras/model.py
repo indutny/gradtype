@@ -12,7 +12,7 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
-EMBEDDING_SIZE = 3
+EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64

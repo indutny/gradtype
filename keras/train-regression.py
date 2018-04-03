@@ -1,6 +1,7 @@
 import keras.layers
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
+from keras.metrics import top_k_categorical_accuracy
 
 # Internals
 import dataset
@@ -34,7 +35,11 @@ start_epoch = gradtype_utils.load_weights(model, 'gradtype-regr-')
 
 adam = Adam(lr=0.001)
 
-model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
+def top_5(y_true, y_pred):
+  return top_k_categorical_accuracy(y_true, y_pred, k=5)
+
+model.compile(adam, loss='categorical_crossentropy', metrics=[
+  'accuracy', top_5 ])
 
 #
 # Train

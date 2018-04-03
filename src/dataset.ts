@@ -69,13 +69,17 @@ export class Dataset {
 
       // TODO(indutny): backspace?
       const code = this.compress(event.k.charCodeAt(0));
-      if (code === undefined || (event.ts - lastTS!) >= CUTOFF_TIME) {
+      if (code === undefined) {
         yield reset();
         continue;
       }
       assert(0 <= code && code <= MAX_CHAR);
 
       const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
+      if (delta > CUTOFF_TIME) {
+        yield reset();
+        continue;
+      }
 
       yield {
         delta,
