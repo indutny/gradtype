@@ -14,6 +14,7 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
+CONV_SIZE = 32
 GRU_SIZE = 32
 RESIDUAL_DEPTH = 8
 
@@ -110,9 +111,13 @@ def create_siamese(input_shape):
 
   x = joint_input
 
+  # Expand input
+  rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv'.format(i),
+              padding='causal', activation='relu')(x)
+
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='rc{}_conv'.format(i),
+    rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='rc{}_conv'.format(i),
                 padding='causal', activation='relu')(x)
     rc = TimeDistributed(
         BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
