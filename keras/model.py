@@ -115,20 +115,21 @@ def create_siamese(input_shape):
   x = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
              padding='causal', activation='relu')(x)
 
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
+          recurrent_dropout=0.3)(x)
+  x = BatchNormalization(name='gru_minor_batch_norm')(x)
+
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='rc{}_conv'.format(i),
-                padding='causal', activation='relu')(x)
-    rc = TimeDistributed(
-        BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
+    rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
+               activation='relu')(x)
+    rc = BatchNormalization(name='rc{}_batch_norm')(rc)
+    rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2,
+               activation='relu')(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
-
-  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
-          recurrent_dropout=0.3)(x)
-  x = BatchNormalization(name='gru_minor_batch_norm')(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
