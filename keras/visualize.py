@@ -33,12 +33,13 @@ def pca(train_coords, validate_coords, fname):
   pca.fit(np.concatenate(train_coords))
   pca.fit(np.concatenate(validate_coords))
 
-  # Transform coordinates and print labels
-  # legend = []
-  # for i in range(0, len(dataset.LABELS)):
-  #   color = COLOR_MAP(to_color(i))
-  #   legend.append(mpatches.Patch(color=color, label=dataset.LABELS[i]))
-  # ax.legend(handles=legend, fontsize=8)
+  # Print labels
+  if len(dataset.LABELS) < 32:
+    legend = []
+    for i in range(0, len(dataset.LABELS)):
+      color = COLOR_MAP(to_color(i))
+      legend.append(mpatches.Patch(color=color, label=dataset.LABELS[i]))
+    ax.legend(handles=legend, fontsize=8)
 
   pairs = {}
 
