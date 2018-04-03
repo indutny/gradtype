@@ -15,6 +15,7 @@ from common import FEATURE_COUNT
 EMBEDDING_SIZE = 3
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
+RESIDUAL_DEPTH = 0
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -110,15 +111,17 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
+  x = TimeDistributed(BatchNormalization(name='gru_major_batch_norm'))(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
+  x = BatchNormalization(name='gru_minor_batch_norm')(x)
 
-  for i in range(0, 8):
+  for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(x)
     rc = BatchNormalization(name='rc{}_hidden_batch_norm'.format(i))(rc)
-    rc = Dense(64, name='rc{}_dense_major'.format(i),
+    rc = Dense(64, name='rc{}_dense_major'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(rc)
     rc = BatchNormalization(name='rc{}_activation_batch_norm'.format(i))(rc)
 
