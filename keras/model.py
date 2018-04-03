@@ -106,8 +106,10 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
+  deltas_norm = TimeDistributed(BatchNormalization(name='deltas_norm'))(deltas)
+
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
-  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
+  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas_norm ])
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
