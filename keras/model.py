@@ -16,7 +16,7 @@ EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
 CONV_SIZE = 64
 GRU_SIZE = 64
-RESIDUAL_DEPTH = 8
+RESIDUAL_DEPTH = 0
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
