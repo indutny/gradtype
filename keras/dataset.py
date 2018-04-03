@@ -55,10 +55,13 @@ def split(datasets, kind='triple'):
 
   ds_split_i = int(math.floor(VALIDATE_PERCENT * len(datasets)))
 
+  VALIDATION_FREQ = int(math.floor(1 / VALIDATE_PERCENT))
   for ds in datasets[ds_split_i:]:
-    split_i = int(math.floor(VALIDATE_PERCENT * len(ds)))
-    train.append(ds[split_i:])
-    validate.append(ds[0:split_i])
+    for i in range(0, len(ds)):
+      if i % VALIDATION_FREQ == 0:
+        validate.append(ds[i])
+      else:
+        train.append(ds[i])
 
   # Add some datasets that wouldn't be on the training list at all
   for ds in datasets[:ds_split_i]:
