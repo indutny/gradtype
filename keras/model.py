@@ -114,7 +114,8 @@ def create_siamese(input_shape):
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='rc{}_conv'.format(i))(x)
+    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='rc{}_conv'.format(i),
+                padding='causal', activation='relu')(x)
     rc = TimeDistributed(
         BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
 
