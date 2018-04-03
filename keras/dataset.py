@@ -107,7 +107,7 @@ def expand_sequence(seq):
 
   # Expand
   out = []
-  for i in range(0, count - SEQUENCE_LEN + 1):
+  for i in range(0, count - SEQUENCE_LEN + 1, OVERLAP):
     out.append({
       'label': label,
       'codes': seq['codes'][i:i + SEQUENCE_LEN],
