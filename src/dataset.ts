@@ -68,6 +68,7 @@ export class Dataset {
       }
 
       let k: string = event.k;
+      console.log(k);
       if (k === 'Spacebar') {
         k = ' ';
       } else if (k === 'Backspace') {
