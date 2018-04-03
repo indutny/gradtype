@@ -14,8 +14,8 @@ from common import FEATURE_COUNT
 # Maximum character code
 MAX_CHAR = 27
 
-# Percent of validation data (it'll end up being more in the end, so be gentle)
-VALIDATE_PERCENT = 0.2
+VALIDATE_PERCENT = 0.4
+VALIDATE_SEP_PERCENT = 0.1
 
 # Sequence length
 SEQUENCE_LEN = 40
@@ -57,7 +57,7 @@ def split(datasets, kind='triple'):
   train = []
   validate = []
 
-  ds_split_i = int(math.floor(VALIDATE_PERCENT * len(datasets)))
+  ds_split_i = int(math.floor(VALIDATE_SEP_PERCENT * len(datasets)))
 
   VALIDATION_FREQ = int(math.floor(1 / VALIDATE_PERCENT))
   for ds in datasets[ds_split_i:]:
