@@ -13,6 +13,7 @@ import dataset
 from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 3
+CONV_WIDTH = 5
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
 RESIDUAL_DEPTH = 0
@@ -109,7 +110,7 @@ def create_siamese(input_shape):
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
-  x = Conv1D(GRU_MAJOR_SIZE, 5, name='conv_input')(joint_input)
+  x = Conv1D(GRU_MAJOR_SIZE, CONV_WIDTH, name='conv_input')(joint_input)
   x = MaxPooling1D(name='max_pool_input')(x)
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
