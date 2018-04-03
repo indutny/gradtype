@@ -110,10 +110,8 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
-  x = TimeDistributed(BatchNormalization(name='gru_major_batch_norm'))(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
-  x = BatchNormalization(name='gru_minor_batch_norm')(x)
 
   for i in range(0, 8):
     # Residual connection
