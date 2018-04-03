@@ -16,6 +16,10 @@ EMBEDDING_SIZE = 7
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
 
+# Width of 1d convolution
+CONV_WIDTH = 9
+CONV_SIZE = 64
+
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
 
@@ -108,8 +112,10 @@ def create_siamese(input_shape):
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
+  x = Conv1D(CONV_WIDTH, CONV_SIZE, name='convolution')(joint_input)
+
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
-          recurrent_dropout=0.3, return_sequences=True)(joint_input)
+          recurrent_dropout=0.3, return_sequences=True)(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
 
