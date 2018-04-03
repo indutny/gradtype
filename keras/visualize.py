@@ -111,8 +111,8 @@ def pca(train_coords, validate_coords, fname):
 if __name__ == '__main__':
   import sys
 
-  datasets, sequence_len = dataset.parse()
-  siamese, _, _ = gradtype_model.create(sequence_len)
+  datasets = dataset.parse()
+  siamese, _, _ = gradtype_model.create()
   siamese.load_weights(sys.argv[1])
 
   train_datasets, validate_datasets = dataset.split(datasets)
