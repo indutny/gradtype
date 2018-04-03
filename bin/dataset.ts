@@ -10,7 +10,7 @@ import { Dataset, Output } from '../src/dataset';
 let totalSequences = 0;
 
 const MAX_SEQUENCE_LEN = 40;
-const OVERLAP = 1;
+const OVERLAP = Infinity;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
