@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    Embedding, TimeDistributed
+    Embedding, TimeDistributed, AlphaDropout
 
 # Internals
 import dataset
@@ -106,10 +106,10 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
-  deltas_norm = TimeDistributed(BatchNormalization(name='deltas_norm'))(deltas)
+  dropped_deltas = AlphaDropout(0.2, name='drop_deltas')(deltas)
 
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
-  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas_norm ])
+  joint_input = JoinInputs(name='join_inputs')([ embedding, dropped_deltas ])
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
