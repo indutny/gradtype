@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    Embedding, TimeDistributed, AlphaDropout
+    Embedding, TimeDistributed
 
 # Internals
 import dataset
@@ -15,7 +15,7 @@ from common import FEATURE_COUNT
 EMBEDDING_SIZE = 3
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
-RESIDUAL_DEPTH = 0
+RESIDUAL_DEPTH = 4
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -106,10 +106,8 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
-  dropped_deltas = AlphaDropout(0.2, name='drop_deltas')(deltas)
-
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
-  joint_input = JoinInputs(name='join_inputs')([ embedding, dropped_deltas ])
+  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
@@ -122,10 +120,8 @@ def create_siamese(input_shape):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(x)
-    rc = BatchNormalization(name='rc{}_hidden_batch_norm'.format(i))(rc)
-    rc = Dense(64, name='rc{}_dense_major'.format(i), activation='relu',
-               kernel_regularizer=RESIDUAL_L2)(rc)
-    rc = BatchNormalization(name='rc{}_activation_batch_norm'.format(i))(rc)
+    rc = Dense(GRU_MINOR_SIZE, name='rc{}_dense_major'.format(i),
+               activation='relu', kernel_regularizer=RESIDUAL_L2)(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
