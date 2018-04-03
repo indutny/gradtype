@@ -5,8 +5,16 @@ import * as path from 'path';
 
 import { Dataset, Intermediate } from '../src/dataset';
 
-const datasets = process.argv.slice(2).map((name) => {
-  const file = path.join(__dirname, '..', 'datasets', name + '.json');
+const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
+
+let labels = process.argv.slice(2);
+if (labels.length === 0) {
+  const index = fs.readFileSync(path.join(DATASETS_DIR, 'index.json'));
+  labels = JSON.parse(index.toString());
+}
+
+const datasets = labels.map((name) => {
+  const file = path.join(DATASETS_DIR, name + '.json');
   return {
     data: JSON.parse(fs.readFileSync(file).toString()),
     name,
