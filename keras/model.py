@@ -110,11 +110,14 @@ def create_siamese(input_shape):
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
-  x = Conv1D(GRU_MAJOR_SIZE, CONV_WIDTH, name='conv_input')(joint_input)
+  x = joint_input
+
+  x = Conv1D(GRU_MAJOR_SIZE, CONV_WIDTH, name='conv_input')(x)
   x = MaxPooling1D(name='max_pool_input')(x)
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(x)
+  x = TimeDistributed(BatchNormalization(name='gru_major_batch_norm'))(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
   x = BatchNormalization(name='gru_minor_batch_norm')(x)
