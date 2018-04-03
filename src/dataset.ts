@@ -61,26 +61,17 @@ export class Dataset {
     };
 
     for (const event of events) {
-      // Skip `Enter` and things like that
-      if (event.k.length !== 1) {
-        yield reset();
-        continue;
-      }
-
       let k: string = event.k;
-      console.log(k);
       if (k === 'Spacebar') {
         k = ' ';
-      } else if (k === 'Backspace') {
-        // Skip backspace
-        // XXX(indutny)
+      } else if (k === '.') {
+        yield reset();
         continue;
       }
 
-      // TODO(indutny): backspace?
+      // XXX(indutny): skip everything that we don't understand
       const code = this.compress(event.k.charCodeAt(0));
       if (code === undefined) {
-        yield reset();
         continue;
       }
       assert(0 <= code && code <= MAX_CHAR);
