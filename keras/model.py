@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    Embedding
+    Embedding, TimeDistributed
 
 # Internals
 import dataset
@@ -110,7 +110,7 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(joint_input)
-  x = BatchNormalization(name='gru_batch_norm')(x)
+  x = TimeDistributed(BatchNormalization(name='gru_batch_norm'))(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
 
@@ -118,7 +118,6 @@ def create_siamese(input_shape):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(x)
-    rc = BatchNormalization(name='rc{}_batch_norm'.format(i))(rc)
     rc = Dense(64, name='rc{}_dense_major'.format(i),
                kernel_regularizer=RESIDUAL_L2)(rc)
 
