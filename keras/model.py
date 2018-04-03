@@ -34,7 +34,7 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.01)
-RESIDUAL_L2 = regularizers.l2(0.001)
+RESIDUAL_L2 = regularizers.l2(0.01)
 
 #
 # Network configuration
@@ -115,7 +115,6 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(x)
-  x = TimeDistributed(BatchNormalization(name='gru_major_batch_norm'))(x)
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
   x = BatchNormalization(name='gru_minor_batch_norm')(x)
@@ -124,6 +123,7 @@ def create_siamese(input_shape):
     # Residual connection
     rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
                kernel_regularizer=RESIDUAL_L2)(x)
+    rc = BatchNormalization(name='gru_minor_batch_norm')(rc)
     rc = Dense(GRU_MINOR_SIZE, name='rc{}_dense_major'.format(i),
                activation='relu', kernel_regularizer=RESIDUAL_L2)(rc)
 
