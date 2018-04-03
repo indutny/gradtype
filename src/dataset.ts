@@ -67,6 +67,11 @@ export class Dataset {
         continue;
       }
 
+      let k: string = event.k;
+      if (k === 'Spacebar') {
+        k = ' ';
+      }
+
       // TODO(indutny): backspace?
       const code = this.compress(event.k.charCodeAt(0));
       if (code === undefined) {
