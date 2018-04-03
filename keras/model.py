@@ -16,7 +16,7 @@ EMBEDDING_SIZE = 3
 CONV_WIDTH = 5
 GRU_MAJOR_SIZE = 64
 GRU_MINOR_SIZE = 64
-RESIDUAL_DEPTH = 0
+RESIDUAL_DEPTH = 4
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
