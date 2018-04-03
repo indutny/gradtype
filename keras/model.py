@@ -14,8 +14,8 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
-GRU_MAJOR_SIZE = 64
-GRU_MINOR_SIZE = 64
+GRU_MAJOR_SIZE = 128
+GRU_MINOR_SIZE = 128
 RESIDUAL_DEPTH = 4
 
 # This must match the constant in `src/dataset.ts`
@@ -112,8 +112,15 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(GRU_MAJOR_SIZE, CONV_WIDTH, name='conv_input')(x)
-  x = MaxPooling1D(name='max_pool_input')(x)
+  for i in range(0, RESIDUAL_DEPTH):
+    # Residual connection
+    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='conv_input')(x)
+    rc = BatchNormalization('rc{}_batch_norm'.format(i))(rc)
+    rc = MaxPooling1D(name='max_pool_input')(rc)
+
+    # Merge residual connection
+    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
+    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
           recurrent_dropout=0.3, return_sequences=True)(x)
@@ -121,18 +128,6 @@ def create_siamese(input_shape):
   x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
   x = BatchNormalization(name='gru_minor_batch_norm')(x)
-
-  for i in range(0, RESIDUAL_DEPTH):
-    # Residual connection
-    rc = Dense(32, name='rc{}_dense_minor'.format(i), activation='relu',
-               kernel_regularizer=RESIDUAL_L2)(x)
-    rc = BatchNormalization(name='rc{}_batch_norm'.format(i))(rc)
-    rc = Dense(GRU_MINOR_SIZE, name='rc{}_dense_major'.format(i),
-               activation='relu', kernel_regularizer=RESIDUAL_L2)(rc)
-
-    # Merge residual connection
-    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
-    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
