@@ -123,7 +123,7 @@ def create_siamese(input_shape):
     # Residual connection
     rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
                activation='relu')(x)
-    rc = BatchNormalization(name='rc{}_batch_norm')(rc)
+    rc = BatchNormalization(name='rc{}_batch_norm'.format(i))(rc)
     rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2,
                activation='relu')(rc)
 
