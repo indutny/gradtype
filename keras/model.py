@@ -112,8 +112,8 @@ def create_siamese(input_shape):
   x = joint_input
 
   # Expand input
-  rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
-              padding='causal', activation='relu')(x)
+  x = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
+             padding='causal', activation='relu')(x)
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
