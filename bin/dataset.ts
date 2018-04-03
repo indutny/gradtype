@@ -42,9 +42,6 @@ function encodeSequence(sequence) {
   return enc;
 }
 
-let mean = 0;
-let count = 0;
-
 let datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
   return {
@@ -56,53 +53,8 @@ let datasets = labels.map((name) => {
 
   return {
     name: entry.name,
-    sequences: d.generate(entry.data).map((sequence) => {
-      mean += sequence.length;
-      count++;
-
-      return sequence;
-    }),
+    sequences: d.generate(entry.data),
   };
-});
-
-
-// Expand
-mean /= count;
-mean = Math.ceil(mean);
-datasets = datasets.map((ds) => {
-  const sequences = [];
-  const max = Math.min(mean, MAX_SEQUENCE_LEN);
-
-  function pad(sequence, length) {
-    if (sequence.length > length) {
-      return sequence.slice(0, length);
-    } else if (sequence.length < length) {
-      return sequence.concat(new Array(length - sequence.length).fill({
-        code: -1,
-        delta: 0,
-      }));
-    } else {
-      return sequence;
-    }
-  }
-
-  ds.sequences.forEach((seq) => {
-    if (seq.length <= max) {
-      sequences.push(seq);
-      return;
-    }
-
-    for (let i = 0; i < seq.length - max; i += OVERLAP) {
-      const slice = seq.slice(i, i + max);
-      assert.strictEqual(slice.length, max);
-      sequences.push(seq.slice(i, i + max));
-    }
-  });
-
-  return {
-    name: ds.name,
-    sequences: sequences.map((seq) => pad(seq, max)),
-  }
 });
 
 try {

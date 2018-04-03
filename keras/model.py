@@ -177,8 +177,8 @@ def create_regression(input_shape, siamese):
   x = Activation('softmax')(x)
   return Model(name='regression', inputs=[ codes, deltas ], outputs=x)
 
-def create(sequence_len):
-  input_shape = (sequence_len,)
+def create():
+  input_shape = (dataset.SEQUENCE_LEN,)
 
   siamese = create_siamese(input_shape)
   model = create_model(input_shape, siamese)

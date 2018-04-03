@@ -20,14 +20,14 @@ SAVE_EPOCHS = 1
 #
 
 print('Loading dataset')
-datasets, sequence_len = dataset.parse()
+datasets  = dataset.parse()
 train_datasets, validate_datasets = dataset.split(datasets)
 
 #
 # Load model
 #
 
-siamese, model, _ = gradtype_model.create(sequence_len)
+siamese, model, _ = gradtype_model.create()
 start_epoch = gradtype_utils.load_weights(siamese, 'gradtype-triplet-')
 
 adam = Adam(lr=0.003)

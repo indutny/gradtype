@@ -17,7 +17,7 @@ SAVE_EPOCHS = 50
 #
 
 print('Loading dataset')
-datasets, sequence_len = dataset.parse()
+datasets = dataset.parse()
 train_datasets, validate_datasets = dataset.split(datasets, 'regression')
 
 train_x = dataset.gen_regression(train_datasets)
@@ -29,7 +29,7 @@ validate_y = gradtype_model.generate_one_hot_regression(validate_x['labels'])
 # Load model
 #
 
-siamese, _, model = gradtype_model.create(sequence_len)
+siamese, _, model = gradtype_model.create()
 start_epoch = gradtype_utils.load_weights(model, 'gradtype-regr-')
 
 adam = Adam(lr=0.001)

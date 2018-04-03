@@ -17,6 +17,10 @@ MAX_CHAR = 27
 # Percent of validation data (it'll end up being more in the end, so be gentle)
 VALIDATE_PERCENT = 0.2
 
+# Sequence length
+SEQUENCE_LEN = 40
+OVERLAP = 1
+
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
 with open(index_json, 'r') as f:
@@ -47,7 +51,7 @@ def parse():
         deltas = np.array(deltas, dtype='float32')
         sequences.append({ 'label': i, 'codes': codes, 'deltas': deltas })
       datasets.append(sequences)
-  return datasets, sequence_len
+  return datasets
 
 def split(datasets, kind='triple'):
   train = []
@@ -73,7 +77,43 @@ def split(datasets, kind='triple'):
     if kind is 'triple':
       validate.append(ds)
 
-  return (train, validate)
+  return expand(train), expand(validate)
+
+def expand(dataset):
+  out_ds = []
+  for group in dataset:
+    out_group = []
+    for seq in group:
+      out_group += expand_sequence(seq)
+    out_ds.append(out_group)
+  return out_ds
+
+def expand_sequence(seq):
+  label = seq['label']
+  count = len(seq['codes'])
+
+  # Pad
+  if count < SEQUENCE_LEN:
+    pad_size = SEQUENCE_LEN - len(seq['codes'])
+    return [ {
+      'label': label,
+      'codes': np.concatenate([
+          seq['codes'],
+          np.zeros(pad_size, dtype='int32') ]),
+      'deltas': np.concatenate([
+          seq['codes'],
+          np.zeros(pad_size, dtype='float32') ])
+    } ]
+
+  # Expand
+  out = []
+  for i in range(0, count - SEQUENCE_LEN + 1):
+    out.append({
+      'label': label,
+      'codes': seq['codes'][i:i + SEQUENCE_LEN],
+      'deltas': seq['deltas'][i:i + SEQUENCE_LEN]
+    })
+  return out
 
 def evaluate_model(model, datasets):
   slice_offsets = []
