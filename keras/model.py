@@ -14,9 +14,8 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
-GRU_MAJOR_SIZE = 128
-GRU_MINOR_SIZE = 128
-RESIDUAL_DEPTH = 4
+GRU_SIZE = 32
+RESIDUAL_DEPTH = 8
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -34,7 +33,6 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.01)
-RESIDUAL_L2 = regularizers.l2(0.01)
 
 #
 # Network configuration
@@ -123,10 +121,7 @@ def create_siamese(input_shape):
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
-  x = GRU(GRU_MAJOR_SIZE, name='gru_major', kernel_regularizer=L2,
-          recurrent_dropout=0.3, return_sequences=True)(x)
-  x = TimeDistributed(BatchNormalization(name='gru_major_batch_norm'))(x)
-  x = GRU(GRU_MINOR_SIZE, name='gru_minor', kernel_regularizer=L2,
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
   x = BatchNormalization(name='gru_minor_batch_norm')(x)
 
