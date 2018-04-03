@@ -16,7 +16,7 @@ EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
 CONV_SIZE = 64
 GRU_SIZE = 64
-RESIDUAL_DEPTH = 0
+RESIDUAL_DEPTH = 2
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -110,6 +110,21 @@ def create_siamese(input_shape):
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
   x = joint_input
+
+  # Expand input
+  x = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
+             padding='causal', activation='relu')(x)
+
+  for i in range(0, RESIDUAL_DEPTH):
+    # Residual connection
+    rc = Conv1D(CONV_SIZE, CONV_WIDTH, name='rc{}_conv'.format(i),
+                padding='causal', activation='relu')(x)
+    rc = TimeDistributed(
+        BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
+
+    # Merge residual connection
+    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
+    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
