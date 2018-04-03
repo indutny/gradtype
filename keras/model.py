@@ -14,8 +14,8 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
 CONV_WIDTH = 5
-CONV_SIZE = 32
-GRU_SIZE = 32
+CONV_SIZE = 64
+GRU_SIZE = 64
 RESIDUAL_DEPTH = 8
 
 # This must match the constant in `src/dataset.ts`
