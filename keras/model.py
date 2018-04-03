@@ -114,9 +114,9 @@ def create_siamese(input_shape):
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='conv_input')(x)
-    rc = BatchNormalization('rc{}_batch_norm'.format(i))(rc)
-    rc = MaxPooling1D(name='max_pool_input')(rc)
+    rc = Conv1D(EMBEDDING_SIZE + 1, CONV_WIDTH, name='rc{}_conv'.format(i))(x)
+    rc = TimeDistributed(
+        BatchNormalization(name='rc{}_batch_norm'.format(i)))(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
