@@ -301,6 +301,9 @@ def gen_regression(datasets):
 
   return { 'codes': codes, 'deltas': deltas, 'labels': labels }
 
+def gen_class_weights(datasets):
+  return [ len(ds) for ds in datasets ]
+
 def generate_dummy(triplets):
   return np.zeros([ triplets['anchor_codes'].shape[0], FEATURE_COUNT ])
 

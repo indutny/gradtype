@@ -23,6 +23,7 @@ train_datasets, validate_datasets = dataset.split(datasets, 'regression')
 
 train_x = dataset.gen_regression(train_datasets)
 validate_x = dataset.gen_regression(validate_datasets)
+class_weights = dataset.gen_class_weights(train_datasets)
 train_y = gradtype_model.generate_one_hot_regression(train_x['labels'])
 validate_y = gradtype_model.generate_one_hot_regression(validate_x['labels'])
 
@@ -31,14 +32,14 @@ validate_y = gradtype_model.generate_one_hot_regression(validate_x['labels'])
 #
 
 siamese, _, model = gradtype_model.create()
-start_epoch = gradtype_utils.load_weights(model, 'gradtype-regr-')
+start_epoch = gradtype_utils.load_weights(siamese, 'gradtype-regr-')
 
 adam = Adam(lr=0.001)
 
 def top_5(y_true, y_pred):
   return top_k_categorical_accuracy(y_true, y_pred, k=5)
 
-model.compile(adam, loss='categorical_crossentropy', metrics=[
+model.compile(adam, loss='categorical_crossentropy', weighted_metrics=[
   'accuracy', top_5 ])
 
 #
@@ -58,6 +59,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
+      class_weight=class_weights,
       validation_data=(validate_x, validate_y))
 
   print("Saving...")
