@@ -101,8 +101,8 @@ def create_encoder():
   code_encoding = Reshape(embedding_shape)(embedding(code))
   prediction_encoding = Reshape(embedding_shape)(embedding(prediction))
 
-  output = keras.layers.dot([ code_encoding, prediction_encoding ],
-      1, normalize=True)
+  output = keras.layers.dot([ code_encoding, prediction_encoding ], 1)
+  output = Activation('sigmoid')(output)
 
   return Model(inputs=[ code, prediction ], outputs=output)
 

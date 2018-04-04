@@ -12,8 +12,10 @@ import utils as gradtype_utils
 
 TOTAL_EPOCHS = 2000000
 
+RESHUFFLE_EPOCHS = 1
+
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 50
+SAVE_EPOCHS = 1000
 
 #
 # Prepare dataset
@@ -33,7 +35,7 @@ start_epoch = gradtype_utils.load_weights(encoder, 'gradtype-skipgrams-')
 
 adam = Adam(lr=0.001)
 
-encoder.compile(adam, loss='mse', metrics=[ 'accuracy' ])
+encoder.compile(adam, loss='binary_crossentropy', metrics=[ 'accuracy' ])
 
 #
 # Train
@@ -43,10 +45,10 @@ tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
 callbacks = [ tb ]
 
-for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
-  end_epoch = i + SAVE_EPOCHS
+for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
+  end_epoch = i + RESHUFFLE_EPOCHS
   couples, labels = skipgrams(full_sequence, dataset.MAX_CHAR + 2,
-      sampling_table=sampling_table)
+      sampling_table=sampling_table, window_size=1)
 
   code_list = []
   prediction_list = []
