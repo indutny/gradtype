@@ -12,11 +12,9 @@ from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
 import dataset
 from common import FEATURE_COUNT
 
-EMBEDDING_SIZE = 2 # Keyboard is 2-D anyway
-CONV_WIDTH = 5
-CONV_SIZE = 64
+EMBEDDING_SIZE = 7
 GRU_SIZE = 64
-RESIDUAL_DEPTH = 2
+RESIDUAL_DEPTH = 8
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -110,10 +108,6 @@ def create_siamese(input_shape):
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
   x = joint_input
-
-  # Expand input
-  x = Conv1D(CONV_SIZE, CONV_WIDTH, name='conv',
-             padding='causal', activation='relu')(x)
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
