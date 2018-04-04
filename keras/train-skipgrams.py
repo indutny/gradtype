@@ -59,7 +59,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
   labels = np.array(labels)
 
   encoder.fit(x=[ code_list, prediction_list ], y=labels,
-      batch_size=256,
+      batch_size=4096,
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks)
