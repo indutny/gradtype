@@ -22,12 +22,6 @@ MAX_CHAR = dataset.MAX_CHAR
 # Triplet loss margin
 MARGIN = 0.2
 
-# Saddle-point fix inverse steepness
-STEEPNESS = 4.0
-
-# Amount of kick to get out of saddle-point (must be positive)
-KICK = 0.1
-
 ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
@@ -49,11 +43,7 @@ def negative_distance2(y_pred):
 
 def triplet_loss(y_true, y_pred):
   delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  denom = 1.0 + KICK - K.exp(K.minimum(0.0, delta) / (STEEPNESS * MARGIN))
-
-  # Slow down
-  denom /= KICK
-  return K.maximum(0.0, delta + MARGIN) / denom
+  return K.maximum(0.0, delta + MARGIN)
 
 # Probably don't use these two in learning
 def positive_distance(y_pred):
