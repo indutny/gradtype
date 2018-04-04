@@ -67,7 +67,7 @@ def skipgrams(datasets):
 
   return None
 
-def split(datasets, kind='triple'):
+def split(datasets, kind='triplet'):
   train = []
   validate = []
 
@@ -88,7 +88,7 @@ def split(datasets, kind='triple'):
   # Add some datasets that wouldn't be on the training list at all
   for ds in datasets[:ds_split_i]:
     # No need to add this to regression training
-    if kind is 'triple':
+    if kind is 'triplet':
       validate.append(ds)
 
   return expand(train), expand(validate)
