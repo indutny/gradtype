@@ -7,6 +7,7 @@ import time
 import json
 
 from keras.utils import Sequence
+from keras.preprocessing.sequence import make_sampling_table
 
 # Internal
 from common import FEATURE_COUNT
@@ -53,19 +54,35 @@ def parse():
       datasets.append(sequences)
   return datasets
 
-def skipgrams(datasets):
+def gen_sampling_table(full_sequence):
+  frequences = np.zeros(MAX_CHAR + 2, dtype='int32')
+  for code in full_sequence:
+    frequences[code] += 1
+
+  # Sort characters by rank
+  ranked = np.array(list(zip(-frequences, np.arange(0, MAX_CHAR + 2))),
+    dtype=[ ('frequency', 'int32'), ('index', 'int32') ],)
+  ranked.sort(order='frequency')
+
+  rank_permutation = []
+  for (freq, index) in ranked:
+    rank_permutation.append(index)
+
+  unsorted_table = make_sampling_table(len(rank_permutation))
+
+  sorted_table = np.zeros(len(unsorted_table), dtype='float32')
+  for (from_i, to_i) in zip(rank_permutation, np.arange(0, MAX_CHAR + 2)):
+    sorted_table[to_i] = unsorted_table[from_i]
+
+  return sorted_table
+
+def gen_full_sequence(datasets):
   code_list = []
   for ds in datasets:
     for seq in ds:
       for code in seq['codes']:
         code_list.append(code)
-
-  sampling_table = np.zeros(MAX_CHAR + 2, dtype='int32')
-  for code in code_list:
-    sampling_table[code] += 1
-  sampling_table = sampling_table / np.sum(sampling_table)
-
-  return None
+  return code_list
 
 def split(datasets, kind='triplet'):
   train = []

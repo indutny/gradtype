@@ -5,8 +5,8 @@ import keras.layers
 from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, BatchNormalization, GRU, Activation, \
-    Embedding, TimeDistributed, Conv1D, MaxPooling1D
+from keras.layers import Input, Dense, GRU, Activation, \
+    Embedding, Reshape
 
 # Internals
 import dataset
@@ -101,17 +101,20 @@ class NormalizeToSphere(keras.layers.Layer):
     return K.l2_normalize(x + K.epsilon(), axis=1)
 
 def create_encoder():
-  code = Input(shape=(MAX_CHAR + 2,), dtype='int32', name='code')
-  encoding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='encoding')(code)
-  return Model(inputs=code, outputs=encoding)
+  code = Input(shape=(1,), dtype='int32')
+  prediction = Input(shape=(1,), dtype='int32')
 
-def create_autoencoder(encoder):
-  code = Input(shape=(MAX_CHAR + 2,), dtype='int32', name='code')
+  embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='encoding')
 
-  encoding = encoder(code)
-  output = Dense(MAX_CHAR + 2, name='skipgrams', kernel_regularizer=L2,
-        activation='softmax')(encoding)
-  return Model(inputs=code, outputs=output)
+  embedding_shape = (EMBEDDING_SIZE,)
+
+  code_encoding = Reshape(embedding_shape)(embedding(code))
+  prediction_encoding = Reshape(embedding_shape)(embedding(prediction))
+
+  output = keras.layers.dot([ code_encoding, prediction_encoding ],
+      1, normalize=True)
+
+  return Model(inputs=[ code, prediction ], outputs=output)
 
 def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')

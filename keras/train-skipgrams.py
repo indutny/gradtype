@@ -1,6 +1,9 @@
 import keras.layers
+import keras.utils
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
+from keras.preprocessing.sequence import skipgrams
+import numpy as np
 
 # Internals
 import dataset
@@ -18,39 +21,49 @@ SAVE_EPOCHS = 50
 
 print('Loading dataset')
 datasets = dataset.parse()
-skipgrams = dataset.skipgrams(datasets)
+full_sequence = dataset.gen_full_sequence(datasets)
+sampling_table = dataset.gen_sampling_table(full_sequence)
 
 #
 # Load model
 #
 
 encoder = gradtype_model.create_encoder()
-autoencoder = gradtype_model.create_autoencoder(encoder)
-start_epoch = gradtype_utils.load_weights(autoencoder, 'gradtype-skipgrams-')
+start_epoch = gradtype_utils.load_weights(encoder, 'gradtype-skipgrams-')
 
 adam = Adam(lr=0.001)
 
-model.compile(adam, loss='categorical_crossentropy', metrics=[ 'accuracy' ])
+encoder.compile(adam, loss='mse', metrics=[ 'accuracy' ])
 
 #
 # Train
 #
 
-tb = TensorBoard(histogram_freq=50,
-                 log_dir=gradtype_utils.get_tensorboard_logdir())
+tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
 callbacks = [ tb ]
 
 for i in range(start_epoch, TOTAL_EPOCHS, SAVE_EPOCHS):
   end_epoch = i + SAVE_EPOCHS
+  couples, labels = skipgrams(full_sequence, dataset.MAX_CHAR + 2,
+      sampling_table=sampling_table)
 
-  autoencoder.fit(x=skipgrams['x'], y=skipgrams['y'],
+  code_list = []
+  prediction_list = []
+  for (code, prediction) in couples:
+    code_list.append(code)
+    prediction_list.append(prediction)
+
+  code_list = np.array(code_list)
+  prediction_list = np.array(prediction_list)
+  labels = np.array(labels)
+
+  encoder.fit(x=[ code_list, prediction_list ], y=labels,
       batch_size=256,
       initial_epoch=i,
       epochs=end_epoch,
-      callbacks=callbacks,
-      validation_data=(validate_x, validate_y))
+      callbacks=callbacks)
 
   print("Saving...")
   fname = './out/gradtype-skipgrams-{:08d}.h5'.format(end_epoch)
-  siamese.save_weights(fname)
+  encoder.save_weights(fname)
