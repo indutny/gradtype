@@ -117,13 +117,11 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           recurrent_dropout=0.3)(x)
-  x = BatchNormalization(name='gru_minor_batch_norm')(x)
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
     rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
                activation='relu')(x)
-    rc = BatchNormalization(name='rc{}_batch_norm'.format(i))(rc)
     rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2,
                activation='relu')(rc)
 
