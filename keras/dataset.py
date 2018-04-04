@@ -146,6 +146,19 @@ def expand_sequence(seq):
     })
   return out
 
+def trim_dataset(dataset):
+  min_sequence_count = float('inf')
+  for group in dataset:
+    min_sequence_count = min(min_sequence_count, len(group))
+
+  # Shuffle groups, and return slices
+  out = []
+  for group in dataset:
+    np.random.shuffle(group)
+    out.append(group[:min_sequence_count])
+
+  return out
+
 def evaluate_model(model, datasets):
   slice_offsets = []
   codes = []
@@ -174,9 +187,7 @@ class TripletGenerator(Sequence):
   def __init__(self, kind, model, datasets, batch_size = 32):
     self.kind = kind
 
-    # Shuffle sequences in datasets first
-    for ds in datasets:
-      np.random.shuffle(ds)
+    datasets = trim_dataset(datasets)
 
     if kind == 'train':
       all_features = evaluate_model(model, datasets)
