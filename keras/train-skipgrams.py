@@ -12,7 +12,7 @@ import utils as gradtype_utils
 
 TOTAL_EPOCHS = 2000000
 
-RESHUFFLE_EPOCHS = 1
+RESHUFFLE_EPOCHS = 50
 
 # Save weights every `SAVE_EPOCHS` epochs
 SAVE_EPOCHS = 1000
