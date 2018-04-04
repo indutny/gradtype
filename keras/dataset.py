@@ -53,6 +53,20 @@ def parse():
       datasets.append(sequences)
   return datasets
 
+def skipgrams(datasets):
+  code_list = []
+  for ds in datasets:
+    for seq in ds:
+      for code in seq['codes']:
+        code_list.append(code)
+
+  sampling_table = np.zeros(MAX_CHAR + 2, dtype='int32')
+  for code in code_list:
+    sampling_table[code] += 1
+  sampling_table = sampling_table / np.sum(sampling_table)
+
+  return None
+
 def split(datasets, kind='triple'):
   train = []
   validate = []

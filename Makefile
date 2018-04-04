@@ -4,6 +4,9 @@ train: dataset
 regression: dataset
 	python3 ./keras/train-regression.py
 
+skipgrams: dataset
+	python3 ./keras/train-skipgrams.py
+
 dataset:
 	npx ts-node ./bin/dataset.ts
 

@@ -100,6 +100,19 @@ class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     return K.l2_normalize(x + K.epsilon(), axis=1)
 
+def create_encoder():
+  code = Input(shape=(MAX_CHAR + 2,), dtype='int32', name='code')
+  encoding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='encoding')(code)
+  return Model(inputs=code, outputs=encoding)
+
+def create_autoencoder(encoder):
+  code = Input(shape=(MAX_CHAR + 2,), dtype='int32', name='code')
+
+  encoding = encoder(code)
+  output = Dense(MAX_CHAR + 2, name='skipgrams', kernel_regularizer=L2,
+        activation='softmax')(encoding)
+  return Model(inputs=code, outputs=output)
+
 def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
