@@ -31,7 +31,7 @@ KICK = 0.1
 ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
-L2 = regularizers.l2(0.01)
+L2 = regularizers.l2(0.001)
 
 #
 # Network configuration
