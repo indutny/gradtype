@@ -115,7 +115,7 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, kernel_initializer='he_normal',
           recurrent_dropout=0.3)(x)
 
   for i in range(0, RESIDUAL_DEPTH):
