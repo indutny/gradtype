@@ -31,21 +31,6 @@ L2 = regularizers.l2(0.001)
 # Network configuration
 #
 
-def positive_distance2(y_pred):
-  anchor = y_pred[:, 0:FEATURE_COUNT]
-  positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - positive), axis=1)
-
-def negative_distance2(y_pred):
-  anchor = y_pred[:, 0:FEATURE_COUNT]
-  negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
-  return K.sum(K.square(anchor - negative), axis=1)
-
-def triplet_loss(y_true, y_pred):
-  delta = positive_distance2(y_pred) - negative_distance2(y_pred)
-  return K.maximum(0.0, delta + MARGIN)
-
-# Probably don't use these two in learning
 def positive_distance(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   positive = y_pred[:, FEATURE_COUNT:2 * FEATURE_COUNT]
@@ -55,6 +40,12 @@ def negative_distance(y_pred):
   anchor = y_pred[:, 0:FEATURE_COUNT]
   negative = y_pred[:, 2 * FEATURE_COUNT:3 * FEATURE_COUNT]
   return K.sqrt(K.sum(K.square(anchor - negative), axis=1) + K.epsilon())
+
+def triplet_loss(y_true, y_pred):
+  # Use non-squared distance as in https://arxiv.org/pdf/1703.07737.pdf to
+  # prevent collapsing
+  delta = positive_distance(y_pred) - negative_distance(y_pred)
+  return K.maximum(0.0, delta + MARGIN)
 
 def pmean(y_true, y_pred):
   return K.mean(positive_distance(y_pred))
