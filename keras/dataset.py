@@ -264,8 +264,8 @@ class TripletGenerator(Sequence):
     return batches
 
   def find_best_negative(self, anchor, positive, negative_features):
-    limit = np.mean((anchor - positive) ** 2, axis=-1)
-    distances = np.mean((anchor - negative_features) ** 2, axis=-1)
+    limit = np.sqrt(np.mean((anchor - positive) ** 2, axis=-1))
+    distances = np.sqrt(np.mean((anchor - negative_features) ** 2, axis=-1))
     distances = np.where(distances < limit, distances, float('inf'))
 
     # Kind of an assert
