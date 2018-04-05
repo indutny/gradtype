@@ -1,6 +1,14 @@
 node_modules/
+survey/datasets/
+logs/
 npm-debug.log
+mturk/
 lib/
 gradtype.json
 *.csv
 out/
+__pycache__/
+images/
+.DS_store
+*.mp4
+*.pyc

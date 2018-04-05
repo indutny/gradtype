@@ -1,159 +1,94 @@
 import * as assert from 'assert';
 
+import { shuffle } from './utils';
+
 export const MAX_CHAR = 27;
-export const SHAPE = [ MAX_CHAR + 1, MAX_CHAR + 1, 2 ];
 
-const MIN_STRIDE = 10;
-const MAX_STRIDE = 30;
-const STRIDE_STEP = 2;
-
-const VALIDATE_PERCENT = 0.1;
-
-const VALIDATE_MIN_STRIDE = 30;
-const VALIDATE_MAX_STRIDE = 30;
-const VALIDATE_STRIDE_STEP = 1;
-
-export type DatasetEntry = ReadonlyArray<number>;
+const CUTOFF_TIME = 3;
+const MIN_SEQUENCE = 8;
 
 export interface IInputEntry {
-  k: string;
-  ts: number;
+  readonly k: string;
+  readonly ts: number;
 }
 
-export interface IDatasetMeanVar {
-  mean: number;
-  variance: number;
+export interface ISequenceElem {
+  readonly code: number;
+  readonly delta: number;
 }
 
-export interface IDatasetOutput {
-  train: Iterator<DatasetEntry>;
-  validate: Iterator<DatasetEntry>;
-}
-
-export interface IIntermediateEntry {
-  fromCode: number;
-  toCode: number;
-  delta: number;
-}
+export type Sequence = ReadonlyArray<ISequenceElem>;
 
 export type Input = ReadonlyArray<IInputEntry>;
-export type Intermediate = ReadonlyArray<IIntermediateEntry>;
+export type Output = ReadonlyArray<Sequence>;
+
+type IntermediateEntry = 'reset' | ISequenceElem;
 
 export class Dataset {
-  public generate(events: Input): IDatasetOutput {
-    const ir = this.preprocess(events);
+  public generate(events: Input): Output {
+    const out: ISequenceElem[][] = [];
 
-    const validateCount = Math.ceil(VALIDATE_PERCENT * ir.length);
-    return {
-      train: this.stride(ir.slice(validateCount),
-        MIN_STRIDE, MAX_STRIDE, STRIDE_STEP),
-      validate: this.stride(ir.slice(0, validateCount),
-        VALIDATE_MIN_STRIDE, VALIDATE_MAX_STRIDE, VALIDATE_STRIDE_STEP),
-    };
-  }
-
-  private preprocess(events: Input): Intermediate {
-    const out: IIntermediateEntry[] = [];
-
-    let lastTS: number | undefined;
-    let lastCode: number | undefined;
-    for (const event of events) {
-      // Skip `Enter` and things like that
-      if (event.k.length !== 1) {
-        lastTS = undefined;
-        lastCode = undefined;
+    let sequence: ISequenceElem[] = [];
+    for (const event of this.preprocess(events)) {
+      if (event === 'reset') {
+        if (sequence.length > MIN_SEQUENCE) {
+          out.push(sequence);
+        }
+        sequence = [];
         continue;
       }
 
-      // TODO(indutny): backspace?
-      const code = this.compress(event.k.charCodeAt(0));
-      if (code === undefined) {
-        lastTS = undefined;
-        lastCode = undefined;
-        continue;
-      }
-
-      if (lastCode !== undefined) {
-        out.push({
-          delta: event.ts - lastTS!,
-          fromCode: lastCode,
-          toCode: code,
-        });
-      }
-      lastTS = event.ts;
-      lastCode = code;
+      sequence.push(event);
     }
+    if (sequence.length > MIN_SEQUENCE) {
+      out.push(sequence);
+    }
+
     return out;
   }
 
-  private *stride(input: Intermediate, min: number, max: number, step: number)
-    : Iterator<DatasetEntry> {
-    if (input.length < 2 * max) {
-      throw new Error('Not enough events to generate a stride');
-    }
+  private *preprocess(events: Input): Iterator<IntermediateEntry> {
+    // Moving average
+    let average = 0;
+    let square = 0;
+    const deltaList: number[] = [];
 
-    const meanVar = this.computeMeanVar(input);
+    let lastTS: number | undefined;
 
-    for (let stride = min; stride <= max; stride += step) {
-      for (let i = 0; i < stride; i++) {
-        for (let j = i; j < input.length; j += stride) {
-          const slice = input.slice(j, j + stride);
-          if (slice.length !== stride) {
-            break;
-          }
+    const reset = (): IntermediateEntry => {
+      lastTS = undefined;
+      return 'reset';
+    };
 
-          yield this.single(slice, meanVar);
-        }
-      }
-    }
-  }
-
-  public single(input: Intermediate, meanVar?: IDatasetMeanVar): DatasetEntry {
-    if (meanVar === undefined) {
-      meanVar = this.computeMeanVar(input);
-    }
-    const mean = meanVar!.mean;
-    const variance = meanVar!.variance;
-    const size = (MAX_CHAR + 1) * (MAX_CHAR + 1);
-    const result: number[] = new Array(2 * size).fill(0);
-    const count: number[] = new Array(size).fill(0);
-    for (const event of input) {
-      const fromCode = event.fromCode;
-      const toCode = event.toCode;
-
-      assert(0 <= fromCode && fromCode <= MAX_CHAR);
-      assert(0 <= toCode && toCode <= MAX_CHAR);
-      const index = fromCode + toCode * (MAX_CHAR + 1);
-
-      result[2 * index] += (event.delta - mean) / variance;
-      result[2 * index + 1] = 1;
-      count[index]++;
-    }
-
-    for (let i = 0; i < count.length; i++) {
-      if (count[i] === 0) {
+    for (const event of events) {
+      let k: string = event.k;
+      if (k === 'Spacebar') {
+        k = ' ';
+      } else if (k === '.') {
+        yield reset();
         continue;
       }
 
-      result[2 * i] /= count[i];
+      // XXX(indutny): skip everything that we don't understand
+      const code = this.compress(event.k.charCodeAt(0));
+      if (code === undefined) {
+        continue;
+      }
+      assert(0 <= code && code <= MAX_CHAR);
+
+      const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
+      if (delta > CUTOFF_TIME) {
+        yield reset();
+        continue;
+      }
+
+      yield {
+        delta,
+        code,
+      };
+
+      lastTS = event.ts;
     }
-
-    assert(result.some((cell) => cell !== 0));
-    return result;
-  }
-
-  private computeMeanVar(events: Intermediate): IDatasetMeanVar {
-    let mean = 0;
-    let variance = 0;
-    for (const event of events) {
-      mean += event.delta;
-      variance += Math.pow(event.delta, 2);
-    }
-    mean /= events.length;
-    variance /= events.length;
-    variance = Math.sqrt(variance - Math.pow(mean, 2));
-
-    return { mean, variance };
   }
 
   private compress(code: number): number | undefined {

@@ -13,7 +13,8 @@
     "prepare": "npm run clean && npm run build",
     "lint": "tslint -c tslint.json src/*.ts test/*.ts",
     "mocha": "mocha -r ts-node/register/type-check --reporter spec test/*-test.ts",
-    "test": "npm run mocha && npm run lint"
+    "test": "npm run mocha && npm run lint",
+    "survey": "node survey/server.js"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,8 @@
   "dependencies": {
     "@types/assert": "0.0.31",
     "@types/debug": "0.0.30",
-    "debug": "^3.1.0"
+    "debug": "^3.1.0",
+    "joi": "^13.1.2",
+    "micro": "^9.1.4"
   }
 }
