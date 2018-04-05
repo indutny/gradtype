@@ -263,18 +263,20 @@ class TripletGenerator(Sequence):
 
     return batches
 
-  # From http://openaccess.thecvf.com/content_ICCV_2017/papers/Wu_Sampling_Matters_in_ICCV_2017_paper.pdf
   def find_best_negative(self, anchor, positive, negative_features):
+    # Kind of an assert
+    if len(negative_features) == 0:
+      return None
+
     limit = np.sqrt(np.mean((anchor - positive) ** 2, axis=-1))
     distances = np.sqrt(np.mean((anchor - negative_features) ** 2, axis=-1))
+    soft_distances = np.where(distances > limit, distances, float('inf'))
+    index = np.argmin(soft_distances, axis=-1)
 
-    q_lhs = distances ** (FEATURE_COUNT - 2)
-    q_rhs = (1 - distances ** 2 / 4.0) ** ((FEATURE_COUNT - 3) / 2.0)
-    q = q_lhs * q_rhs
-    rq = 1 / (q + 1e-9)
-    frequency = np.where(rq > 1e8, 1e8, rq)
-    frequency /= np.sum(frequency, axis = -1)
-    return np.random.choice(len(distances), p=frequency)
+    # Pick softest negative, if real soft is not available
+    if distances[index] <= limit:
+      index = np.argmax(distances, axis=-1)
+    return index
 
   def build_validate_triplets(self, positive_seqs, negative_seqs):
     triplets = { 'anchors': [], 'positives': [], 'negatives': [] }
