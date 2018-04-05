@@ -2,7 +2,7 @@
 
 ## This project needs your data
 
-Submitting data to this project takes 2-3 minutes. If you'd like to do this -
+Submitting data to this project takes 25-35 minutes. If you'd like to do this -
 please follow the instructions below:
 
 1. Visit https://indutny.github.io/gradtype/ on your **laptop/desktop**
