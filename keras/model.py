@@ -121,7 +121,7 @@ def create_siamese(input_shape):
 
   # Spread activations uniformly over the sphere
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
-  output = NormalizeToSphere(name='normalize')(x)
+  output = x
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)
 
 def create_model(input_shape, siamese):
