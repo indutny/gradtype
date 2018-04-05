@@ -14,7 +14,7 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
 GRU_SIZE = 64
-RESIDUAL_DEPTH = 32
+RESIDUAL_DEPTH = 8
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
