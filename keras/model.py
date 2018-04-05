@@ -106,19 +106,15 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
-          kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, recurrent_dropout=0.3)(x)
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
-               activation='relu')(x)
     rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2,
-               activation='relu')(rc)
+               activation='relu')(x)
 
     # Merge residual connection
-    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
-    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
+    x = keras.layers.Subtract(name='rc{}_merge_sub'.format(i))([ rc, x ])
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
