@@ -81,14 +81,6 @@ class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     return K.l2_normalize(x + K.epsilon(), axis=1)
 
-class Cosine(keras.layers.Layer):
-  def call(self, x):
-    return K.cos(2 * math.pi * x)
-
-class Sine(keras.layers.Layer):
-  def call(self, x):
-    return K.sin(2 * math.pi * x)
-
 def create_encoder():
   code = Input(shape=(1,), dtype='int32')
   prediction = Input(shape=(1,), dtype='int32')
@@ -128,11 +120,7 @@ def create_siamese(input_shape):
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   # Spread activations uniformly over the sphere
-  cos = Cosine(name='cosine')(x)
-  sin = Sine(name='sine')(x)
-  x = keras.layers.concatenate([ cos, sin ])
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
-
   output = NormalizeToSphere(name='normalize')(x)
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)
 
