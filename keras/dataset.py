@@ -266,7 +266,7 @@ class TripletGenerator(Sequence):
   def find_best_negative(self, anchor, positive, negative_features):
     limit = np.sqrt(np.mean((anchor - positive) ** 2, axis=-1))
     distances = np.sqrt(np.mean((anchor - negative_features) ** 2, axis=-1))
-    distances = np.where(distances < limit, distances, float('inf'))
+    distances = np.where(distances > limit, distances, float('inf'))
 
     # Kind of an assert
     if len(distances) == 0:
