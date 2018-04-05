@@ -40,7 +40,7 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 #
 
 tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir(),
-    write_images=True, embeddings_freq=1, embeddings_layer_names=[ 'embed' ])
+    write_images=True)
 
 callbacks = [ tb ]
 
