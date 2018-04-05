@@ -51,11 +51,10 @@ if start_epoch == 0:
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   end_epoch = i + RESHUFFLE_EPOCHS
 
-  # `22` should generate about 253 triplets per batch
   train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
-      batch_size=22)
+      batch_size=32)
   validate_gen = dataset.TripletGenerator('validate', siamese,
-      validate_datasets, batch_size=22)
+      validate_datasets, batch_size=32)
 
   model.fit_generator(train_gen,
       initial_epoch=i,
