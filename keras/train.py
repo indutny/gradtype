@@ -39,8 +39,7 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
-tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir(),
-    write_images=True)
+tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
 
 callbacks = [ tb ]
 
