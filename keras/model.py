@@ -14,7 +14,7 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
 GRU_SIZE = 64
-RESIDUAL_DEPTH = 8
+RESIDUAL_DEPTH = 32
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -81,6 +81,14 @@ class NormalizeToSphere(keras.layers.Layer):
   def call(self, x):
     return K.l2_normalize(x + K.epsilon(), axis=1)
 
+class Cosine(keras.layers.Layer):
+  def call(self, x):
+    return K.cos(2 * math.pi * x)
+
+class Sine(keras.layers.Layer):
+  def call(self, x):
+    return K.sin(2 * math.pi * x)
+
 def create_encoder():
   code = Input(shape=(1,), dtype='int32')
   prediction = Input(shape=(1,), dtype='int32')
@@ -113,13 +121,16 @@ def create_siamese(input_shape):
     # Residual connection
     rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
                activation='relu')(x)
-    rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2,
-               activation='relu')(rc)
+    rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2)(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
+  # Spread activations uniformly over the sphere
+  cos = Cosine(name='cosine')(x)
+  sin = Sine(name='sine')(x)
+  x = keras.layers.concatenate([ cos, sin ])
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
   output = NormalizeToSphere(name='normalize')(x)
