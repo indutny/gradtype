@@ -114,7 +114,7 @@ def create_siamese(input_shape):
                activation='relu')(x)
 
     # Merge residual connection
-    x = keras.layers.Subtract(name='rc{}_merge_sub'.format(i))([ rc, x ])
+    x = keras.layers.Add(name='rc{}_merge_sub'.format(i))([ x, rc ])
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
 
