@@ -15,7 +15,7 @@ from common import FEATURE_COUNT
 EMBEDDING_SIZE = 7
 GRU_SIZE = 128
 CONV_SIZE = 32
-RESIDUAL_DEPTH = 2
+RESIDUAL_DEPTH = 0
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -110,6 +110,7 @@ def create_siamese(input_shape):
   x = Conv1D(CONV_SIZE, 5, name='initial_conv', padding='causal',
              kernel_regularizer=L2,
              activation='relu')(x)
+  x = MaxPooling1D(pool_size=2, name='max_pooling')(x)
 
   # Residual connections
   for i in range(0, RESIDUAL_DEPTH):
