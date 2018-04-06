@@ -13,7 +13,7 @@ import dataset
 from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
-GRU_SIZE = 64
+GRU_SIZE = 128
 RESIDUAL_DEPTH = 6
 
 # This must match the constant in `src/dataset.ts`
