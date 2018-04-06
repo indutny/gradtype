@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape, Conv1D, MaxPooling1D
+    Embedding, Reshape, Conv1D, AveragePooling1D
 
 # Internals
 import dataset
@@ -105,15 +105,10 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(32, 3, name='conv_1', padding='causal',
-             kernel_regularizer=L2, activation='relu')(x)
-  x = MaxPooling1D(pool_size=2, name='max_pooling_1')(x)
-
-  x = Conv1D(64, 3, name='conv_2', padding='causal',
-             kernel_regularizer=L2, activation='relu')(x)
-  x = Conv1D(128, 7, name='conv_3', padding='causal',
-             kernel_regularizer=L2, activation='relu')(x)
-  x = MaxPooling1D(pool_size=2, name='max_pooling_2')(x)
+  x = Conv1D(GRU_SIZE, 7, name='conv',
+             kernel_initializer='he_normal', kernel_regularizer=L2,
+             activation='relu')(x)
+  x = AveragePooling1D(pool_size=4, name='avg_pooling')(x)
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
