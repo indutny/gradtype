@@ -25,7 +25,7 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.001)
-CONV_L2 = regularizers.l2(0.0001)
+CONV_L2 = regularizers.l2(0.01)
 
 RESIDUAL_DEPTH=4
 
