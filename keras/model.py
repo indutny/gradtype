@@ -113,7 +113,7 @@ def create_siamese(input_shape):
 
   # Residual connections
   for i in range(0, RESIDUAL_DEPTH):
-    rc = Conv1D(int(CONV_SIZE / 2), 7, name='rc{}_conv_minor'.format(i),
+    rc = Conv1D(CONV_SIZE, 7, name='rc{}_conv_minor'.format(i),
                 kernel_regularizer=L2, padding='causal', activation='relu')(x)
     rc = Conv1D(CONV_SIZE, 7, name='rc{}_conv_major'.format(i),
                 padding='causal', kernel_regularizer=L2, activation='relu')(rc)
