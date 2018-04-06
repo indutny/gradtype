@@ -14,7 +14,8 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
 GRU_SIZE = 128
-RESIDUAL_DEPTH = 6
+CONV_SIZE = 32
+RESIDUAL_DEPTH = 2
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -106,20 +107,22 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(GRU_SIZE, 7, name='conv', activation='relu')(x)
-  x = MaxPooling1D(pool_size=4, name='max_pooling')(x)
-  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
-          kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
+  x = Conv1D(CONV_SIZE, 7, name='initial_conv', padding='causal',
+             activation='relu')(x)
 
+  # Residual connections
   for i in range(0, RESIDUAL_DEPTH):
-    # Residual connection
-    rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
-               kernel_regularizer=L2, activation='relu')(x)
-    rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2)(rc)
+    rc = Conv1D(int(CONV_SIZE / 2), 7, name='rc{}_conv_minor'.format(i),
+                padding='causal', activation='relu')(x)
+    rc = Conv1D(CONV_SIZE, 7, name='rc{}_conv_major'.format(i), padding='causal',
+                activation='relu')(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
+
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
+          kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
   # Spread activations uniformly over the sphere
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
