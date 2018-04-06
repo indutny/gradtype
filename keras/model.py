@@ -26,7 +26,6 @@ ACCURACY_PERCENT = 0.75
 # Just a common regularizer
 L2 = regularizers.l2(0.001)
 CONV_L2 = regularizers.l2(0.01)
-EMBED_L2 = regularizers.l2(0.001)
 
 RESIDUAL_DEPTH=4
 
@@ -104,8 +103,7 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
-  embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed',
-                        embeddings_regularizer=EMBED_L2)(codes)
+  embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
   joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
 
   x = joint_input
