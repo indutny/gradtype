@@ -108,14 +108,15 @@ def create_siamese(input_shape):
   x = joint_input
 
   x = Conv1D(CONV_SIZE, 7, name='initial_conv', padding='causal',
+             kernel_regularizer=L2,
              activation='relu')(x)
 
   # Residual connections
   for i in range(0, RESIDUAL_DEPTH):
     rc = Conv1D(int(CONV_SIZE / 2), 7, name='rc{}_conv_minor'.format(i),
-                padding='causal', activation='relu')(x)
-    rc = Conv1D(CONV_SIZE, 7, name='rc{}_conv_major'.format(i), padding='causal',
-                activation='relu')(rc)
+                kernel_regularizer=L2, padding='causal', activation='relu')(x)
+    rc = Conv1D(CONV_SIZE, 7, name='rc{}_conv_major'.format(i),
+                padding='causal', kernel_regularizer=L2, activation='relu')(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
