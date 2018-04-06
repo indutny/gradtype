@@ -24,7 +24,9 @@ MARGIN = 0.2
 ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
-L2 = regularizers.l2(0.0001)
+L2 = regularizers.l2(0.001)
+
+RESIDUAL_DEPTH=4
 
 #
 # Network configuration
@@ -112,6 +114,18 @@ def create_siamese(input_shape):
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
+
+  for i in range(0, RESIDUAL_DEPTH):
+    # Residual connection
+    rc = Dense(GRU_SIZE, name='rc{}_before'.format(i),
+               kernel_regularizer=L2, activation='relu')(x)
+    rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
+               kernel_regularizer=L2, activation='relu')(x)
+    rc = Dense(GRU_SIZE, name='rc{}_after'.format(i), kernel_regularizer=L2)(rc)
+
+    # Merge residual connection
+    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
+    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   # Spread activations uniformly over the sphere
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
