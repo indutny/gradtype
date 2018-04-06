@@ -10,7 +10,6 @@ import matplotlib.patches as mpatches
 import matplotlib.axes as axes
 import numpy as np
 import sklearn.decomposition
-import sklearn.manifold
 
 # Internal
 import dataset
@@ -24,18 +23,13 @@ def to_color(index):
 def pca(train_coords, validate_coords, fname):
   fig = plt.figure(1, figsize=(8, 6))
   pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
-  tsne = sklearn.manifold.TSNE(n_components=2, random_state=0x18e72aad)
 
   # ax.set_xlim(left=-0.9, right=0.9)
   # ax.set_ylim(bottom=-0.9, top=0.9)
   # ax.set_zlim(bottom=-0.9, top=0.9)
 
   # Fit coordinates
-  all_coords = pca.fit_transform(np.concatenate(train_coords + validate_coords))
-  exit(0)
-
-  for coords in [ train_coords, validate_coords ]:
-    np.random.permutation()
+  pca.fit(np.concatenate(train_coords + validate_coords))
 
   # Print labels
   # if len(dataset.LABELS) < 32:
