@@ -105,15 +105,15 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(32, 3, name='initial_conv', padding='causal',
+  x = Conv1D(32, 3, name='conv_1', padding='causal',
              kernel_regularizer=L2, activation='relu')(x)
-  x = MaxPooling1D(pool_size=2, name='max_pooling')(x)
+  x = MaxPooling1D(pool_size=2, name='max_pooling_1')(x)
 
-  x = Conv1D(64, 3, name='initial_conv', padding='causal',
+  x = Conv1D(64, 3, name='conv_2', padding='causal',
              kernel_regularizer=L2, activation='relu')(x)
-  x = Conv1D(128, 7, name='initial_conv', padding='causal',
+  x = Conv1D(128, 7, name='conv_3', padding='causal',
              kernel_regularizer=L2, activation='relu')(x)
-  x = MaxPooling1D(pool_size=2, name='max_pooling')(x)
+  x = MaxPooling1D(pool_size=2, name='max_pooling_2')(x)
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
