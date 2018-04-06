@@ -6,15 +6,15 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape, Conv1D, MaxPooling1D
+    Embedding, Reshape
 
 # Internals
 import dataset
 from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
-GRU_SIZE = 128
-RESIDUAL_DEPTH = 0
+GRU_SIZE = 64
+RESIDUAL_DEPTH = 6
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -106,15 +106,13 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(GRU_SIZE, 7, name='conv', activation='relu')(x)
-  x = MaxPooling1D(pool_size=4, name='max_pooling')(x)
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Dense(32, name='rc{}_minor'.format(i), kernel_regularizer=L2,
-               activation='relu')(x)
+    rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
+               kernel_regularizer=L2, activation='relu')(x)
     rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2)(rc)
 
     # Merge residual connection
