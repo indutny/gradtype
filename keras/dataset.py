@@ -20,7 +20,6 @@ VALIDATE_SEP_PERCENT = 0.25
 
 # Sequence length
 SEQUENCE_LEN = 30
-OVERLAP = 1
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
@@ -84,7 +83,7 @@ def gen_full_sequence(datasets):
         code_list.append(code)
   return code_list
 
-def split(datasets, kind='triplet'):
+def split(datasets, kind='triplet', expand_overlap=1):
   train = []
   validate = []
 
@@ -108,18 +107,18 @@ def split(datasets, kind='triplet'):
     if kind is 'triplet':
       validate.append(ds)
 
-  return expand(train), expand(validate)
+  return expand(train, expand_overlap), expand(validate, expand_overlap)
 
-def expand(dataset):
+def expand(dataset, overlap):
   out_ds = []
   for group in dataset:
     out_group = []
     for seq in group:
-      out_group += expand_sequence(seq)
+      out_group += expand_sequence(seq, overlap)
     out_ds.append(out_group)
   return out_ds
 
-def expand_sequence(seq):
+def expand_sequence(seq, overlap):
   label = seq['label']
   count = len(seq['codes'])
 
@@ -138,7 +137,7 @@ def expand_sequence(seq):
 
   # Expand
   out = []
-  for i in range(0, count - SEQUENCE_LEN + 1, OVERLAP):
+  for i in range(0, count - SEQUENCE_LEN + 1, overlap):
     out.append({
       'label': label,
       'codes': seq['codes'][i:i + SEQUENCE_LEN],
