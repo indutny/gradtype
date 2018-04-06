@@ -25,6 +25,7 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.001)
+CONV_L2 = regularizers.l2(0.0001)
 
 RESIDUAL_DEPTH=4
 
@@ -108,7 +109,7 @@ def create_siamese(input_shape):
   x = joint_input
 
   x = Conv1D(GRU_SIZE, 7, name='conv',
-             kernel_initializer='he_normal', kernel_regularizer=L2,
+             kernel_initializer='he_normal', kernel_regularizer=CONV_L2,
              activation='relu')(x)
   x = AveragePooling1D(pool_size=4, name='avg_pooling')(x)
 
