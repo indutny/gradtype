@@ -24,7 +24,7 @@ MARGIN = 0.2
 ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
-L2 = regularizers.l2(0.001)
+L2 = regularizers.l2(0.0001)
 
 #
 # Network configuration
