@@ -22,7 +22,7 @@ def to_color(index):
 
 def pca(train_coords, validate_coords, fname):
   fig = plt.figure(1, figsize=(8, 6))
-  pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
+  pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
 
   # ax.set_xlim(left=-0.9, right=0.9)
   # ax.set_ylim(bottom=-0.9, top=0.9)
@@ -113,5 +113,5 @@ if __name__ == '__main__':
   validate_datasets = dataset.trim_dataset(validate_datasets)
   train_coords = dataset.evaluate_model(siamese, train_datasets)
   validate_coords = dataset.evaluate_model(siamese, validate_datasets)
-  fname = sys.argv[2] if len(sys.argv) >= 3 else  None
+  fname = sys.argv[2] if len(sys.argv) >= 3 else None
   pca(train_coords, validate_coords, fname)

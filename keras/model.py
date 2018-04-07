@@ -13,7 +13,7 @@ import dataset
 from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
-GRU_SIZE = 256
+GRU_SIZE = 128
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
