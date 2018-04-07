@@ -18,7 +18,7 @@ MAX_CHAR = 27
 VALIDATE_PERCENT = 0.2
 VALIDATE_SEP_PERCENT = 0.25
 
-NEGATIVE_VARIANCE = 0.01
+NEGATIVE_VARIANCE = 0.1
 
 # Sequence length
 SEQUENCE_LEN = 30
@@ -276,7 +276,8 @@ class TripletGenerator(Sequence):
 
     # TODO(indutny): remove superfluous parens :)
     probabilities = np.exp(
-        -((limit - distances) ** 2) / (2 * (NEGATIVE_VARIANCE ** 2)))
+        -((limit - distances) ** 2) / (2 * (NEGATIVE_VARIANCE ** 2))) +
+        1e-9
     probabilities /= np.sum(probabilities, axis=-1)
 
     return np.random.choice(len(negative_features), p=probabilities)
