@@ -49,7 +49,7 @@ callbacks = [ tb ]
 
 if start_epoch == 0:
   print("Saving initial...")
-  fname = './out/gradtype-triplet-{:08d}.h5'.format(start_epoch)
+  fname = './out/gradtype-triplet-weights-{:08d}.h5'.format(start_epoch)
   siamese.save_weights(fname)
   full_fname = './out/gradtype-triplet-full-{:08d}.h5'.format(start_epoch)
   model.save(full_fname)
@@ -75,7 +75,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
 
   if end_epoch % SAVE_EPOCHS == 0:
     print("Saving...")
-    fname = './out/gradtype-triplet-{:08d}.h5'.format(end_epoch)
+    fname = './out/gradtype-triplet-weights-{:08d}.h5'.format(end_epoch)
     siamese.save_weights(fname)
     full_fname = './out/gradtype-triplet-full-{:08d}.h5'.format(end_epoch)
     model.save(full_fname)
