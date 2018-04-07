@@ -271,13 +271,13 @@ class TripletGenerator(Sequence):
 
     limit = np.sqrt(np.mean((anchor - positive) ** 2, axis=-1))
     distances = np.sqrt(np.mean((anchor - negative_features) ** 2, axis=-1))
+    soft_distances = np.where(distances > limit, distances, float('inf'))
+    index = np.argmin(soft_distances, axis=-1)
 
-    delta = limit - distances
-
-    probabilities = 1 / (delta ** 2 + 1e-9)
-    probabilities /= np.sum(probabilities, axis=-1)
-
-    return np.random.choice(len(negative_features), p=probabilities)
+    # Pick softest negative, if real soft is not available
+    if distances[index] <= limit:
+      index = np.argmax(distances, axis=-1)
+    return index
 
   def build_validate_triplets(self, positive_seqs, negative_seqs):
     triplets = { 'anchors': [], 'positives': [], 'negatives': [] }
