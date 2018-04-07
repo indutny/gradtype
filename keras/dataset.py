@@ -278,8 +278,6 @@ class TripletGenerator(Sequence):
     probabilities = np.exp(
         -((limit - distances) ** 2) / (2 * (NEGATIVE_VARIANCE ** 2)))
     probabilities /= np.sum(probabilities, axis=-1)
-    print(probabilities)
-    exit(0)
 
     return np.random.choice(len(negative_features), p=probabilities)
 
