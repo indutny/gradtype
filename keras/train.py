@@ -31,8 +31,7 @@ train_datasets, validate_datasets = dataset.split(datasets)
 #
 
 siamese, model, _ = gradtype_model.create()
-start_epoch = gradtype_utils.load(siamese, 'gradtype-triplet-full-',
-    what='model')
+start_epoch = gradtype_utils.load(siamese, 'gradtype-triplet-weights-')
 
 adam = Adam(lr=0.003)
 
