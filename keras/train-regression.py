@@ -11,7 +11,7 @@ import utils as gradtype_utils
 TOTAL_EPOCHS = 2000000
 
 # Save weights every `SAVE_EPOCHS` epochs
-SAVE_EPOCHS = 50
+SAVE_EPOCHS = 10
 
 #
 # Prepare dataset
@@ -43,7 +43,7 @@ model.compile(adam, loss='categorical_crossentropy', metrics=[
 # Train
 #
 
-tb = TensorBoard(histogram_freq=50,
+tb = TensorBoard(histogram_freq=10,
                  log_dir=gradtype_utils.get_tensorboard_logdir())
 
 callbacks = [ tb ]
