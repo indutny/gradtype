@@ -276,7 +276,7 @@ class TripletGenerator(Sequence):
 
     # TODO(indutny): remove superfluous parens :)
     probabilities = np.exp(
-        -((limit - distances) ** 2) / (2 * (NEGATIVE_VARIANCE ** 2))) +
+        -((limit - distances) ** 2) / (2 * (NEGATIVE_VARIANCE ** 2))) + \
         1e-9
     probabilities /= np.sum(probabilities, axis=-1)
 
