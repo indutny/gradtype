@@ -21,7 +21,7 @@ def load(model, prefix, what='weights'):
   for save in saved_epochs:
     try:
       if what == 'weights':
-        model.load_weights(os.path.join('./out', save['name']))
+        model.load_weights(os.path.join('./out', save['name']), by_name=True)
       else:
         model.load(os.path.join('./out', save['name']))
     except IOError:
