@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape
+    Embedding, Reshape, Conv1D
 
 # Internals
 import dataset
@@ -105,10 +105,14 @@ def create_siamese(input_shape):
 
   x = joint_input
 
+  x = Conv1D(EMBEDDING_SIZE + 1, 3, name='conv', kernel_regularizer=L2,
+             kernel_initializer='he_normal', padding='causal')(x)
+
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
-  # Spread activations uniformly over the sphere
+  x = Dense(GRU_SIZE, name='h1', kernel_regularizer=L2)(x)
+
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
   output = x
   return Model(name='siamese', inputs=[ codes, deltas ], outputs=output)

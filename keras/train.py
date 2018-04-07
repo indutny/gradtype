@@ -46,7 +46,7 @@ LR = 0.001
 def lr_schedule(epoch, lr):
   if epoch < 1000:
     return LR
-  else if epoch < 2000:
+  elif epoch < 2000:
     return LR * (0.001 ** (epoch - 1000) / 2000)
   else:
     return 0
