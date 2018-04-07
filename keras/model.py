@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape, Conv1D
+    Embedding, Reshape, Conv1D, BatchNormalization
 
 # Internals
 import dataset
@@ -100,8 +100,12 @@ def create_siamese(input_shape):
   codes = Input(shape=input_shape, dtype='int32', name='codes')
   deltas = Input(shape=input_shape, name='deltas')
 
+  norm_deltas = Reshape(input_shape + (1,))(deltas)
+  norm_deltas = BatchNormalization()(norm_deltas)
+  norm_deltas = Reshape(input_shape)(norm_deltas)
+
   embedding = Embedding(MAX_CHAR + 2, EMBEDDING_SIZE, name='embed')(codes)
-  joint_input = JoinInputs(name='join_inputs')([ embedding, deltas ])
+  joint_input = JoinInputs(name='join_inputs')([ embedding, norm_deltas ])
 
   x = joint_input
 
