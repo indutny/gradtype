@@ -109,6 +109,8 @@ if __name__ == '__main__':
   siamese.load_weights(sys.argv[1])
 
   train_datasets, validate_datasets = dataset.split(datasets)
+  train_datasets = dataset.trim_dataset(train_datasets)
+  validate_datasets = dataset.trim_dataset(validate_datasets)
   train_coords = dataset.evaluate_model(siamese, train_datasets)
   validate_coords = dataset.evaluate_model(siamese, validate_datasets)
   fname = sys.argv[2] if len(sys.argv) >= 3 else  None
