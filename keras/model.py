@@ -6,14 +6,14 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape, Conv1D, AveragePooling1D
+    Embedding, Reshape
 
 # Internals
 import dataset
 from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
-GRU_SIZE = 128
+GRU_SIZE = 256
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -25,7 +25,6 @@ ACCURACY_PERCENT = 0.75
 
 # Just a common regularizer
 L2 = regularizers.l2(0.001)
-CONV_L2 = regularizers.l2(0.01)
 
 RESIDUAL_DEPTH=4
 
@@ -108,21 +107,14 @@ def create_siamese(input_shape):
 
   x = joint_input
 
-  x = Conv1D(GRU_SIZE, 7, name='conv',
-             kernel_initializer='he_normal', kernel_regularizer=CONV_L2,
-             activation='relu')(x)
-  x = AveragePooling1D(pool_size=4, name='avg_pooling')(x)
-
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
   for i in range(0, RESIDUAL_DEPTH):
     # Residual connection
-    rc = Dense(GRU_SIZE, name='rc{}_before'.format(i),
-               kernel_regularizer=L2, activation='relu')(x)
     rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
                kernel_regularizer=L2, activation='relu')(x)
-    rc = Dense(GRU_SIZE, name='rc{}_after'.format(i), kernel_regularizer=L2)(rc)
+    rc = Dense(GRU_SIZE, name='rc{}_major'.format(i), kernel_regularizer=L2)(rc)
 
     # Merge residual connection
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
