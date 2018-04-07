@@ -115,7 +115,6 @@ def create_siamese(input_shape):
     rc = Dense(GRU_SIZE, name='rc{}'.format(i), kernel_regularizer=L2)(rc)
 
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
-    x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
   output = x
