@@ -1,5 +1,5 @@
 import keras.layers
-from keras.callbacks import TensorBoard
+from keras.callbacks import TensorBoard, LearningRateScheduler
 from keras.optimizers import Adam
 
 # Internals
@@ -42,9 +42,19 @@ model.compile(adam, loss=gradtype_model.triplet_loss,
 # Train
 #
 
-tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
+LR = 0.001
+def lr_schedule(epoch, lr):
+  if epoch < 1000:
+    return LR
+  else if epoch < 2000:
+    return LR * (0.001 ** (epoch - 1000) / 2000)
+  else:
+    return 0
 
-callbacks = [ tb ]
+tb = TensorBoard(log_dir=gradtype_utils.get_tensorboard_logdir())
+lr_scheduler = LearningRateScheduler(lr_schedule, verbose=1)
+
+callbacks = [ tb, lr_scheduler ]
 
 if start_epoch == 0:
   print("Saving initial...")
