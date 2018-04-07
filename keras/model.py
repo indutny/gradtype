@@ -14,7 +14,7 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
 GRU_SIZE = 128
-RESIDUAL_DEPTH = 1
+RESIDUAL_DEPTH = 4
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -110,7 +110,9 @@ def create_siamese(input_shape):
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
   for i in range(0, RESIDUAL_DEPTH):
-    rc = Dense(GRU_SIZE, name='rc{}'.format(i), kernel_regularizer=L2)(x)
+    rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
+               kernel_regularizer=L2, activation='relu')(x)
+    rc = Dense(GRU_SIZE, name='rc{}'.format(i), kernel_regularizer=L2)(rc)
 
     x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
     x = Activation('relu', name='rc{}_merge_relu'.format(i))(x)
