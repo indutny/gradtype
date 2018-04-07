@@ -4,7 +4,7 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 27;
 
-const CUTOFF_TIME = Infinity;
+const CUTOFF_TIME = 3;
 const MIN_SEQUENCE = 8;
 
 // Moving average window
@@ -52,13 +52,11 @@ export class Dataset {
 
   private *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
-    let average = 0;
     let deltaHistory: number[] = [];
 
     const reset = (): IntermediateEntry => {
       lastTS = undefined;
       deltaHistory = [];
-      average = 0;
       return 'reset';
     };
 
@@ -91,22 +89,33 @@ export class Dataset {
         continue;
       }
 
-      // Anscombe transformation
-      delta = 2 * Math.sqrt(delta + 3 / 8)
+      delta = Math.log(delta);
 
+      // Box Cox transform
       deltaHistory.push(delta);
-      average += delta;
 
       if (deltaHistory.length < WINDOW) {
         continue;
       }
 
-      const first = deltaHistory.shift();
-      average -= first;
+      let average = 0;
+      let variance = 0;
+      for (const d of deltaHistory) {
+        average += d;
+        variance += Math.pow(d, 2);
+      }
+      average /= deltaHistory.length;
+      variance /= deltaHistory.length;
+      deltaHistory.shift();
+      variance -= Math.pow(average, 2);
+      if (variance < 1e-9) {
+        continue;
+      }
+      variance = Math.sqrt(variance);
 
       // Normalize
-      const currentAvg = average / deltaHistory.length;
-      delta -= currentAvg;
+      delta -= average;
+      delta /= variance;
 
       yield {
         delta,
