@@ -53,14 +53,12 @@ export class Dataset {
   private *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
     let average = 0;
-    let variance = 0;
     let deltaHistory: number[] = [];
 
     const reset = (): IntermediateEntry => {
       lastTS = undefined;
       deltaHistory = [];
       average = 0;
-      variance = 0;
       return 'reset';
     };
 
@@ -93,9 +91,10 @@ export class Dataset {
         continue;
       }
 
+      delta = Math.log(delta);
+
       deltaHistory.push(delta);
       average += delta;
-      variance += Math.pow(delta, 2);
 
       if (deltaHistory.length < WINDOW) {
         continue;
@@ -103,18 +102,10 @@ export class Dataset {
 
       const first = deltaHistory.shift();
       average -= first;
-      variance -= Math.pow(first, 2);
 
       // Normalize
       const currentAvg = average / deltaHistory.length;
-      const currentVar = Math.sqrt((variance / deltaHistory.length) -
-        Math.pow(currentAvg, 2));
-      if (isNaN(currentVar)) {
-        console.error('Precision error');
-        continue;
-      }
       delta -= currentAvg;
-      delta /= currentVar;
 
       yield {
         delta,
