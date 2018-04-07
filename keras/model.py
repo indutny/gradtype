@@ -45,7 +45,7 @@ def triplet_loss(y_true, y_pred):
   # Use non-squared distance as in https://arxiv.org/pdf/1703.07737.pdf to
   # prevent collapsing
   delta = positive_distance(y_pred) - negative_distance(y_pred)
-  return K.softplus(delta)
+  return K.maximum(0.0, delta + MARGIN)
 
 def pmean(y_true, y_pred):
   return K.mean(positive_distance(y_pred))
