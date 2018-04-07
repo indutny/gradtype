@@ -78,7 +78,7 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
       initial_epoch=i,
       epochs=end_epoch,
       callbacks=callbacks,
-      workers=8,
+      workers=0,
       shuffle=False,
       validation_data=validate_gen)
 

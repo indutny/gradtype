@@ -187,20 +187,9 @@ def evaluate_model(model, datasets):
 class TripletGenerator(Sequence):
   def __init__(self, kind, model, datasets, batch_size = 32):
     self.kind = kind
+    self.model = model
 
     datasets = trim_dataset(datasets)
-
-    if kind == 'train':
-      all_features = evaluate_model(model, datasets)
-      augmented_datasets = []
-      for (ds, ds_features) in zip(datasets, all_features):
-        augmented_ds = []
-        for (seq, features) in zip(ds, ds_features):
-          single = { 'features': features }
-          single.update(seq)
-          augmented_ds.append(single)
-        augmented_datasets.append(augmented_ds)
-      datasets = augmented_datasets
     self.batches = self.build_batches(datasets, batch_size)
 
   def __len__(self):
@@ -217,16 +206,20 @@ class TripletGenerator(Sequence):
       x = triplets_to_x(triplets)
       return x, generate_dummy(x)
 
-    negative_features = [ e['features'] for e in negative_seqs ]
+    all_features = evaluate_model(self.model, [ positive_seqs, negative_seqs ])
+    all_positive_features = all_features[0]
+    all_negative_features = all_features[1]
 
     # Construct triplets
     triplets = { 'anchors': [], 'positives': [], 'negatives': [] }
     for i in range(0, len(positive_seqs)):
       anchor = positive_seqs[i]
+      anchor_features = all_positive_features[i]
       for j in range(i + 1, len(positive_seqs)):
         positive = positive_seqs[j]
-        negative_i = self.find_best_negative(anchor['features'],
-            positive['features'], negative_features)
+        positive_features = all_positive_features[j]
+        negative_i = self.find_best_negative(anchor_features, positive_features,
+            all_negative_features)
         negative = negative_seqs[negative_i]
 
         triplets['anchors'].append(anchor)
