@@ -31,7 +31,7 @@ validate_y = gradtype_model.generate_one_hot_regression(validate_x['labels'])
 siamese, _, model = gradtype_model.create()
 start_epoch = gradtype_utils.load(siamese, 'gradtype-regr-')
 
-adam = Adam(lr=0.001)
+adam = Adam(lr=0.01)
 
 def top_5(y_true, y_pred):
   return top_k_categorical_accuracy(y_true, y_pred, k=5)
