@@ -4,7 +4,7 @@ import time
 
 weight_file_re = re.compile(r'.*?(\d+)\.h5$')
 
-def load_weights(model, prefix):
+def load(model, prefix, what='weights'):
   weight_files = [
     name for name in os.listdir('./out') if name.endswith('.h5') and
       name.startswith(prefix)
@@ -20,7 +20,10 @@ def load_weights(model, prefix):
 
   for save in saved_epochs:
     try:
-      model.load_weights(os.path.join('./out', save['name']))
+      if what == 'weights':
+        model.load_weights(os.path.join('./out', save['name']))
+      else:
+        model.load(os.path.join('./out', save['name']))
     except IOError:
       continue
     print("Loaded weights from " + save['name'])

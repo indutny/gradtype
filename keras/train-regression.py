@@ -29,7 +29,7 @@ validate_y = gradtype_model.generate_one_hot_regression(validate_x['labels'])
 #
 
 siamese, _, model = gradtype_model.create()
-start_epoch = gradtype_utils.load_weights(siamese, 'gradtype-regr-')
+start_epoch = gradtype_utils.load(siamese, 'gradtype-regr-')
 
 adam = Adam(lr=0.001)
 

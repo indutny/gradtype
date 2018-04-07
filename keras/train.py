@@ -15,6 +15,9 @@ RESHUFFLE_EPOCHS = 1
 # Save weights every `SAVE_EPOCHS` epochs
 SAVE_EPOCHS = 1
 
+# Just to speed things up
+VALIDATE_EPOCHS = 5
+
 #
 # Prepare dataset
 #
@@ -28,7 +31,8 @@ train_datasets, validate_datasets = dataset.split(datasets)
 #
 
 siamese, model, _ = gradtype_model.create()
-start_epoch = gradtype_utils.load_weights(siamese, 'gradtype-triplet-')
+start_epoch = gradtype_utils.load(siamese, 'gradtype-triplet-full-',
+    what='model')
 
 adam = Adam(lr=0.003)
 
@@ -47,14 +51,19 @@ if start_epoch == 0:
   print("Saving initial...")
   fname = './out/gradtype-triplet-{:08d}.h5'.format(start_epoch)
   siamese.save_weights(fname)
+  full_fname = './out/gradtype-triplet-full-{:08d}.h5'.format(start_epoch)
+  model.save(full_fname)
 
 for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
   end_epoch = i + RESHUFFLE_EPOCHS
 
   train_gen = dataset.TripletGenerator('train', siamese, train_datasets,
       batch_size=32)
-  validate_gen = dataset.TripletGenerator('validate', siamese,
-      validate_datasets, batch_size=32)
+  if i % VALIDATE_EPOCHS == 0:
+    validate_gen = dataset.TripletGenerator('validate', siamese,
+        validate_datasets, batch_size=32)
+  else:
+    validate_gen = None
 
   model.fit_generator(train_gen,
       initial_epoch=i,
@@ -68,3 +77,5 @@ for i in range(start_epoch, TOTAL_EPOCHS, RESHUFFLE_EPOCHS):
     print("Saving...")
     fname = './out/gradtype-triplet-{:08d}.h5'.format(end_epoch)
     siamese.save_weights(fname)
+    full_fname = './out/gradtype-triplet-full-{:08d}.h5'.format(end_epoch)
+    model.save(full_fname)
