@@ -152,7 +152,9 @@ def trim_dataset(dataset):
 
   # Shuffle groups, and return slices
   out = []
-  for group in dataset:
+  perm = np.random.permutation(len(dataset))
+  for i in perm:
+    group = dataset[i][:]
     np.random.shuffle(group)
     out.append(group[:min_sequence_count])
 
