@@ -91,6 +91,7 @@ export class Dataset {
 
       delta = Math.log(delta);
 
+      /*
       // Box Cox transform
       deltaHistory.push(delta);
 
@@ -116,6 +117,7 @@ export class Dataset {
       // Normalize
       delta -= average;
       delta /= variance;
+      */
 
       yield {
         delta,
