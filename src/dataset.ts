@@ -91,7 +91,8 @@ export class Dataset {
         continue;
       }
 
-      delta = Math.log(delta);
+      // Anscombe transformation
+      delta = 2 * Math.sqrt(delta + 3 / 8)
 
       deltaHistory.push(delta);
       average += delta;
