@@ -108,7 +108,7 @@ def create_siamese(input_shape):
   x = Conv1D(EMBEDDING_SIZE + 1, 3, name='conv', kernel_regularizer=L2,
              kernel_initializer='he_normal', padding='causal')(x)
 
-  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2,
+  x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, recurrent_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
   x = Dense(GRU_SIZE, name='h1', kernel_regularizer=L2)(x)
