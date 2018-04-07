@@ -4,8 +4,11 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 27;
 
-const CUTOFF_TIME = 3;
+const CUTOFF_TIME = Infinity;
 const MIN_SEQUENCE = 8;
+
+// Moving average window
+const WINDOW = 7;
 
 export interface IInputEntry {
   readonly k: string;
@@ -48,15 +51,16 @@ export class Dataset {
   }
 
   private *preprocess(events: Input): Iterator<IntermediateEntry> {
-    // Moving average
-    let average = 0;
-    let square = 0;
-    const deltaList: number[] = [];
-
     let lastTS: number | undefined;
+    let average = 0;
+    let variance = 0;
+    let deltaHistory: number[] = [];
 
     const reset = (): IntermediateEntry => {
       lastTS = undefined;
+      deltaHistory = [];
+      average = 0;
+      variance = 0;
       return 'reset';
     };
 
@@ -76,18 +80,46 @@ export class Dataset {
       }
       assert(0 <= code && code <= MAX_CHAR);
 
-      const delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
+      let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
       if (delta > CUTOFF_TIME) {
         yield reset();
         continue;
       }
 
+      lastTS = event.ts;
+
+      // Skip first keystroke
+      if (delta === 0) {
+        continue;
+      }
+
+      deltaHistory.push(delta);
+      average += delta;
+      variance += Math.pow(delta, 2);
+
+      if (deltaHistory.length < WINDOW) {
+        continue;
+      }
+
+      const first = deltaHistory.shift();
+      average -= first;
+      variance -= Math.pow(first, 2);
+
+      // Normalize
+      const currentAvg = average / deltaHistory.length;
+      const currentVar = Math.sqrt((variance / deltaHistory.length) -
+        Math.pow(currentAvg, 2));
+      if (isNaN(currentVar)) {
+        console.error('Precision error');
+        continue;
+      }
+      delta -= currentAvg;
+      delta /= currentVar;
+
       yield {
         delta,
         code,
       };
-
-      lastTS = event.ts;
     }
   }
 
