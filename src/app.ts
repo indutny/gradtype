@@ -125,7 +125,8 @@ function complete(code?: string) {
     elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
   } else {
     elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>' +
-      `<h1 style="color:red">Your code is ${code}</h1>`;
+      `<h1 style="color:red">Your code is ${code}</h1>` +
+      `<h1>(or click <a href="https://github.com/indutny/gradtype/issues/new?title=My%20results%20code&body=My%20code%20is%20${code}">here</a> to go straight to a new issue)</h1>`;
   }
 }
 
