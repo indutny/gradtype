@@ -1,0 +1,125 @@
+import os
+import struct
+import json
+
+import numpy as np
+
+# Maximum character code
+MAX_CHAR = 27
+
+# Sequence length
+MAX_SEQUENCE_LEN = 30
+
+# Percent of sequences in validation data
+VALIDATE_PERCENT = 0.2
+
+# Percent of categories in validation data (`triplet` mode only)
+VALIDATE_CATEGORY_PERCENT = 0.25
+
+# Seed for shuffling sequences in category before splitting into train/validate
+VALIDATE_PERMUTATION_SEED = 0x6f3d755c
+
+def load_labels():
+  package_directory = os.path.dirname(os.path.abspath(__file__))
+  index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
+  with open(index_json, 'r') as f:
+    return json.load(f)
+
+def load(mode='triplet', overlap=1):
+  labels = load_labels()
+  categories = []
+  with open('./out/lstm.raw', 'rb') as f:
+    category_count = struct.unpack('<i', f.read(4))[0]
+    if category_count != len(labels):
+      raise Exception("Invalid category count")
+
+    for i in range(0, category_count):
+      sequence_count = struct.unpack('<i', f.read(4))[0]
+      sequences = []
+      for j in range(0, sequence_count):
+        sequence_len = struct.unpack('<i', f.read(4))[0]
+
+        codes = []
+        deltas = []
+        for k in range(0, sequence_len):
+          code = struct.unpack('<i', f.read(4))[0]
+          delta = struct.unpack('f', f.read(4))[0]
+
+          if code < -1 or code > MAX_CHAR:
+            raise Exception('Invalid code: "{}"'.format(code))
+
+          codes.append(code + 1)
+          deltas.append(delta)
+        codes = np.array(codes, dtype='int32')
+        deltas = np.array(deltas, dtype='float32')
+        sequences.append({
+          'category': i,
+          'label': labels[i],
+          'codes': codes,
+          'deltas': deltas
+        })
+      categories.append(sequences)
+  return split(categories, mode, overlap)
+
+def split(dataset, mode, overlap):
+  if mode == 'triplet':
+    train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
+  else:
+    train_cat_count = len(dataset)
+
+  train = []
+  validate = []
+  for category in dataset[:train_cat_count]:
+    rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
+    perm = rand_state.permutation(len(category))
+    train_seq_count = int(len(dataset) * (1.0 - VALIDATE_PERCENT))
+
+    train_category = []
+    for i in perm[:train_seq_count]:
+      train_category.append(category[i])
+
+    validate_category = []
+    for i in perm[train_seq_count:]:
+      validate_category.append(category[i])
+
+    train.append(train_category)
+    validate.append(validate_category)
+
+  validate += dataset[train_cat_count:]
+
+  return expand(train, overlap), expand(validate, overlap)
+
+def expand(dataset, overlap):
+  out = []
+  for category in dataset:
+    out_category = []
+    for seq in category:
+      out_category += expand_sequence(seq, overlap)
+    out.append(out_category)
+  return out
+
+def expand_sequence(seq, overlap):
+  count = len(seq['codes'])
+
+  # Pad
+  if count < MAX_SEQUENCE_LEN:
+    pad_size = MAX_SEQUENCE_LEN - len(seq['codes'])
+    codes = seq['codes']
+    deltas = seq['deltas']
+
+    codes = np.concatenate([ codes, np.zeros(pad_size, dtype='int32') ])
+    deltas = np.concatenate([ deltas, np.zeros(pad_size, dtype='float32') ])
+
+    padded_seq = seq.copy()
+    padded_seq.update({ 'codes': codes, 'deltas': deltas })
+    return [ padded_seq ]
+
+  # Expand
+  out = []
+  for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
+    codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
+    deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
+    copy = seq.copy()
+    copy.update({ 'codes': codes, 'deltas': deltas })
+    out.append(copy)
+  return out
