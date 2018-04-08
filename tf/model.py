@@ -34,6 +34,8 @@ class Model():
                                       kernel_regularizer=self.l2))
 
     self.gru = tf.contrib.rnn.GRUCell(name='gru', num_units=GRU_WIDTH)
+    self.gru_regularized = False
+
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
@@ -66,5 +68,15 @@ class Model():
       x = post(x)
 
     x = self.features(x)
+
+    # Regularize GRU
+    # TODO(indutny): just use custom GRU
+    if not self.gru_regularized:
+      self.gru_regularized = True
+
+      gru_kernels = [
+          self.gru.trainable_weights[0], self.gru.trainable_weights[2] ]
+      for kernel in gru_kernels:
+        self.gru.add_loss(self.l2(kernel))
 
     return x

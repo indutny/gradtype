@@ -14,6 +14,7 @@ with tf.Session() as sess:
 
   concat = model(codes, deltas)
 
+  # Initialize global variables after building model
   sess.run(tf.global_variables_initializer())
 
   print(sess.run(concat))

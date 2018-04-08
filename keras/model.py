@@ -115,9 +115,7 @@ def create_siamese(input_shape):
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, recurrent_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
-  x = Dense(2 * FEATURE_COUNT, name='post_1', kernel_regularizer=L2,
-            activation='selu')(x)
-  x = Dense(FEATURE_COUNT, name='post_2', kernel_regularizer=L2,
+  x = Dense(FEATURE_COUNT, name='post_1', kernel_regularizer=L2,
             activation='selu')(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
