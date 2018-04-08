@@ -109,7 +109,7 @@ def create_siamese(input_shape):
                             activation='selu'))(x)
   x = TimeDistributed(Dense(32, name='pre_2', kernel_regularizer=L2,
                             activation='selu'))(x)
-  x = TimeDistributed(Dense(32, name='pre_3', kernel_regularizer=L2m
+  x = TimeDistributed(Dense(32, name='pre_3', kernel_regularizer=L2,
                             activation='selu'))(x)
 
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, recurrent_regularizer=L2,
