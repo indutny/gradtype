@@ -6,7 +6,7 @@ from keras import backend as K
 from keras import regularizers
 from keras.models import Model, Sequential
 from keras.layers import Input, Dense, GRU, Activation, \
-    Embedding, Reshape
+    Embedding, Reshape, TimeDistributed
 
 # Internals
 import dataset
@@ -14,7 +14,6 @@ from common import FEATURE_COUNT
 
 EMBEDDING_SIZE = 7
 GRU_SIZE = 128
-RESIDUAL_DEPTH = 4
 
 # This must match the constant in `src/dataset.ts`
 MAX_CHAR = dataset.MAX_CHAR
@@ -106,15 +105,15 @@ def create_siamese(input_shape):
 
   x = joint_input
 
+  x = TimeDistributed(Dense(32, name='pre_1', kernel_regularizer=L2))(x)
+  x = TimeDistributed(Dense(32, name='pre_2', kernel_regularizer=L2))(x)
+  x = TimeDistributed(Dense(32, name='pre_3', kernel_regularizer=L2))(x)
+
   x = GRU(GRU_SIZE, name='gru', kernel_regularizer=L2, recurrent_regularizer=L2,
           kernel_initializer='he_normal', recurrent_dropout=0.3)(x)
 
-  for i in range(0, RESIDUAL_DEPTH):
-    rc = Dense(int(GRU_SIZE / 2), name='rc{}_minor'.format(i),
-               kernel_regularizer=L2, activation='relu')(x)
-    rc = Dense(GRU_SIZE, name='rc{}'.format(i), kernel_regularizer=L2)(rc)
-
-    x = keras.layers.Add(name='rc{}_merge_add'.format(i))([ x, rc ])
+  x = Dense(2 * FEATURE_COUNT, name='post_1', kernel_regularizer=L2)(x)
+  x = Dense(FEATURE_COUNT, name='post_2', kernel_regularizer=L2)(x)
 
   x = Dense(FEATURE_COUNT, name='features', kernel_regularizer=L2)(x)
   output = x
