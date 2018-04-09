@@ -22,6 +22,9 @@ VALIDATE_EVERY = 5
 # Number of sequences per category in batch
 BATCH_SIZE = 32
 
+# Learning rate
+LR = 0.001
+
 #
 # Load dataset
 #
@@ -47,7 +50,7 @@ metrics = model.get_metrics(output, category_count)
 # Initialize optimizer
 #
 
-optimizer = tf.train.AdamOptimizer(0.001)
+optimizer = tf.train.AdamOptimizer(LR)
 train = optimizer.minimize(metrics['loss'] + \
     tf.losses.get_regularization_loss())
 
