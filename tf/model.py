@@ -2,6 +2,7 @@ import tensorflow as tf
 
 # Internal
 import dataset
+from gru import GRUCell
 
 EMBED_WIDTH = 7
 DENSE_PRE_COUNT = 3
@@ -15,11 +16,11 @@ class Embedding():
   def __init__(self, name, max_code, width):
     self.name = name
     self.width = width
-    with tf.variable_scope('layer_{}'.format(self.name)):
-      self.weights = tf.get_variable('weights', (max_code, width))
+    with tf.variable_scope(None, default_name=self.name):
+      self.weights = tf.get_variable('weights', shape=(max_code, width))
 
   def apply(self, codes):
-    with tf.name_scope('layer_{}'.format(self.name)):
+    with tf.name_scope(None, default_name=self.name):
       return tf.gather(self.weights, codes)
 
 class Model():
@@ -37,9 +38,7 @@ class Model():
                                       activation=tf.nn.selu,
                                       kernel_regularizer=self.l2))
 
-    self.gru = tf.contrib.rnn.GRUCell(name='gru', num_units=GRU_WIDTH,
-        kernel_initializer=tf.initializers.orthogonal,
-        bias_initializer=tf.initializers.zeros)
+    self.gru = GRUCell(name='gru', units=GRU_WIDTH)
     self.gru_regularized = False
 
     self.features = tf.layers.Dense(name='features',
@@ -60,7 +59,7 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    state = self.gru.zero_state(self.batch_size * category_count, tf.float32)
+    state = self.gru.build((None, 32))
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
@@ -79,10 +78,10 @@ class Model():
     if not self.gru_regularized:
       self.gru_regularized = True
 
-      gru_kernels = [
-          self.gru.trainable_weights[0], self.gru.trainable_weights[2] ]
-      for kernel in gru_kernels:
-        self.gru.add_loss(self.l2(kernel))
+      gru_kernels = [ self.gru.kernel_z, self.gru.kernel_r, self.gru.kernel_h,
+          self.gru.recurrent_z, self.gru.recurrent_r, self.gru.recurrent_h ]
+      # for kernel in gru_kernels:
+      #   self.gru.add_loss(self.l2(kernel))
 
     return x
 
