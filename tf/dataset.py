@@ -124,13 +124,16 @@ def expand_sequence(seq, overlap):
     out.append(copy)
   return out
 
-def trim_dataset(dataset):
+def trim_dataset(dataset, batch_size):
   min_len = None
   for category in dataset:
     if min_len == None:
       min_len = len(category)
     else:
       min_len = min(min_len, len(category))
+
+  # Equal batches
+  min_len -= min_len % batch_size
 
   out = []
   for category in dataset:
@@ -144,7 +147,7 @@ def trim_dataset(dataset):
 # TODO(indutny): use tf.data.Dataset
 def gen_batches(dataset, batch_size=32):
   # Leave the same number of sequences in each batch
-  dataset, sequence_count = trim_dataset(dataset)
+  dataset, sequence_count = trim_dataset(dataset, batch_size)
 
   batches = []
   for off in range(0, sequence_count, batch_size):

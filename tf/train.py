@@ -14,9 +14,20 @@ BATCH_SIZE = 32
 
 train, validate = dataset.load()
 
-model = Model()
+model = Model(BATCH_SIZE)
+
+input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
+
+codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
+deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
+category_count = tf.placeholder(tf.int32, (), name='category_count')
+
+output = model.build(codes, deltas, category_count)
+loss = model.compute_loss(output, category_count)
 
 with tf.Session() as sess:
+  sess.run(tf.global_variables_initializer())
+
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_batches(train)
     if epoch % VALIDATE_EVERY == 0:
@@ -24,13 +35,11 @@ with tf.Session() as sess:
     else:
       validate_batches = None
 
+    print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      output = model(batch['codes'], batch['deltas'])
-
-      # Initialize global variables after building model
-      sess.run(tf.global_variables_initializer())
-
       # Run model
-      loss = model.compute_loss(output, BATCH_SIZE)
-      print(sess.run(loss))
-      exit(0)
+      print(sess.run(loss, feed_dict={
+        codes: batch['codes'],
+        deltas: batch['deltas'],
+        category_count: len(train),
+      }))

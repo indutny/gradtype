@@ -21,7 +21,9 @@ class Embedding():
     return tf.gather(self.weights, codes)
 
 class Model():
-  def __init__(self):
+  def __init__(self, batch_size):
+    self.batch_size = batch_size
+
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
@@ -47,15 +49,14 @@ class Model():
                                        activation=tf.nn.selu,
                                        kernel_regularizer=self.l2))
 
-  def __call__(self, codes, deltas):
-    batch_size = codes.shape[0]
-    sequence_len = codes.shape[1]
+  def build(self, codes, deltas, category_count):
+    sequence_len = int(codes.shape[1])
 
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    state = self.gru.zero_state(batch_size, tf.float32)
+    state = self.gru.zero_state(self.batch_size * category_count, tf.float32)
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
@@ -82,35 +83,37 @@ class Model():
     return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
-  # TODO(indutny): make `margin` and `epsilon` global constants?
-  def compute_loss(self, output, batch_size, margin=0.2, epsilon=1e-9):
-    category_count = int(int(output.shape[0]) / batch_size)
-    new_shape = (category_count, batch_size, FEATURE_COUNT,)
-    output = tf.reshape(output, new_shape)
+  def compute_loss(self, output, category_count, margin=0.2, epsilon=1e-9):
+    batch_size = self.batch_size
 
-    # XXX(indutny): does TF cache them automatically?
     margin = tf.constant(margin, dtype=tf.float32)
     epsilon = tf.constant(epsilon, dtype=tf.float32)
     zero = tf.constant(0.0, dtype=tf.float32)
 
-    loss = 0.0
-    for anchor_cat in range(0, category_count):
-      positives = output[anchor_cat]
-      negatives = tf.concat([ output[:anchor_cat], output[anchor_cat + 1:] ], 0)
-      flat_shape = ((category_count - 1) * batch_size, FEATURE_COUNT,)
-      negatives = tf.reshape(negatives, flat_shape)
+    categories = tf.expand_dims(tf.range(category_count), axis=-1)
+    categories = tf.tile(categories, [ 1, batch_size ])
 
-      anchors = tf.expand_dims(positives, axis=1)
-      positives = tf.expand_dims(positives, axis=0)
-      negatives = tf.expand_dims(negatives, axis=0)
+    categories = tf.reshape(categories, (category_count * batch_size,))
 
-      positive_distances = tf.sqrt(
-          tf.reduce_sum((anchors - positives) ** 2, axis=-1) + epsilon)
-      negative_distances = tf.sqrt(
-          tf.reduce_sum((anchors - negatives) ** 2, axis=-1) + epsilon)
+    # same_mask.shape =
+    #  (category_count * batch_size, category_count * batch_size)
+    same_mask = tf.equal(tf.expand_dims(categories, axis=0),
+        tf.expand_dims(categories, axis=1))
 
-      hard_positives = tf.reduce_max(positive_distances, axis=-1)
-      hard_negatives = tf.reduce_min(negative_distances, axis=-1)
-      loss += tf.reduce_sum(
-          tf.maximum(margin + hard_positives - hard_negatives, zero))
-    return loss
+    # Compute all-to-all euclidian distances
+    distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
+    # distances.shape = same_mask.shape
+    distances = tf.sqrt(tf.reduce_sum(distances ** 2 + epsilon, axis=-1))
+
+    positive_mask = tf.cast(same_mask, tf.float32)
+    negative_mask = tf.cast(tf.logical_not(same_mask), tf.float32)
+
+    positive_distances = distances * positive_mask
+    negative_distances = distances * negative_mask + \
+        positive_mask * 1e9
+
+    hard_positives = tf.reduce_max(positive_distances, axis=-1)
+    hard_negatives = tf.reduce_min(positive_distances, axis=-1)
+
+    loss = tf.maximum(margin + hard_positives - hard_negatives, zero)
+    return tf.reduce_sum(loss, axis=-1)
