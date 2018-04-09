@@ -96,13 +96,15 @@ class Model():
       categories = tf.expand_dims(tf.range(category_count), axis=-1)
       categories = tf.tile(categories, [ 1, batch_size ])
 
-      categories = tf.reshape(categories, (category_count * batch_size,))
+      row_count = category_count * batch_size
+      categories = tf.reshape(categories, (row_count,))
 
       # same_mask.shape =
       #  (category_count * batch_size, category_count * batch_size)
       same_mask = tf.equal(tf.expand_dims(categories, axis=0),
           tf.expand_dims(categories, axis=1))
       not_same_mask = tf.logical_not(same_mask)
+      same_mask = tf.logical_xor(same_mask, tf.eye(row_count, dtype=tf.bool))
 
       # Compute all-to-all euclidian distances
       distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
