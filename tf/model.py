@@ -37,7 +37,8 @@ class Model():
                                       activation=tf.nn.selu,
                                       kernel_regularizer=self.l2))
 
-    self.gru = tf.contrib.rnn.GRUCell(name='gru', num_units=GRU_WIDTH)
+    self.gru = tf.contrib.rnn.GRUCell(name='gru', num_units=GRU_WIDTH,
+        bias_initializer=tf.initializers.zeros)
     self.gru_regularized = False
 
     self.features = tf.layers.Dense(name='features',
