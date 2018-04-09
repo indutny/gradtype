@@ -48,7 +48,7 @@ class GRUCell():
       return tf.expand_dims(tf.zeros(shape=(self.units,)), axis=0)
 
   def __call__(self, inputs, state, training=False):
-    with tf.name_scope(None, default_name=self.name):
+    with tf.name_scope(self.name):
       # TODO(indutny): port dropout
       inputs_z = inputs
       inputs_r = inputs
