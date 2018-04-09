@@ -1,6 +1,7 @@
 import os
 import time
 
+import numpy as np
 import tensorflow as tf
 
 # Internal
@@ -18,9 +19,18 @@ MAX_EPOCHS = 500000
 # Validate every epoch:
 VALIDATE_EVERY = 5
 
+# Number of sequences per category in batch
 BATCH_SIZE = 32
 
-train, validate = dataset.load()
+#
+# Load dataset
+#
+
+train_dataset, validate_dataset = dataset.load()
+
+#
+# Initialize model
+#
 
 model = Model(BATCH_SIZE)
 
@@ -33,32 +43,66 @@ category_count = tf.placeholder(tf.int32, (), name='category_count')
 output = model.build(codes, deltas, category_count)
 metrics = model.get_metrics(output, category_count)
 
+#
+# Initialize optimizer
+#
+
+optimizer = tf.train.AdamOptimizer(0.001)
+train = optimizer.minimize(metrics['loss'] + \
+    tf.losses.get_regularization_loss())
+
+#
+# TensorBoard
+#
+
 writer = tf.summary.FileWriter(LOG_DIR)
 writer.add_graph(tf.get_default_graph())
+
+def log_summary(prefix, metrics, step):
+  summary = tf.Summary()
+  for key in metrics:
+    value = metrics[key]
+    summary.value.add(tag='{}/{}'.format(prefix, key), simple_value=value)
+  writer.add_summary(summary, step)
+  writer.flush()
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
-  with tf.name_scope('train'):
-    tf.summary.scalar('loss', loss)
-
-  merged_summary = tf.summary.merge_all()
-
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_batches(train)
-    if epoch % VALIDATE_EVERY == 0:
-      validate_batches = dataset.gen_batches(validate, batch_size=BATCH_SIZE)
-    else:
-      validate_batches = None
+    train_batches = dataset.gen_batches(train_dataset, batch_size=BATCH_SIZE)
 
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      # Run model
-      summary = sess.run(metrics, feed_dict={
+      reg_loss = tf.losses.get_regularization_loss()
+      tensors = [ train, metrics, reg_loss ]
+      _, t_metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        category_count: len(train),
+        category_count: len(train_dataset),
       })
-      writer.add_summary(summary, step)
+      t_metrics['regularization_loss'] = reg_loss
+
+      log_summary('train', t_metrics, step)
       step += 1
+
+    if epoch % VALIDATE_EVERY != 0:
+      continue
+
+    validate_batches = dataset.gen_batches(validate_dataset, \
+        batch_size=BATCH_SIZE)
+
+    print('Validation...')
+    mean_metrics = { 'loss': [] }
+    for batch in validate_batches:
+      v_metrics = sess.run(metrics, feed_dict={
+        codes: batch['codes'],
+        deltas: batch['deltas'],
+        category_count: len(validate_dataset),
+      })
+      mean_metrics['loss'].append(v_metrics['loss'])
+
+    mean_metrics['loss'] = np.mean(mean_metrics['loss'])
+
+    log_summary('validate', mean_metrics, step)

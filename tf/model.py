@@ -13,12 +13,14 @@ FEATURE_COUNT = 128
 
 class Embedding():
   def __init__(self, name, max_code, width):
+    self.name = name
     self.width = width
-    with tf.variable_scope('layer/' + name):
+    with tf.variable_scope('layer_{}'.format(self.name)):
       self.weights = tf.get_variable('weights', (max_code, width))
 
   def apply(self, codes):
-    return tf.gather(self.weights, codes)
+    with tf.name_scope('layer_{}'.format(self.name)):
+      return tf.gather(self.weights, codes)
 
 class Model():
   def __init__(self, batch_size):
@@ -84,38 +86,47 @@ class Model():
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, margin=0.2, epsilon=1e-9):
-    batch_size = self.batch_size
+    with tf.name_scope('metrics'):
+      batch_size = self.batch_size
 
-    margin = tf.constant(margin, dtype=tf.float32)
-    epsilon = tf.constant(epsilon, dtype=tf.float32)
-    zero = tf.constant(0.0, dtype=tf.float32)
+      margin = tf.constant(margin, dtype=tf.float32)
+      epsilon = tf.constant(epsilon, dtype=tf.float32)
+      zero = tf.constant(0.0, dtype=tf.float32)
 
-    categories = tf.expand_dims(tf.range(category_count), axis=-1)
-    categories = tf.tile(categories, [ 1, batch_size ])
+      categories = tf.expand_dims(tf.range(category_count), axis=-1)
+      categories = tf.tile(categories, [ 1, batch_size ])
 
-    categories = tf.reshape(categories, (category_count * batch_size,))
+      categories = tf.reshape(categories, (category_count * batch_size,))
 
-    # same_mask.shape =
-    #  (category_count * batch_size, category_count * batch_size)
-    same_mask = tf.equal(tf.expand_dims(categories, axis=0),
-        tf.expand_dims(categories, axis=1))
+      # same_mask.shape =
+      #  (category_count * batch_size, category_count * batch_size)
+      same_mask = tf.equal(tf.expand_dims(categories, axis=0),
+          tf.expand_dims(categories, axis=1))
+      not_same_mask = tf.logical_not(same_mask)
 
-    # Compute all-to-all euclidian distances
-    distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
-    # distances.shape = same_mask.shape
-    distances = tf.sqrt(tf.reduce_sum(distances ** 2 + epsilon, axis=-1))
+      # Compute all-to-all euclidian distances
+      distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
+      # distances.shape = same_mask.shape
+      distances = tf.sqrt(tf.reduce_sum(distances ** 2 + epsilon, axis=-1))
 
-    positive_mask = tf.cast(same_mask, tf.float32)
-    negative_mask = tf.cast(tf.logical_not(same_mask), tf.float32)
+      positive_mask = tf.cast(same_mask, tf.float32)
+      negative_mask = tf.cast(not_same_mask, tf.float32)
 
-    positive_distances = distances * positive_mask
-    negative_distances = distances * negative_mask + \
-        positive_mask * 1e9
+      positive_distances = distances * positive_mask
+      negative_distances = distances * negative_mask + \
+          positive_mask * 1e9
 
-    hard_positives = tf.reduce_max(positive_distances, axis=-1)
-    hard_negatives = tf.reduce_min(negative_distances, axis=-1)
+      hard_positives = tf.reduce_max(positive_distances, axis=-1)
+      hard_negatives = tf.reduce_min(negative_distances, axis=-1)
 
-    loss = tf.maximum(margin + hard_positives - hard_negatives, zero)
-    loss = tf.reduce_sum(loss, axis=-1)
+      loss = tf.maximum(margin + hard_positives - hard_negatives, zero)
+      loss = tf.reduce_sum(loss, axis=-1)
 
-    return { 'loss': loss }
+      metrics = {}
+      metrics['loss'] = loss
+      metrics['mean_positive'] = \
+          tf.reduce_mean(tf.boolean_mask(distances, same_mask))
+      metrics['mean_negative'] = \
+          tf.reduce_mean(tf.boolean_mask(distances, not_same_mask))
+
+      return metrics
