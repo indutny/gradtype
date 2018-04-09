@@ -131,7 +131,7 @@ class Model():
       metrics['mean_negative'] = \
           tf.reduce_mean(tf.boolean_mask(distances, not_same_mask))
       metrics['active_triplets'] = \
-          tf.reduce_sum(tf.cast(tf.greater(triplet_distance, zero), \
+          tf.reduce_mean(tf.cast(tf.greater(triplet_distance, zero), \
               tf.float32))
 
       return metrics
