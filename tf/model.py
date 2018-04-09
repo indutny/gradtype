@@ -83,7 +83,7 @@ class Model():
     return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
-  def compute_loss(self, output, category_count, margin=0.2, epsilon=1e-9):
+  def get_metrics(self, output, category_count, margin=0.2, epsilon=1e-9):
     batch_size = self.batch_size
 
     margin = tf.constant(margin, dtype=tf.float32)
@@ -113,7 +113,9 @@ class Model():
         positive_mask * 1e9
 
     hard_positives = tf.reduce_max(positive_distances, axis=-1)
-    hard_negatives = tf.reduce_min(positive_distances, axis=-1)
+    hard_negatives = tf.reduce_min(negative_distances, axis=-1)
 
     loss = tf.maximum(margin + hard_positives - hard_negatives, zero)
-    return tf.reduce_sum(loss, axis=-1)
+    loss = tf.reduce_sum(loss, axis=-1)
+
+    return { 'loss': loss }
