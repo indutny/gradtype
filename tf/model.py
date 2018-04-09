@@ -38,7 +38,7 @@ class Model():
                                       kernel_regularizer=self.l2))
 
     self.gru = tf.contrib.rnn.GRUCell(name='gru', num_units=GRU_WIDTH,
-        activation=tf.nn.selu,
+        kernel_initializer=tf.initializers.orthogonal,
         bias_initializer=tf.initializers.zeros)
     self.gru_regularized = False
 
