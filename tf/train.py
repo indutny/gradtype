@@ -12,6 +12,7 @@ RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = time.asctime()
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
+SAVES_DIR = os.path.join('.', 'out', RUN_NAME)
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -66,6 +67,8 @@ def log_summary(prefix, metrics, step):
   writer.add_summary(summary, step)
   writer.flush()
 
+saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
+
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
@@ -73,6 +76,7 @@ with tf.Session() as sess:
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_batches(train_dataset, batch_size=BATCH_SIZE)
 
+    saver.save(sess, 'gradtype', global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       reg_loss = tf.losses.get_regularization_loss()
@@ -94,15 +98,22 @@ with tf.Session() as sess:
         batch_size=BATCH_SIZE)
 
     print('Validation...')
-    mean_metrics = { 'loss': [] }
+    mean_metrics = None
     for batch in validate_batches:
       v_metrics = sess.run(metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         category_count: len(validate_dataset),
       })
-      mean_metrics['loss'].append(v_metrics['loss'])
 
-    mean_metrics['loss'] = np.mean(mean_metrics['loss'])
+      if mean_metrics is None:
+        for key in v_metrics:
+          mean_metrics[key] = []
+
+      for key in v_metrics:
+        mean_metrics[key].append(v_metrics[key])
+
+    for key in mean_metrics:
+      mean_metrics[key] = np.mean(mean_metrics[key])
 
     log_summary('validate', mean_metrics, step)
