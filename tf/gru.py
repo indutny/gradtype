@@ -71,7 +71,7 @@ class GRUCell():
       r = self.recurrent_activation(x_r + recurrent_r)
 
       recurrent_h = tf.matmul(r * h_tm1_h, self.recurrent_h)
-      hh = self.activation(recurrent_h)
+      hh = self.activation(x_h + recurrent_h)
 
       h = z * h_tm1 + (1 - z) * hh
       return h, h
