@@ -123,9 +123,9 @@ class Model():
       hard_positives = tf.reduce_max(positive_distances, axis=-1)
       hard_negatives = tf.reduce_min(negative_distances, axis=-1)
 
-      triplet_distance = margin + hard_positives - hard_negatives
+      triplet_distance = hard_positives - hard_negatives
 
-      loss = tf.maximum(triplet_distance, zero)
+      loss = tf.softplus(triplet_distance)
       loss = tf.reduce_mean(loss, axis=-1)
 
       metrics = {}
