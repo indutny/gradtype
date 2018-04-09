@@ -76,7 +76,8 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_batches(train_dataset, batch_size=BATCH_SIZE)
+    train_batches = dataset.gen_hard_batches(train_dataset, \
+        batch_size=BATCH_SIZE)
 
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
@@ -96,7 +97,7 @@ with tf.Session() as sess:
     if epoch % VALIDATE_EVERY != 0:
       continue
 
-    validate_batches = dataset.gen_batches(validate_dataset, \
+    validate_batches = dataset.gen_hard_batches(validate_dataset, \
         batch_size=BATCH_SIZE)
 
     print('Validation...')

@@ -145,7 +145,7 @@ def trim_dataset(dataset, batch_size):
   return out, min_len
 
 # TODO(indutny): use tf.data.Dataset
-def gen_batches(dataset, batch_size=32):
+def gen_hard_batches(dataset, batch_size=32):
   # Leave the same number of sequences in each batch
   dataset, sequence_count = trim_dataset(dataset, batch_size)
 
