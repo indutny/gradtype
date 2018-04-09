@@ -65,7 +65,7 @@ class Model():
       for pre in self.pre:
         frame = pre(frame)
 
-      state, x = self.gru(frame, state)
+      x, state = self.gru(frame, state)
 
     for post in self.post:
       x = post(x)
