@@ -118,8 +118,7 @@ class Model():
       negative_mask = tf.cast(not_same_mask, tf.float32)
 
       positive_distances = distances * positive_mask
-      negative_distances = distances * negative_mask + \
-                           (1 - negative_mask) * 1e9
+      negative_distances = distances * negative_mask + (1 - negative_mask) * 1e9
 
       hard_positives = tf.reduce_max(positive_distances, axis=-1)
       hard_negatives = tf.reduce_min(negative_distances, axis=-1)
