@@ -4,17 +4,33 @@ import tensorflow as tf
 import dataset
 from model import Model
 
+# Maximum number of epochs to run for
+MAX_EPOCHS = 500000
+
+# Validate every epoch:
+VALIDATE_EVERY = 5
+
+BATCH_SIZE = 32
+
 train, validate = dataset.load()
 
 model = Model()
 
 with tf.Session() as sess:
-  codes = tf.constant([ [ 1, 2, 3 ] ], dtype=tf.int32)
-  deltas = tf.constant([ [ 0.1, 0.2, 0.3 ] ], dtype=tf.float32)
+  for epoch in range(0, MAX_EPOCHS):
+    train_batches = dataset.gen_batches(train)
+    if epoch % VALIDATE_EVERY == 0:
+      validate_batches = dataset.gen_batches(validate, batch_size=BATCH_SIZE)
+    else:
+      validate_batches = None
 
-  concat = model(codes, deltas)
+    for batch in train_batches:
+      output = model(batch['codes'], batch['deltas'])
 
-  # Initialize global variables after building model
-  sess.run(tf.global_variables_initializer())
+      # Initialize global variables after building model
+      sess.run(tf.global_variables_initializer())
 
-  print(sess.run(concat))
+      # Run model
+      loss = model.compute_loss(output, BATCH_SIZE)
+      print(sess.run(loss))
+      exit(0)

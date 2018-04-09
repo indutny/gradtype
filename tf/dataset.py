@@ -123,3 +123,37 @@ def expand_sequence(seq, overlap):
     copy.update({ 'codes': codes, 'deltas': deltas })
     out.append(copy)
   return out
+
+def trim_dataset(dataset):
+  min_len = None
+  for category in dataset:
+    if min_len == None:
+      min_len = len(category)
+    else:
+      min_len = min(min_len, len(category))
+
+  out = []
+  for category in dataset:
+    out_cat = []
+    perm = np.random.permutation(len(category))
+    for i in perm[:min_len]:
+      out_cat.append(category[i])
+    out.append(out_cat)
+  return out, min_len
+
+# TODO(indutny): use tf.data.Dataset
+def gen_batches(dataset, batch_size=32):
+  # Leave the same number of sequences in each batch
+  dataset, sequence_count = trim_dataset(dataset)
+
+  batches = []
+  for off in range(0, sequence_count, batch_size):
+    batch = { 'codes': [], 'deltas': [] }
+    for category in dataset:
+      for seq in category[off:off + batch_size]:
+        batch['codes'].append(seq['codes'])
+        batch['deltas'].append(seq['deltas'])
+    batch['codes'] = np.array(batch['codes'])
+    batch['deltas'] = np.array(batch['deltas'])
+    batches.append(batch)
+  return batches
