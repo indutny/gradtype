@@ -19,9 +19,6 @@ MAX_EPOCHS = 500000
 # Validate every epoch:
 VALIDATE_EVERY = 5
 
-# Number of sequences per category in batch
-BATCH_SIZE = 32
-
 # Learning rate
 LR = 0.001
 
@@ -30,6 +27,8 @@ LR = 0.001
 #
 
 train_dataset, validate_dataset = dataset.load()
+train_dataset = dataset.flatten_dataset(train_dataset)
+validate_dataset = dataset.flatten_dataset(validate_dataset)
 
 #
 # Initialize model
@@ -41,10 +40,10 @@ input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
-category_count = tf.placeholder(tf.int32, (), name='category_count')
+categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 
 output = model.build(codes, deltas)
-metrics = model.get_metrics(output, category_count, BATCH_SIZE)
+metrics = model.get_regression_metrics(output, categories)
 
 #
 # Initialize optimizer
@@ -76,8 +75,7 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_hard_batches(train_dataset, \
-        batch_size=BATCH_SIZE)
+    train_batches = dataset.gen_regression(train_dataset)
 
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
@@ -87,37 +85,9 @@ with tf.Session() as sess:
       _, t_metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        category_count: len(train_dataset),
+        categories: batch['categories']
       })
       t_metrics['regularization_loss'] = reg_loss
-
       log_summary('train', t_metrics, step)
+
       step += 1
-
-    if epoch % VALIDATE_EVERY != 0:
-      continue
-
-    validate_batches = dataset.gen_hard_batches(validate_dataset, \
-        batch_size=BATCH_SIZE)
-
-    print('Validation...')
-    mean_metrics = None
-    for batch in validate_batches:
-      v_metrics = sess.run(metrics, feed_dict={
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        category_count: len(validate_dataset),
-      })
-
-      if mean_metrics is None:
-        mean_metrics = {}
-        for key in v_metrics:
-          mean_metrics[key] = []
-
-      for key in v_metrics:
-        mean_metrics[key].append(v_metrics[key])
-
-    for key in mean_metrics:
-      mean_metrics[key] = np.mean(mean_metrics[key])
-
-    log_summary('validate', mean_metrics, step)

@@ -160,3 +160,37 @@ def gen_hard_batches(dataset, batch_size=32):
     batch['deltas'] = np.array(batch['deltas'])
     batches.append(batch)
   return batches
+
+def flatten_dataset(dataset):
+  sequences = []
+  for category in dataset:
+    for seq in category:
+      sequences.append(seq)
+  return sequences
+
+def gen_regression(sequences, batch_size=256):
+  perm = np.random.permutation(len(sequences))
+  batches = []
+  for i in range(0, len(perm), batch_size):
+    batch = []
+    batch_perm = perm[i:i + batch_size]
+
+    categories = []
+    codes = []
+    deltas = []
+    for j in batch_perm:
+      seq = sequences[j]
+      categories.append(seq['category'])
+      codes.append(seq['codes'])
+      deltas.append(seq['deltas'])
+
+    categories = np.array(categories)
+    codes = np.array(codes)
+    deltas = np.array(deltas)
+
+    batches.append({
+      'categories': categories,
+      'codes': codes,
+      'deltas': deltas
+    })
+  return batches

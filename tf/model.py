@@ -20,13 +20,11 @@ class Embedding():
       self.weights = tf.get_variable('weights', shape=(max_code, width))
 
   def apply(self, codes):
-    with tf.name_scope(None, default_name=self.name):
+    with tf.name_scope(None, values=[ codes ], default_name=self.name):
       return tf.gather(self.weights, codes)
 
 class Model():
-  def __init__(self, batch_size):
-    self.batch_size = batch_size
-
+  def __init__(self):
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
@@ -52,7 +50,7 @@ class Model():
                                        activation=tf.nn.selu,
                                        kernel_regularizer=self.l2))
 
-  def build(self, codes, deltas, category_count):
+  def build(self, codes, deltas):
     sequence_len = int(codes.shape[1])
 
     embedding = self.embedding.apply(codes)
@@ -86,10 +84,9 @@ class Model():
     return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
-  def get_metrics(self, output, category_count, margin=0.2, epsilon=1e-18):
-    with tf.name_scope('metrics'):
-      batch_size = self.batch_size
-
+  def get_metrics(self, output, category_count, batch_size,
+                  margin=0.2, epsilon=1e-18):
+    with tf.name_scope('metrics', [ output ]):
       margin = tf.constant(margin, dtype=tf.float32)
       epsilon = tf.constant(epsilon, dtype=tf.float32)
       zero = tf.constant(0.0, dtype=tf.float32)
@@ -140,3 +137,12 @@ class Model():
       metrics['l2_norm'] = tf.reduce_mean(distances2)
 
       return metrics
+
+  def get_regression_metrics(self, output, categories):
+    with tf.name_scope('regression_loss', [ output, categories ]):
+      output = tf.nn.softmax(output)
+      categories = tf.one_hot(categories, output.shape[1], axis=-1)
+      loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
+          labels=categories)
+      loss = tf.reduce_mean(loss)
+      return { 'loss': loss }
