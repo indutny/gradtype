@@ -12,7 +12,6 @@ RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = time.asctime()
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
-SAVES_DIR = os.path.join('.', 'out', RUN_NAME)
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -76,7 +75,7 @@ with tf.Session() as sess:
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_batches(train_dataset, batch_size=BATCH_SIZE)
 
-    saver.save(sess, SAVES_DIR, global_step=step)
+    saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       reg_loss = tf.losses.get_regularization_loss()
