@@ -119,7 +119,9 @@ class Model():
       hard_positives = tf.reduce_max(positive_distances, axis=-1)
       hard_negatives = tf.reduce_min(negative_distances, axis=-1)
 
-      loss = tf.maximum(margin + hard_positives - hard_negatives, zero)
+      triplet_distance = margin + hard_positives - hard_negatives
+
+      loss = tf.maximum(triplet_distance, zero)
       loss = tf.reduce_sum(loss, axis=-1)
 
       metrics = {}
@@ -128,5 +130,8 @@ class Model():
           tf.reduce_mean(tf.boolean_mask(distances, same_mask))
       metrics['mean_negative'] = \
           tf.reduce_mean(tf.boolean_mask(distances, not_same_mask))
+      metrics['active_triplets'] = \
+          tf.reduce_sum(tf.cast(tf.greater(triplet_distance, zero), \
+              tf.float32))
 
       return metrics
