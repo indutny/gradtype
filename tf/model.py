@@ -107,7 +107,8 @@ class Model():
       # Compute all-to-all euclidian distances
       distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
       # distances.shape = same_mask.shape
-      distances = tf.sqrt(tf.reduce_sum(distances ** 2 + epsilon, axis=-1))
+      distances2 = tf.reduce_sum(distances ** 2, axis=-1)
+      distances = tf.sqrt(distances2 + epsilon)
 
       positive_mask = tf.cast(same_mask, tf.float32)
       negative_mask = tf.cast(not_same_mask, tf.float32)
@@ -133,5 +134,6 @@ class Model():
       metrics['active_triplets'] = \
           tf.reduce_mean(tf.cast(tf.greater(triplet_distance, zero), \
               tf.float32))
+      metrics['l2_norm'] = tf.reduce_mean(distances2)
 
       return metrics
