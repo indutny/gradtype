@@ -76,7 +76,7 @@ with tf.Session() as sess:
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_batches(train_dataset, batch_size=BATCH_SIZE)
 
-    saver.save(sess, 'gradtype', global_step=step)
+    saver.save(sess, SAVES_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       reg_loss = tf.losses.get_regularization_loss()
