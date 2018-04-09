@@ -85,7 +85,7 @@ class Model():
     return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
-  def get_metrics(self, output, category_count, margin=0.2, epsilon=1e-9):
+  def get_metrics(self, output, category_count, margin=0.2, epsilon=1e-18):
     with tf.name_scope('metrics'):
       batch_size = self.batch_size
 
@@ -107,7 +107,8 @@ class Model():
       same_mask = tf.logical_xor(same_mask, tf.eye(row_count, dtype=tf.bool))
 
       # Compute all-to-all euclidian distances
-      distances = tf.expand_dims(output, axis=0) - tf.expand_dims(output, axis=1)
+      distances = tf.expand_dims(output, axis=0) - \
+          tf.expand_dims(output, axis=1)
       # distances.shape = same_mask.shape
       distances2 = tf.reduce_sum(distances ** 2, axis=-1)
       distances = tf.sqrt(distances2 + epsilon)
@@ -117,7 +118,7 @@ class Model():
 
       positive_distances = distances * positive_mask
       negative_distances = distances * negative_mask + \
-          positive_mask * 1e9
+                           (1 - negative_mask) * 1e9
 
       hard_positives = tf.reduce_max(positive_distances, axis=-1)
       hard_negatives = tf.reduce_min(negative_distances, axis=-1)
