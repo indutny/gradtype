@@ -125,7 +125,7 @@ class Model():
 
       triplet_distance = hard_positives - hard_negatives
 
-      loss = tf.softplus(triplet_distance)
+      loss = tf.nn.softplus(triplet_distance)
       loss = tf.reduce_mean(loss, axis=-1)
 
       metrics = {}
