@@ -37,4 +37,4 @@ images/pca:
 images/pca/%.png: out/gradtype-triplet-weights-%.h5
 	python3 ./keras/visualize.py $< $@
 
-.PHONY: train regression dataset clean visualize skipgrams
+.PHONY: train train-tf regression dataset clean visualize skipgrams
