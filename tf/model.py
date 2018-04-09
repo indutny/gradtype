@@ -123,7 +123,7 @@ class Model():
       triplet_distance = margin + hard_positives - hard_negatives
 
       loss = tf.maximum(triplet_distance, zero)
-      loss = tf.reduce_sum(loss, axis=-1)
+      loss = tf.reduce_mean(loss, axis=-1)
 
       metrics = {}
       metrics['loss'] = loss
