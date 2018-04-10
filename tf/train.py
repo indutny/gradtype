@@ -11,6 +11,8 @@ from model import Model
 RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = time.asctime()
+RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
+
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 
 # Maximum number of epochs to run for
@@ -72,6 +74,9 @@ def log_summary(prefix, metrics, step):
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
 with tf.Session() as sess:
+  if RESTORE_FROM != None:
+    saver.restore(sess, RESTORE_FROM)
+
   sess.run(tf.global_variables_initializer())
 
   step = 0
