@@ -133,6 +133,7 @@ class Model():
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories_one_hot)
       loss = tf.reduce_mean(loss)
-      accuracy = tf.equal(tf.argmax(output, axis=-1), categories)
+      accuracy = tf.equal(tf.cast(tf.argmax(output, axis=-1), tf.int32),
+                          tf.cast(categories, tf.int32))
       accuracy = tf.reduce_mean(tf.cast(accuracy, tf.float32))
       return { 'loss': loss, 'accuracy': accuracy }
