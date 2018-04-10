@@ -41,7 +41,7 @@ class Model():
     for i in range(0, DENSE_PRE_RESIDUAL_COUNT):
       self.pre_residual.append(
           tf.layers.Dense(name='dense_pre_residual_{}'.format(i),
-                          units=DENSE_PRE_WIDTH
+                          units=DENSE_PRE_WIDTH,
                           kernel_regularizer=self.l2))
 
     self.gru = GRUCell(name='gru', units=GRU_WIDTH)
