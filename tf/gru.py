@@ -18,6 +18,7 @@ class GRUCell():
     self.activation = tf.nn.tanh
     self.recurrent_activation = hard_sigmoid
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.recurrent_dropout = 0.3
 
   def build(self, input_shape):
     with tf.variable_scope(None, default_name=self.name):
@@ -65,11 +66,10 @@ class GRUCell():
       x_r = tf.matmul(inputs_r, self.kernel_r) + self.bias_r
       x_h = tf.matmul(inputs_h, self.kernel_h) + self.bias_h
 
-      # TODO(indutny): port recurrent dropout
       h_tm1 = state
-      h_tm1_z = tf.nn.dropout(h_tm1, 0.3)
-      h_tm1_r = tf.nn.dropout(h_tm1, 0.3)
-      h_tm1_h = tf.nn.dropout(h_tm1, 0.3)
+      h_tm1_z = tf.nn.dropout(h_tm1, self.recurrent_dropout)
+      h_tm1_r = tf.nn.dropout(h_tm1, self.recurrent_dropout)
+      h_tm1_h = tf.nn.dropout(h_tm1, self.recurrent_dropout)
 
       recurrent_z = tf.matmul(h_tm1_z, self.recurrent_z)
       recurrent_r = tf.matmul(h_tm1_r, self.recurrent_r)
