@@ -5,8 +5,9 @@ import dataset
 from gru import GRUCell
 
 EMBED_WIDTH = 7
-DENSE_PRE_COUNT = 3
+DENSE_PRE_COUNT = 1
 DENSE_PRE_WIDTH = 32
+DENSE_PRE_RESIDUAL_COUNT = 2
 GRU_WIDTH = 128
 DENSE_POST_COUNT = 1
 DENSE_POST_WIDTH = 128
@@ -36,6 +37,13 @@ class Model():
                                       activation=tf.nn.selu,
                                       kernel_regularizer=self.l2))
 
+    self.pre_residual = []
+    for i in range(0, DENSE_PRE_RESIDUAL_COUNT):
+      self.pre_residual.append(
+          tf.layers.Dense(name='dense_pre_residual_{}'.format(i),
+                          units=DENSE_PRE_WIDTH
+                          kernel_regularizer=self.l2))
+
     self.gru = GRUCell(name='gru', units=GRU_WIDTH)
 
     self.post = []
@@ -60,11 +68,11 @@ class Model():
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
-      if len(self.pre) > 0:
-        frame = self.pre[0](frame)
-        for pre in self.pre[1:]:
-          residual = pre(frame)
-          frame += residual
+      for pre in self.pre:
+        frame = pre(frame)
+
+      for pre_residual in self.pre_residual:
+        frame = tf.nn.selu(frame + pre_residual(frame))
 
       x, state = self.gru(frame, state)
 
