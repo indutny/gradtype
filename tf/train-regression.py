@@ -50,8 +50,8 @@ metrics = model.get_regression_metrics(output, categories)
 #
 
 optimizer = tf.train.AdamOptimizer(LR)
-train = optimizer.minimize(metrics['loss'] + \
-    tf.losses.get_regularization_loss())
+reg_loss = tf.losses.get_regularization_loss()
+train = optimizer.minimize(metrics['loss'] + reg_loss)
 
 #
 # TensorBoard
@@ -80,7 +80,6 @@ with tf.Session() as sess:
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      reg_loss = tf.losses.get_regularization_loss()
       tensors = [ train, metrics, reg_loss ]
       _, t_metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
