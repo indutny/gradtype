@@ -60,8 +60,11 @@ class Model():
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
-      for pre in self.pre:
-        frame = pre(frame)
+      if len(self.pre) > 0:
+        frame = self.pre[0](frame)
+        for pre in self.pre[1:]:
+          residual = pre(frame)
+          frame += residual
 
       x, state = self.gru(frame, state)
 
