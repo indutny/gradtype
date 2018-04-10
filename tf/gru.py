@@ -17,7 +17,7 @@ class GRUCell():
     self.bias_initializer = tf.initializers.zeros()
     self.activation = tf.nn.tanh
     self.recurrent_activation = hard_sigmoid
-    self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.l2 = tf.contrib.layers.l2_regularizer(0.01)
     self.recurrent_dropout = 0.3
 
   def build(self, input_shape):
