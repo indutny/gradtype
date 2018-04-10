@@ -129,8 +129,10 @@ class Model():
 
   def get_regression_metrics(self, output, categories):
     with tf.name_scope('regression_loss', [ output, categories ]):
-      categories = tf.one_hot(categories, output.shape[1], axis=-1)
+      categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
-          labels=categories)
+          labels=categories_one_hot)
       loss = tf.reduce_mean(loss)
-      return { 'loss': loss }
+      accuracy = tf.equal(tf.argmax(output, axis=-1), categories)
+      accuracy = tf.reduce_mean(tf.cast(accuracy, tf.float32))
+      return { 'loss': loss, 'accuracy': accuracy }
