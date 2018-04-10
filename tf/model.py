@@ -38,16 +38,16 @@ class Model():
 
     self.gru = GRUCell(name='gru', units=GRU_WIDTH)
 
-    self.features = tf.layers.Dense(name='features',
-                                    units=FEATURE_COUNT,
-                                    kernel_regularizer=self.l2)
-
     self.post = []
     for i in range(0, DENSE_POST_COUNT):
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
                                        units=DENSE_POST_WIDTH,
                                        activation=tf.nn.selu,
                                        kernel_regularizer=self.l2))
+
+    self.features = tf.layers.Dense(name='features',
+                                    units=FEATURE_COUNT,
+                                    kernel_regularizer=self.l2)
 
   def build(self, codes, deltas):
     sequence_len = int(codes.shape[1])

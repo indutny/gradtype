@@ -67,9 +67,9 @@ class GRUCell():
 
       # TODO(indutny): port recurrent dropout
       h_tm1 = state
-      h_tm1_z = h_tm1
-      h_tm1_r = h_tm1
-      h_tm1_h = h_tm1
+      h_tm1_z = tf.nn.dropout(h_tm1, 0.3)
+      h_tm1_r = tf.nn.dropout(h_tm1, 0.3)
+      h_tm1_h = tf.nn.dropout(h_tm1, 0.3)
 
       recurrent_z = tf.matmul(h_tm1_z, self.recurrent_z)
       recurrent_r = tf.matmul(h_tm1_r, self.recurrent_r)
