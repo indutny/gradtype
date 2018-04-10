@@ -12,7 +12,7 @@ class GRUCell():
   def __init__(self, units, name):
     self.units = units
     self.name = name
-    self.kernel_initializer = tf.contrib.keras.initializers.he_normal()
+    self.kernel_initializer = tf.glorot_uniform_initializer()
     self.recurrent_initializer = tf.initializers.orthogonal()
     self.bias_initializer = tf.initializers.zeros()
     self.activation = tf.nn.tanh
