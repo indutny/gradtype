@@ -52,7 +52,7 @@ t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
 
 optimizer = tf.train.AdamOptimizer(LR)
 t_reg_loss = tf.losses.get_regularization_loss()
-train = optimizer.minimize(metrics['loss'] + t_reg_loss)
+train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 
 #
 # TensorBoard
