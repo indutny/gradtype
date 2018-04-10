@@ -17,6 +17,7 @@ class GRUCell():
     self.bias_initializer = tf.initializers.zeros()
     self.activation = tf.nn.tanh
     self.recurrent_activation = hard_sigmoid
+    self.l2 = tf.contrib.layers.l2_regularizer(0.001)
 
   def build(self, input_shape):
     with tf.variable_scope(None, default_name=self.name):
@@ -24,11 +25,14 @@ class GRUCell():
       bias_shape = (self.units,)
 
       self.kernel_z = tf.get_variable('kernel_z', shape=kernel_shape,
-          initializer=self.kernel_initializer)
+          initializer=self.kernel_initializer,
+          regularizer=self.l2)
       self.kernel_r = tf.get_variable('kernel_r', shape=kernel_shape,
-          initializer=self.kernel_initializer)
+          initializer=self.kernel_initializer,
+          regularizer=self.l2)
       self.kernel_h = tf.get_variable('kernel_h', shape=kernel_shape,
-          initializer=self.kernel_initializer)
+          initializer=self.kernel_initializer,
+          regularizer=self.l2)
       self.bias_z = tf.get_variable('bias_z', shape=bias_shape,
           initializer=self.bias_initializer)
       self.bias_r = tf.get_variable('bias_r', shape=bias_shape,
@@ -39,11 +43,14 @@ class GRUCell():
       recurrent_shape = (self.units, self.units,)
 
       self.recurrent_z = tf.get_variable('recurrent_z', shape=recurrent_shape,
-          initializer=self.recurrent_initializer)
+          initializer=self.recurrent_initializer,
+          regularizer=self.l2)
       self.recurrent_r = tf.get_variable('recurrent_r', shape=recurrent_shape,
-          initializer=self.recurrent_initializer)
+          initializer=self.recurrent_initializer,
+          regularizer=self.l2)
       self.recurrent_h = tf.get_variable('recurrent_h', shape=recurrent_shape,
-          initializer=self.recurrent_initializer)
+          initializer=self.recurrent_initializer,
+          regularizer=self.l2)
 
       return tf.expand_dims(tf.zeros(shape=(self.units,)), axis=0)
 
