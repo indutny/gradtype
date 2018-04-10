@@ -62,10 +62,7 @@ def load(mode='triplet', overlap=1):
   return split(categories, mode, overlap)
 
 def split(dataset, mode, overlap):
-  if mode == 'triplet':
-    train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
-  else:
-    train_cat_count = len(dataset)
+  train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
 
   train = []
   validate = []
@@ -85,7 +82,8 @@ def split(dataset, mode, overlap):
     train.append(train_category)
     validate.append(validate_category)
 
-  validate += dataset[train_cat_count:]
+  if mode == 'triplet':
+    validate += dataset[train_cat_count:]
 
   return expand(train, overlap), expand(validate, overlap)
 
