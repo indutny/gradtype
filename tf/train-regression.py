@@ -43,15 +43,15 @@ deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 
 output = model.build(codes, deltas)
-metrics = model.get_regression_metrics(output, categories)
+t_metrics = model.get_regression_metrics(output, categories)
 
 #
 # Initialize optimizer
 #
 
 optimizer = tf.train.AdamOptimizer(LR)
-reg_loss = tf.losses.get_regularization_loss()
-train = optimizer.minimize(metrics['loss'] + reg_loss)
+t_reg_loss = tf.losses.get_regularization_loss()
+train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 
 #
 # TensorBoard
@@ -80,13 +80,13 @@ with tf.Session() as sess:
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, metrics, reg_loss ]
-      _, t_metrics, reg_loss = sess.run(tensors, feed_dict={
+      tensors = [ train, t_metrics, t_reg_loss ]
+      _, metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories']
       })
-      t_metrics['regularization_loss'] = reg_loss
-      log_summary('train', t_metrics, step)
+      metrics['regularization_loss'] = reg_loss
+      log_summary('train', metrics, step)
 
       step += 1
