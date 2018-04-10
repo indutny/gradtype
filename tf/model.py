@@ -140,7 +140,6 @@ class Model():
 
   def get_regression_metrics(self, output, categories):
     with tf.name_scope('regression_loss', [ output, categories ]):
-      output = tf.nn.softmax(output)
       categories = tf.one_hot(categories, output.shape[1], axis=-1)
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories)
