@@ -26,7 +26,7 @@ LR = 0.001
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load()
+train_dataset, validate_dataset = dataset.load(mode='regression')
 train_dataset = dataset.flatten_dataset(train_dataset)
 validate_dataset = dataset.flatten_dataset(validate_dataset)
 
@@ -76,6 +76,7 @@ with tf.Session() as sess:
   step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_dataset)
+    validate_batches = dataset.gen_regression(validate_dataset)
 
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
@@ -90,3 +91,25 @@ with tf.Session() as sess:
       log_summary('train', metrics, step)
 
       step += 1
+
+    print('Validation...')
+    mean_metrics = None
+    for batch in validate_batches:
+      v_metrics = sess.run(metrics, feed_dict={
+        codes: batch['codes'],
+        deltas: batch['deltas'],
+        categories: batch['categories']
+      })
+
+      if mean_metrics is None:
+        mean_metrics = {}
+        for key in v_metrics:
+          mean_metrics[key] = []
+
+      for key in v_metrics:
+        mean_metrics[key].append(v_metrics[key])
+
+    for key in mean_metrics:
+      mean_metrics[key] = np.mean(mean_metrics[key])
+
+    log_summary('validate', mean_metrics, step)
