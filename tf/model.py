@@ -21,7 +21,7 @@ class Embedding():
 
   def apply(self, codes):
     with tf.name_scope(None, values=[ codes ], default_name=self.name):
-      return tf.gather(self.weights, codes)
+      return tf.nn.embedding_lookup(self.weights, codes)
 
 class Model():
   def __init__(self):
