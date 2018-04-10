@@ -95,7 +95,7 @@ with tf.Session() as sess:
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
-      v_metrics = sess.run(metrics, feed_dict={
+      metrics = sess.run(t_metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories']
@@ -103,11 +103,11 @@ with tf.Session() as sess:
 
       if mean_metrics is None:
         mean_metrics = {}
-        for key in v_metrics:
+        for key in metrics:
           mean_metrics[key] = []
 
-      for key in v_metrics:
-        mean_metrics[key].append(v_metrics[key])
+      for key in metrics:
+        mean_metrics[key].append(metrics[key])
 
     for key in mean_metrics:
       mean_metrics[key] = np.mean(mean_metrics[key])
