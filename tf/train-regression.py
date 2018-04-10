@@ -66,6 +66,7 @@ def log_summary(prefix, metrics, step):
     value = metrics[key]
     summary.value.add(tag='{}/{}'.format(prefix, key), simple_value=value)
   writer.add_summary(summary, step)
+  writer.flush()
 
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
@@ -73,7 +74,6 @@ with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
   step = 0
-  v_step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_dataset)
     validate_batches = dataset.gen_regression(validate_dataset)
@@ -89,16 +89,27 @@ with tf.Session() as sess:
       })
       metrics['regularization_loss'] = reg_loss
       log_summary('train', metrics, step)
+
       step += 1
 
     print('Validation...')
+    mean_metrics = None
     for batch in validate_batches:
       metrics = sess.run(t_metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories']
       })
-      log_summary('validate', metrics, v_step)
-      v_step += 1
 
-    writer.flush()
+      if mean_metrics is None:
+        mean_metrics = {}
+        for key in metrics:
+          mean_metrics[key] = []
+
+      for key in metrics:
+        mean_metrics[key].append(metrics[key])
+
+    for key in mean_metrics:
+      mean_metrics[key] = np.mean(mean_metrics[key])
+
+    log_summary('validate', mean_metrics, step)
