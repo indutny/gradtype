@@ -150,6 +150,7 @@ class Model():
           negatives = tf.boolean_mask(t[0], t[2], name='triplet_negatives')
 
           negatives = tf.expand_dims(negatives, axis=0)
+          negatives = tf.tile(negatives, [ tf.shape(positives)[0], 1 ])
 
           # For each anchor-positive - find soft negative
           return tf.map_fn(compute_soft_negative, (positives, negatives),
