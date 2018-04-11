@@ -137,8 +137,8 @@ class Model():
           positive = t[0]
           negatives = t[1]
 
-          soft_negatives = tf.where(negatives > positive, negatives,
-                                    float('inf'),
+          inf = tf.tile([ float('inf') ], tf.shape(negatives))
+          soft_negatives = tf.where(negatives > positive, negatives, inf,
                                     name='soft_negatives')
           soft_negative = negatives[tf.argmax(soft_negatives)]
           return positive - soft_negative
