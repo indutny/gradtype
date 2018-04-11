@@ -90,40 +90,46 @@ class Model():
   def get_metrics(self, output, category_count, batch_size,
                   margin=0.2, epsilon=1e-18, loss_kind='triplet'):
     with tf.name_scope('metrics', [ output ]):
-      margin = tf.constant(margin, dtype=tf.float32)
-      epsilon = tf.constant(epsilon, dtype=tf.float32)
-      zero = tf.constant(0.0, dtype=tf.float32)
+      margin = tf.constant(margin, dtype=tf.float32, name='margin')
+      epsilon = tf.constant(epsilon, dtype=tf.float32, name='epsilon')
+      zero = tf.constant(0.0, dtype=tf.float32, name='zero')
 
-      categories = tf.expand_dims(tf.range(category_count), axis=-1)
-      categories = tf.tile(categories, [ 1, batch_size ])
+      categories = tf.expand_dims(tf.range(category_count), axis=-1,
+          name='categories')
+      categories = tf.tile(categories, [ 1, batch_size ],
+          name='tiled_categories')
 
       row_count = category_count * batch_size
-      categories = tf.reshape(categories, (row_count,))
+      categories = tf.reshape(categories, (row_count,), 'reshaped_categories')
 
       # same_mask.shape =
       #  (category_count * batch_size, category_count * batch_size)
       same_mask = tf.equal(tf.expand_dims(categories, axis=0),
-          tf.expand_dims(categories, axis=1))
-      not_same_mask = tf.logical_not(same_mask)
-      same_mask = tf.logical_xor(same_mask, tf.eye(row_count, dtype=tf.bool))
+          tf.expand_dims(categories, axis=1),
+          name='same_mask_with_dups')
+      not_same_mask = tf.logical_not(same_mask, name='not_same_mask')
+      same_mask = tf.logical_xor(same_mask, tf.eye(row_count, dtype=tf.bool),
+          name='same_mask')
 
       # Compute all-to-all euclidian distances
       distances = tf.expand_dims(output, axis=0) - \
           tf.expand_dims(output, axis=1)
       # distances.shape = same_mask.shape
-      distances2 = tf.reduce_sum(distances ** 2, axis=-1)
-      distances = tf.sqrt(distances2 + epsilon)
-
-      positive_mask = tf.cast(same_mask, tf.float32)
-      negative_mask = tf.cast(not_same_mask, tf.float32)
+      distances2 = tf.reduce_sum(distances ** 2, axis=-1, name='distances2')
+      distances = tf.sqrt(distances2 + epsilon, name='distances')
 
       if loss_kind == 'batch_hard':
+        positive_mask = tf.cast(same_mask, tf.float32, 'positive_mask')
+        negative_mask = tf.cast(not_same_mask, tf.float32, 'negative_mask')
+
         positive_distances = distances * positive_mask
         negative_distances = distances * negative_mask + \
             (1 - negative_mask) * 1e9
 
-        hard_positives = tf.reduce_max(positive_distances, axis=-1)
-        hard_negatives = tf.reduce_min(negative_distances, axis=-1)
+        hard_positives = tf.reduce_max(positive_distances, axis=-1,
+            name='hard_positives')
+        hard_negatives = tf.reduce_min(negative_distances, axis=-1,
+            name='hard_negatives')
 
         triplet_distance = hard_positives - hard_negatives
       elif loss_kind == 'triplet':
@@ -132,15 +138,16 @@ class Model():
           negatives = t[1]
 
           soft_negatives = tf.where(negatives > positive, negatives,
-                                    float('inf'))
+                                    float('inf'),
+                                    name='soft_negatives')
           soft_negative = negatives[tf.argmax(soft_negatives)]
           return positive - soft_negative
 
         def compute_triplet_row(t):
           # Positive distances between anchor and all positives
-          positives = tf.boolean_mask(t[0], t[1])
+          positives = tf.boolean_mask(t[0], t[1], name='triplet_positives')
           # Negative distances between anchor and all negatives
-          negatives = tf.boolean_mask(t[0], t[2])
+          negatives = tf.boolean_mask(t[0], t[2], name='triplet_negatives')
 
           negatives = tf.expand_dims(negatives, axis=0)
 
@@ -148,8 +155,8 @@ class Model():
           return tf.map_fn(compute_soft_negative, (positives, negatives),
               dtype=tf.float32)
 
-        triplet_distances = tf.map_fn(compute_triplet_row,
-            (distances, positive_mask, negative_mask),
+        triplet_distance = tf.map_fn(compute_triplet_row,
+            (distances, same_mask, not_same_mask),
             dtype=tf.float32)
       else:
         raise Exception('Unknown loss kind "{}"'.format(loss_kind))
