@@ -140,7 +140,7 @@ class Model():
           inf = tf.tile([ float('inf') ], tf.shape(negatives))
           soft_negatives = tf.where(negatives > positive, negatives, inf,
                                     name='soft_negatives')
-          soft_negative = negatives[tf.argmax(soft_negatives)]
+          soft_negative = negatives[tf.argmin(soft_negatives)]
           return positive - soft_negative
 
         def compute_triplet_row(t):
