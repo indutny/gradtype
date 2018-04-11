@@ -88,7 +88,7 @@ class Model():
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
-                  margin=0.2, epsilon=1e-18):
+                  margin=0.2, epsilon=1e-18, loss_kind='triplet'):
     with tf.name_scope('metrics', [ output ]):
       margin = tf.constant(margin, dtype=tf.float32)
       epsilon = tf.constant(epsilon, dtype=tf.float32)
@@ -117,13 +117,42 @@ class Model():
       positive_mask = tf.cast(same_mask, tf.float32)
       negative_mask = tf.cast(not_same_mask, tf.float32)
 
-      positive_distances = distances * positive_mask
-      negative_distances = distances * negative_mask + (1 - negative_mask) * 1e9
+      if loss_kind == 'batch_hard':
+        positive_distances = distances * positive_mask
+        negative_distances = distances * negative_mask + \
+            (1 - negative_mask) * 1e9
 
-      hard_positives = tf.reduce_max(positive_distances, axis=-1)
-      hard_negatives = tf.reduce_min(negative_distances, axis=-1)
+        hard_positives = tf.reduce_max(positive_distances, axis=-1)
+        hard_negatives = tf.reduce_min(negative_distances, axis=-1)
 
-      triplet_distance = hard_positives - hard_negatives
+        triplet_distance = hard_positives - hard_negatives
+      elif loss_kind == 'triplet':
+        def compute_soft_negative(t):
+          positive = t[0]
+          negatives = t[1]
+
+          soft_negatives = tf.where(negatives > positive, negatives,
+                                    float('inf'))
+          soft_negative = negatives[tf.argmax(soft_negatives)]
+          return positive - soft_negative
+
+        def compute_triplet_row(t):
+          # Positive distances between anchor and all positives
+          positives = tf.boolean_mask(t[0], t[1])
+          # Negative distances between anchor and all negatives
+          negatives = tf.boolean_mask(t[0], t[2])
+
+          negatives = tf.expand_dims(negatives, axis=0)
+
+          # For each anchor-positive - find soft negative
+          return tf.map_fn(compute_soft_negative, (positives, negatives),
+              dtype=tf.float32)
+
+        triplet_distances = tf.map_fn(compute_triplet_row,
+            (distances, positive_mask, negative_mask),
+            dtype=tf.float32)
+      else:
+        raise Exception('Unknown loss kind "{}"'.format(loss_kind))
 
       loss = tf.nn.softplus(triplet_distance)
       loss = tf.reduce_mean(loss, axis=-1)
