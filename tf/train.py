@@ -69,7 +69,6 @@ def log_summary(prefix, metrics, step):
     value = metrics[key]
     summary.value.add(tag='{}/{}'.format(prefix, key), simple_value=value)
   writer.add_summary(summary, step)
-  writer.flush()
 
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
@@ -98,6 +97,7 @@ with tf.Session() as sess:
 
       log_summary('train', metrics, step)
       step += 1
+    writer.flush()
 
     if epoch % VALIDATE_EVERY != 0:
       continue
@@ -126,3 +126,4 @@ with tf.Session() as sess:
       mean_metrics[key] = np.mean(mean_metrics[key])
 
     log_summary('validate', mean_metrics, step)
+    writer.flush()
