@@ -162,7 +162,7 @@ class Model():
         raise Exception('Unknown loss kind "{}"'.format(loss_kind))
 
       loss = tf.nn.softplus(triplet_distance)
-      loss = tf.reduce_mean(loss, axis=-1)
+      loss = tf.reduce_mean(loss)
 
       metrics = {}
       metrics['loss'] = loss
