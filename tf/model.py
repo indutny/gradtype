@@ -162,19 +162,23 @@ class Model():
       else:
         raise Exception('Unknown loss kind "{}"'.format(loss_kind))
 
-      loss = tf.nn.softplus(triplet_distance)
-      loss = tf.reduce_mean(loss)
+      triplet_distance += margin
+      loss = tf.maximum(triplet_distance, zero)
+      loss = tf.reduce_mean(loss, name='loss')
 
       metrics = {}
       metrics['loss'] = loss
       metrics['mean_positive'] = \
-          tf.reduce_mean(tf.boolean_mask(distances, same_mask))
+          tf.reduce_mean(tf.boolean_mask(distances, same_mask),
+                         name='mean_positive')
       metrics['mean_negative'] = \
-          tf.reduce_mean(tf.boolean_mask(distances, not_same_mask))
+          tf.reduce_mean(tf.boolean_mask(distances, not_same_mask),
+                         name='mean_negative')
       metrics['active_triplets'] = \
           tf.reduce_mean(tf.cast(tf.greater(triplet_distance, zero), \
-              tf.float32))
-      metrics['l2_norm'] = tf.reduce_mean(distances2)
+                                 tf.float32),
+                         name='active_triplets')
+      metrics['l2_norm'] = tf.reduce_mean(distances2, name='l2_norm')
 
       return metrics
 
