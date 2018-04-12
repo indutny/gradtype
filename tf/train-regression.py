@@ -34,13 +34,14 @@ validate_dataset = dataset.flatten_dataset(validate_dataset)
 # Initialize model
 #
 
-model = Model()
-
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
+is_training = tf.placeholder(tf.bool, shape=(), name='is_training')
+
+model = Model(is_training=is_training)
 
 output = model.build(codes, deltas)
 t_metrics = model.get_regression_metrics(output, categories)
@@ -84,7 +85,8 @@ with tf.Session() as sess:
       _, metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        categories: batch['categories']
+        categories: batch['categories'],
+        is_training: True,
       })
       metrics['regularization_loss'] = reg_loss
       log_summary('train', metrics, step)
@@ -97,7 +99,8 @@ with tf.Session() as sess:
       metrics = sess.run(t_metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        categories: batch['categories']
+        categories: batch['categories'],
+        is_training: False,
       })
 
       if mean_metrics is None:

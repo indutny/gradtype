@@ -24,7 +24,7 @@ class Embedding():
       return tf.gather(self.weights, codes)
 
 class Model():
-  def __init__(self):
+  def __init__(self, is_training):
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
@@ -47,7 +47,7 @@ class Model():
                           units=DENSE_PRE_WIDTH,
                           kernel_regularizer=self.l2) ])
 
-    self.gru = GRUCell(name='gru', units=GRU_WIDTH)
+    self.gru = GRUCell(name='gru', units=GRU_WIDTH, is_training=is_training)
 
     self.post = []
     for width in DENSE_POST_WIDTH:

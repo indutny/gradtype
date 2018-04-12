@@ -9,7 +9,7 @@ def hard_sigmoid(x):
 
 # Simplified port of GRU from Keras
 class GRUCell():
-  def __init__(self, units, name):
+  def __init__(self, units, name, is_training, recurrent_dropout=0.3):
     self.units = units
     self.name = name
     self.kernel_initializer = tf.glorot_uniform_initializer()
@@ -18,7 +18,8 @@ class GRUCell():
     self.activation = tf.nn.tanh
     self.recurrent_activation = hard_sigmoid
     self.l2 = tf.contrib.layers.l2_regularizer(0.01)
-    self.recurrent_dropout = 0.3
+    self.recurrent_keep = 1.0 - \
+        tf.cast(is_training, tf.float32) * recurrent_dropout
 
   def build(self, input_shape):
     with tf.variable_scope(None, default_name=self.name):
@@ -67,9 +68,9 @@ class GRUCell():
       x_h = tf.matmul(inputs_h, self.kernel_h) + self.bias_h
 
       h_tm1 = state
-      h_tm1_z = tf.nn.dropout(h_tm1, self.recurrent_dropout)
-      h_tm1_r = tf.nn.dropout(h_tm1, self.recurrent_dropout)
-      h_tm1_h = tf.nn.dropout(h_tm1, self.recurrent_dropout)
+      h_tm1_z = tf.nn.dropout(h_tm1, self.recurrent_keep)
+      h_tm1_r = tf.nn.dropout(h_tm1, self.recurrent_keep)
+      h_tm1_h = tf.nn.dropout(h_tm1, self.recurrent_keep)
 
       recurrent_z = tf.matmul(h_tm1_z, self.recurrent_z)
       recurrent_r = tf.matmul(h_tm1_r, self.recurrent_r)

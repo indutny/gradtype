@@ -37,13 +37,14 @@ train_dataset, validate_dataset = dataset.load()
 # Initialize model
 #
 
-model = Model()
-
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
-category_count = tf.placeholder(tf.int32, (), name='category_count')
+category_count = tf.placeholder(tf.int32, shape=(), name='category_count')
+is_training = tf.placeholder(tf.bool, shape=(), name='is_training')
+
+model = Model(is_training=is_training)
 
 output = model.build(codes, deltas)
 t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
@@ -92,6 +93,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         category_count: len(train_dataset),
+        is_training: True,
       })
       metrics['regularization_loss'] = reg_loss
 
@@ -112,6 +114,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         category_count: len(validate_dataset),
+        is_training: False,
       })
 
       if mean_metrics is None:
