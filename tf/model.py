@@ -70,7 +70,10 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    states = [ gru.build((None, 1)) for gru in self.gru ]
+    states = []
+    for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
+      states.append(gru.build((None, input_width)))
+
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
