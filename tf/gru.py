@@ -9,7 +9,7 @@ def hard_sigmoid(x):
 
 # Simplified port of GRU from Keras
 class GRUCell():
-  def __init__(self, units, name, is_training, recurrent_dropout=0.3):
+  def __init__(self, units, name, training, recurrent_dropout=0.3):
     self.units = units
     self.name = name
     self.kernel_initializer = tf.glorot_uniform_initializer()
@@ -19,7 +19,7 @@ class GRUCell():
     self.recurrent_activation = hard_sigmoid
     self.l2 = tf.contrib.layers.l2_regularizer(0.01)
     self.recurrent_keep = 1.0 - \
-        tf.cast(is_training, tf.float32) * recurrent_dropout
+        tf.cast(training, tf.float32) * recurrent_dropout
 
   def build(self, input_shape):
     with tf.variable_scope(None, default_name=self.name):
