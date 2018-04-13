@@ -8,7 +8,7 @@ EMBED_WIDTH = 7
 DENSE_PRE_COUNT = 1
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 3
-GRU_WIDTH = 128
+GRU_WIDTH = [ 256, 128 ]
 DENSE_POST_WIDTH = [ 256, 128 ]
 FEATURE_COUNT = 128
 
@@ -47,10 +47,13 @@ class Model():
                           units=DENSE_PRE_WIDTH,
                           kernel_regularizer=self.l2) ])
 
-    self.gru = GRUCell(name='gru', units=GRU_WIDTH, is_training=is_training)
+    self.gru = []
+    for i, width in enumerate(GRU_WIDTH):
+      self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
+                              is_training=is_training)
 
     self.post = []
-    for width in DENSE_POST_WIDTH:
+    for i, width in enumerate(DENSE_POST_WIDTH):
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
                                        units=width,
                                        activation=tf.nn.selu,
@@ -67,7 +70,7 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    state = self.gru.build((None, 32))
+    states = [ gru.build((None, 1)) for gru in self.gru ]
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
@@ -77,7 +80,13 @@ class Model():
       for [ minor, major ] in self.pre_residual:
         frame = tf.nn.selu(frame + major(minor(frame)))
 
-      x, state = self.gru(frame, state)
+      next_states = []
+      for state, gru in zip(states, self.gru):
+        frame, state = self.gru(frame, state)
+        next_states.append(state)
+      states = next_states
+
+      x = frame
 
     for post in self.post:
       x = post(x)
