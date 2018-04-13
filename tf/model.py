@@ -31,6 +31,7 @@ class Embedding():
 class Model():
   def __init__(self, is_training):
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.is_training = is_training
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -65,6 +66,11 @@ class Model():
     for i, width in enumerate(GRU_WIDTH):
       self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
                               is_training=is_training))
+
+    self.gru_dropouts = [ None ]
+    for i in range(1, len(GRU_WIDTH)):
+      self.gru_dropouts.append(tf.layers.Dropout(name='dropout_{}'.format(i),
+                                                 rate=0.3))
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -108,7 +114,9 @@ class Model():
         frame = tf.nn.selu(frame + major(minor(frame)))
 
       next_states = []
-      for state, gru in zip(states, self.gru):
+      for state, gru, drop in zip(states, self.gru, self.gru_dropouts):
+        if drop != None:
+          frame = drop.apply(frame, training=self.is_training)
         frame, state = gru(frame, state)
         next_states.append(state)
       states = next_states
