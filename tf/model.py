@@ -50,7 +50,7 @@ class Model():
     self.gru = []
     for i, width in enumerate(GRU_WIDTH):
       self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
-                              is_training=is_training)
+                              is_training=is_training))
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
