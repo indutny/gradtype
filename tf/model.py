@@ -8,8 +8,13 @@ EMBED_WIDTH = 7
 DENSE_PRE_COUNT = 1
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 3
-GRU_WIDTH = [ 256, 128 ]
-DENSE_POST_WIDTH = [ 256, 128 ]
+
+CONV_FILTERS = 32
+CONV_KERNEL = 8
+CONV_COUNT = 1
+
+GRU_WIDTH = [ 128 ]
+DENSE_POST_WIDTH = [ 128 ]
 FEATURE_COUNT = 128
 
 class Embedding():
@@ -47,6 +52,15 @@ class Model():
                           units=DENSE_PRE_WIDTH,
                           kernel_regularizer=self.l2) ])
 
+    self.conv = []
+    for i in range(0, CONV_COUNT):
+      self.conv.append(tf.layers.Conv1D(name='conv_{}'.format(i),
+                                        filters=CONV_FILTERS,
+                                        kernel_size=CONV_KERNEL,
+                                        padding='same',
+                                        kernel_regularizer=self.l2,
+                                        activation=tf.nn.selu))
+
     self.gru = []
     for i, width in enumerate(GRU_WIDTH):
       self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
@@ -73,6 +87,9 @@ class Model():
     states = []
     for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
       states.append(gru.build((None, input_width)))
+
+    for conv in self.conv:
+      series = conv(series)
 
     x = None
     for i in range(0, sequence_len):
