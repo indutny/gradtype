@@ -11,7 +11,7 @@ DENSE_PRE_RESIDUAL_COUNT = 3
 
 CONV_FILTERS = DENSE_PRE_WIDTH
 CONV_KERNEL = 8
-CONV_COUNT = 1
+CONV_COUNT = 0
 
 GRU_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ 128 ]
@@ -88,16 +88,18 @@ class Model():
     for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
       states.append(gru.build((None, input_width)))
 
-    conv_series = series
-    for conv in self.conv:
-      conv_series = conv(conv_series)
+    if len(self.conv) != 0:
+      conv_series = series
+      for conv in self.conv:
+        conv_series = conv(conv_series)
 
     x = None
     for i in range(0, sequence_len):
       frame = series[:, i]
-      conv_frame = conv_series[:, i]
 
-      frame = tf.concat([ frame, conv_frame ], axis=-1)
+      if len(self.conv) != 0:
+        conv_frame = conv_series[:, i]
+        frame = tf.concat([ frame, conv_frame ], axis=-1)
 
       for pre in self.pre:
         frame = pre(frame)
