@@ -82,7 +82,7 @@ class Model():
 
       next_states = []
       for state, gru in zip(states, self.gru):
-        frame, state = self.gru(frame, state)
+        frame, state = gru(frame, state)
         next_states.append(state)
       states = next_states
 
