@@ -126,7 +126,7 @@ class Model():
 
     if self.use_pooling:
       x = tf.stack(gru_outputs, axis=1)
-      x = tf.layers.average_pooling1d(gru_outputs, (sequence_len), strides=1)
+      x = tf.layers.average_pooling1d(x, (sequence_len), strides=1)
       x = tf.squeeze(x, axis=1)
     else:
       x = gru_outputs[-1]
