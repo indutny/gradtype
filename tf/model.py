@@ -137,10 +137,16 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    series = tf.layers.conv1d(series, 128, 8, kernel_regularizer=self.l2)
-    series = tf.layers.conv1d(series, 256, 8, kernel_regularizer=self.l2)
-    series = tf.layers.conv1d(series, 128, 8, kernel_regularizer=self.l2)
-    pool = tf.layers.max_pooling1d(series, (sequence_len - 21), strides=1)
+    series = tf.layers.conv1d(series, 128, 8, kernel_regularizer=self.l2,
+                              activation=tf.nn.selu)
+    series = tf.layers.batch_normalization(series)
+    series = tf.layers.conv1d(series, 256, 8, kernel_regularizer=self.l2,
+                              activation=tf.nn.selu)
+    series = tf.layers.batch_normalization(series)
+    series = tf.layers.conv1d(series, 128, 8, kernel_regularizer=self.l2,
+                              activation=tf.nn.selu)
+    series = tf.layers.batch_normalization(series)
+    pool = tf.layers.average_pooling1d(series, (sequence_len - 21), strides=1)
 
     x = tf.reshape(pool, shape=(tf.shape(pool)[0], 128,))
     return self.features(x)

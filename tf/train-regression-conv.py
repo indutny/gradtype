@@ -52,7 +52,10 @@ t_metrics = model.get_regression_metrics(output, categories)
 
 optimizer = tf.train.AdamOptimizer(LR)
 t_reg_loss = tf.losses.get_regularization_loss()
-train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
+
+update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+with tf.control_dependencies(update_ops):
+  train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 
 #
 # TensorBoard
