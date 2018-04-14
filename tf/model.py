@@ -30,7 +30,9 @@ class Embedding():
 
 class Model():
   def __init__(self, training):
+    self.l1 = tf.contrib.layers.l1_regularizer(0.005)
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.regularizer = tf.contrib.layers.sum_regularizer([ self.l1, self.l2 ])
     self.training = training
     self.use_pooling = True
 
@@ -41,7 +43,7 @@ class Model():
       self.pre.append(tf.layers.Dense(name='dense_pre_{}'.format(i),
                                       units=DENSE_PRE_WIDTH,
                                       activation=tf.nn.selu,
-                                      kernel_regularizer=self.l2))
+                                      kernel_regularizer=self.regularizer))
 
     self.pre_residual = []
     for i in range(0, DENSE_PRE_RESIDUAL_COUNT):
@@ -49,10 +51,10 @@ class Model():
           tf.layers.Dense(name='dense_pre_residual_minor_{}'.format(i),
                           units=int(DENSE_PRE_WIDTH / 2),
                           activation=tf.nn.selu,
-                          kernel_regularizer=self.l2),
+                          kernel_regularizer=self.regularizer),
           tf.layers.Dense(name='dense_pre_residual_major_{}'.format(i),
                           units=DENSE_PRE_WIDTH,
-                          kernel_regularizer=self.l2) ])
+                          kernel_regularizer=self.regularizer) ])
 
     self.conv = []
     for i in range(0, CONV_COUNT):
@@ -60,7 +62,7 @@ class Model():
                                         filters=CONV_FILTERS,
                                         kernel_size=CONV_KERNEL,
                                         padding='same',
-                                        kernel_regularizer=self.l2,
+                                        kernel_regularizer=self.regularizer,
                                         activation=tf.nn.selu))
 
     self.gru = []
@@ -78,11 +80,11 @@ class Model():
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
                                        units=width,
                                        activation=tf.nn.selu,
-                                       kernel_regularizer=self.l2))
+                                       kernel_regularizer=self.regularizer))
 
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
-                                    kernel_regularizer=self.l2)
+                                    kernel_regularizer=self.regularizer)
 
   def build(self, codes, deltas):
     sequence_len = int(codes.shape[1])
