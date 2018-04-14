@@ -92,7 +92,7 @@ class Model():
     series = tf.concat([ deltas, embedding ], axis=-1)
     series_shape = tf.shape(series)
 
-    tf.layers.dropout(series, rate=0.5,
+    series = tf.layers.dropout(series, rate=0.5,
         noise_shape=[ series_shape[0], series_shape[1], 1 ],
         training=self.training,
         name='time_drop')
