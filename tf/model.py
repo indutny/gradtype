@@ -203,7 +203,7 @@ class Model():
           negatives = t[1]
 
           inf = tf.tile([ float('inf') ], tf.shape(negatives))
-          is_soft = tf.greater(negatives, positives, name='is_soft')
+          is_soft = tf.greater(negatives, positive, name='is_soft')
           is_hard = tf.logical_not(is_soft, name='is_hard')
 
           soft_negatives = tf.boolean_mask(is_soft, name='soft_negatives')
