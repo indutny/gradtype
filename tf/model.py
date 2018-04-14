@@ -67,10 +67,10 @@ class Model():
       self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
                               training=training))
 
-    self.gru_dropouts = [ None ]
-    for i in range(1, len(GRU_WIDTH)):
+    self.gru_dropouts = []
+    for i in range(0, len(GRU_WIDTH)):
       self.gru_dropouts.append(tf.layers.Dropout(name='dropout_{}'.format(i),
-                                                 rate=0.3))
+                                                 rate=0.5))
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -115,9 +115,9 @@ class Model():
 
       next_states = []
       for state, gru, drop in zip(states, self.gru, self.gru_dropouts):
+        frame, state = gru(frame, state)
         if drop != None:
           frame = drop.apply(frame, training=self.training)
-        frame, state = gru(frame, state)
         next_states.append(state)
       states = next_states
 
