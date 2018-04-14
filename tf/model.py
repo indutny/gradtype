@@ -202,12 +202,13 @@ class Model():
           positive = t[0]
           negatives = t[1]
 
-          inf = tf.tile([ float('inf') ], tf.shape(negatives))
           is_soft = tf.greater(negatives, positive, name='is_soft')
           is_hard = tf.logical_not(is_soft, name='is_hard')
 
-          soft_negatives = tf.boolean_mask(is_soft, name='soft_negatives')
-          hard_negatives = tf.boolean_mask(is_hard, name='hard_negatives')
+          soft_negatives = tf.boolean_mask(negatives, mask=is_soft,
+              name='soft_negatives')
+          hard_negatives = tf.boolean_mask(negatives, mask=is_hard,
+              name='hard_negatives')
 
           soft_negative = tf.reduce_min(soft_negatives, name='soft_negative')
           soft_hard_negative = tf.reduce_max(hard_negatives,
