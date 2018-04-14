@@ -203,10 +203,20 @@ class Model():
           negatives = t[1]
 
           inf = tf.tile([ float('inf') ], tf.shape(negatives))
-          soft_negatives = tf.where(negatives > positive, negatives, inf,
-                                    name='soft_negatives')
-          soft_negative = tf.gather(negatives, tf.argmin(soft_negatives))
-          return positive - soft_negative
+          is_soft = tf.greater(negatives, positives, name='is_soft')
+          is_hard = tf.logical_not(is_soft, name='is_hard')
+
+          soft_negatives = tf.boolean_mask(is_soft, name='soft_negatives')
+          hard_negatives = tf.boolean_mask(is_hard, name='hard_negatives')
+
+          soft_negative = tf.reduce_min(soft_negatives, name='soft_negative')
+          soft_hard_negative = tf.reduce_max(hard_negatives,
+              name='soft_hard_negative')
+
+          selection = tf.where(tf.shape(soft_negatives)[-1] == 0,
+              soft_hard_negative,
+              soft_negative, name='selected_soft_negative')
+          return positive - selection
 
         def compute_triplet_row(t):
           # Positive distances between anchor and all positives
