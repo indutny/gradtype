@@ -97,6 +97,9 @@ def expand(dataset, overlap):
   return out
 
 def expand_sequence(seq, overlap):
+  if overlap is None:
+    overlap = MAX_SEQUENCE_LEN
+
   count = len(seq['codes'])
 
   # Pad
