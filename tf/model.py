@@ -90,12 +90,6 @@ class Model():
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
-    series_shape = tf.shape(series)
-
-    series = tf.layers.dropout(series, rate=0.5,
-        noise_shape=[ series_shape[0], series_shape[1], 1 ],
-        training=self.training,
-        name='time_drop')
 
     states = []
     for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
