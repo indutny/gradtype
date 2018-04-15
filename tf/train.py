@@ -31,7 +31,7 @@ LR = 0.001
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load()
+train_dataset, validate_dataset = dataset.load(overlap=None)
 
 #
 # Initialize model

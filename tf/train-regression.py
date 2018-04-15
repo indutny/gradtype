@@ -26,7 +26,7 @@ LR = 0.001
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load(mode='regression')
+train_dataset, validate_dataset = dataset.load(mode='regression', overlap=None)
 train_dataset = dataset.flatten_dataset(train_dataset)
 validate_dataset = dataset.flatten_dataset(validate_dataset)
 
