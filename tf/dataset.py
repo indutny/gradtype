@@ -62,14 +62,17 @@ def load(mode='triplet', overlap=1):
   return split(categories, mode, overlap)
 
 def split(dataset, mode, overlap):
+  rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
+  category_perm = rand_state.permutation(len(dataset))
   train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
 
   train = []
   validate = []
-  for category in dataset[:train_cat_count]:
-    rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
+  for category_i in category_perm[:train_cat_count]:
+    category = dataset[category_i]
+
     perm = rand_state.permutation(len(category))
-    train_seq_count = int(len(dataset) * (1.0 - VALIDATE_PERCENT))
+    train_seq_count = int(len(category) * (1.0 - VALIDATE_PERCENT))
 
     train_category = []
     for i in perm[:train_seq_count]:
@@ -83,7 +86,8 @@ def split(dataset, mode, overlap):
     validate.append(validate_category)
 
   if mode == 'triplet':
-    validate += dataset[train_cat_count:]
+    for category_i in category_perm[train_cat_count:]:
+      validate.append(dataset[category_i])
 
   return expand(train, overlap), expand(validate, overlap)
 
