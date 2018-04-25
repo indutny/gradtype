@@ -25,7 +25,7 @@ VALIDATE_EVERY = 5
 BATCH_SIZE = 32
 
 # Learning rate
-LR = 0.001
+LR = 0.03
 
 #
 # Load dataset
@@ -53,7 +53,7 @@ t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
 # Initialize optimizer
 #
 
-optimizer = tf.train.AdamOptimizer(LR)
+optimizer = tf.train.GradientDescentOptimizer(LR)
 t_reg_loss = tf.losses.get_regularization_loss()
 train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 
