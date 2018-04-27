@@ -147,7 +147,7 @@ class Model():
 
     dilation_rate = 1
     while sequence_len > 1:
-      series = tf.layers.conv1d(series, 64, 4,
+      series = tf.layers.conv1d(series, 16 * dilation_rate, 4,
                                 kernel_regularizer=self.l2,
                                 activation=tf.nn.selu,
                                 dilation_rate=dilation_rate)
@@ -155,8 +155,9 @@ class Model():
       sequence_len -= dilation_rate * 3
       dilation_rate *= 2
 
-    x = tf.reshape(series, shape=(tf.shape(series)[0], 64,))
-    return self.features(x)
+    print(series)
+    exit(0)
+    return tf.squeeze(series, axis=1)
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
