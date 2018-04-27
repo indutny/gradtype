@@ -155,8 +155,6 @@ class Model():
       sequence_len -= dilation_rate * 3
       dilation_rate *= 2
 
-    print(series)
-    exit(0)
     return tf.squeeze(series, axis=1)
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
