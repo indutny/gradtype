@@ -151,6 +151,7 @@ class Model():
                                 kernel_regularizer=self.l2,
                                 activation=tf.nn.selu,
                                 dilation_rate=dilation_rate)
+      series = tf.layers.batch_normalization(series)
       sequence_len -= dilation_rate * 3
       dilation_rate *= 2
 
