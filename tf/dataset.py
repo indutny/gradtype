@@ -11,7 +11,7 @@ MAX_CHAR = 27
 MAX_SEQUENCE_LEN = 46
 
 # Percent of sequences in validation data
-VALIDATE_PERCENT = 0.2
+VALIDATE_PERCENT = 0.25
 
 # Percent of categories in validation data (`triplet` mode only)
 VALIDATE_CATEGORY_PERCENT = 0.25
