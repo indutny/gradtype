@@ -25,7 +25,7 @@ const sentences = text.split(/\.+/g)
   .map((line) => line.trim())
   .filter((line) => line.length > 15);
 
-let index = Math.floor(Math.random() * (sentences.length - 1));
+let index = 0xdeadbeef % sentences.length;
 
 let counter = INITIAL_COUNTER;
 elems.counter.textContent = counter.toString();
@@ -33,12 +33,7 @@ elems.counter.textContent = counter.toString();
 const log: ILogEvent[] = [];
 
 function next() {
-  const prior = elems.display.textContent || '';
-  const sentence = sentences[index++];
-  elems.display.textContent = sentence + '.';
-  if (index === sentences.length) {
-    index = 0;
-  }
+  const prior = (elems.display.textContent || '').trim();
 
   const entered = elems.input.value;
   if (prior !== '') {
@@ -54,15 +49,26 @@ function next() {
       }
 
       log.splice(i, log.length - i);
-      counter++;
+      elems.input.value = '';
+      return;
     }
   }
 
+  let sentence;
+  do {
+    sentence = sentences[index++];
+    if (index === sentences.length) {
+      index = 0;
+    }
+  } while (sentence.length > 60 || sentence.length < 30);
+
+  elems.display.textContent = sentence + '.';
+
   elems.input.focus();
   elems.input.value = '';
-  elems.counter.textContent = (--counter).toString();
+  elems.counter.textContent = counter.toString();
 
-  if (counter === 0) {
+  if (counter-- === 0) {
     save();
   }
 }
