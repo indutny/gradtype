@@ -92,15 +92,18 @@ class Model():
     series = tf.concat([ deltas, embedding ], axis=-1)
 
     states = []
+    rev_states = []
     for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
-      states.append(gru.build((None, input_width)))
+      gru.build((None, input_width))
+      states.append(gru.create_state())
+      rev_states.append(gru.create_state())
 
     if len(self.conv) != 0:
       conv_series = series
       for conv in self.conv:
         conv_series = conv(conv_series)
 
-    gru_outputs = []
+    frames = []
     for i in range(0, sequence_len):
       frame = series[:, i]
 
@@ -114,15 +117,26 @@ class Model():
       for [ minor, major ] in self.pre_residual:
         frame = tf.nn.selu(frame + major(minor(frame)))
 
+      frames.append(frame)
+
+    gru_outputs = []
+    for frame, rev_frame in zip(frames, reversed(frames)):
+      zipped = zip(states, rev_states, self.gru, self.gru_dropouts)
+
       next_states = []
-      for state, gru, drop in zip(states, self.gru, self.gru_dropouts):
+      next_rev_states = []
+      for state, rev_state, gru, drop in zipped:
         frame, state = gru(frame, state)
+        rev_frame, rev_state = gru(rev_frame, rev_state)
         if drop != None:
           frame = drop.apply(frame, training=self.training)
+          rev_frame = drop.apply(rev_frame, training=self.training)
         next_states.append(state)
+        next_rev_states.append(rev_state)
       states = next_states
+      rev_states = next_rev_states
 
-      gru_outputs.append(frame)
+      gru_outputs.append(tf.concat([ frame, rev_frame ], axis=-1))
 
     if self.use_pooling:
       x = tf.stack(gru_outputs, axis=1)

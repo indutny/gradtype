@@ -54,7 +54,8 @@ class GRUCell():
           initializer=self.recurrent_initializer,
           regularizer=self.l2)
 
-      return tf.expand_dims(tf.zeros(shape=(self.units,)), axis=0)
+  def create_state(self):
+    return tf.expand_dims(tf.zeros(shape=(self.units,)), axis=0)
 
   def __call__(self, inputs, state, training=False):
     with tf.name_scope(self.name):

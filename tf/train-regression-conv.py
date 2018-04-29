@@ -50,7 +50,7 @@ t_metrics = model.get_regression_metrics(output, categories)
 # Initialize optimizer
 #
 
-optimizer = tf.train.AdamOptimizer(LR)
+optimizer = tf.train.MomentumOptimizer(LR, momentum=0.5)
 t_reg_loss = tf.losses.get_regularization_loss()
 
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
