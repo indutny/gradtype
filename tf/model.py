@@ -277,7 +277,22 @@ class Model():
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories_one_hot)
       loss = tf.reduce_mean(loss)
-      accuracy = tf.equal(tf.cast(tf.argmax(output, axis=-1), tf.int32),
-                          tf.cast(categories, tf.int32))
+
+      predictions = tf.cast(tf.argmax(output, axis=-1), tf.int32)
+
+      accuracy = tf.equal(predictions, tf.cast(categories, tf.int32))
       accuracy = tf.reduce_mean(tf.cast(accuracy, tf.float32))
-      return { 'loss': loss, 'accuracy': accuracy }
+
+      confusion = tf.confusion_matrix(categories, predictions, output.shape[1],
+                                      dtype=tf.float32)
+      confusion_norm = tf.reduce_sum(confusion, axis=-1)
+      confusion /= confusion_norm
+      confusion = tf.summary.image('confusion', confusion)
+
+      metrics = {}
+      metrics['loss'] = loss
+      metrics['accuracy'] = accuracy
+
+      summary = tf.summary.merge([ confusion ])
+
+      return metrics, summary
