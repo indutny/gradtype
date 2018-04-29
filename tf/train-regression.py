@@ -44,7 +44,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 model = Model(training=training)
 
 output = model.build(codes, deltas)
-t_metrics, t_summary = model.get_regression_metrics(output, categories)
+t_metrics = model.get_regression_metrics(output, categories)
 
 #
 # Initialize optimizer
@@ -81,8 +81,8 @@ with tf.Session() as sess:
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss, t_summary ]
-      _, metrics, reg_loss, summary = sess.run(tensors, feed_dict={
+      tensors = [ train, t_metrics, t_reg_loss ]
+      _, metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
@@ -90,7 +90,6 @@ with tf.Session() as sess:
       })
       metrics['regularization_loss'] = reg_loss
       log_summary('train', metrics, step)
-      writer.add_summary(summary, step)
 
       step += 1
 

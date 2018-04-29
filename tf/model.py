@@ -285,14 +285,9 @@ class Model():
 
       confusion = tf.confusion_matrix(categories, predictions, output.shape[1],
                                       dtype=tf.float32)
-      confusion_norm = tf.reduce_sum(confusion, axis=-1)
-      confusion /= confusion_norm
-      confusion = tf.summary.image('confusion', confusion)
 
       metrics = {}
       metrics['loss'] = loss
       metrics['accuracy'] = accuracy
 
-      summary = tf.summary.merge([ confusion ])
-
-      return metrics, summary
+      return metrics
