@@ -122,7 +122,7 @@ class Model():
       zipped = zip(states, self.gru, self.gru_dropouts)
 
       next_states = []
-      for state, rev_state, gru, drop in zipped:
+      for state, gru, drop in zipped:
         frame, state = gru(frame, state)
         if drop != None:
           frame = drop.apply(frame, training=self.training)
