@@ -20,7 +20,7 @@ MAX_EPOCHS = 500000
 VALIDATE_EVERY = 5
 
 # Learning rate
-LR = 0.001
+LR = 0.01
 
 #
 # Load dataset
