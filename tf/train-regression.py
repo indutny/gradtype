@@ -76,7 +76,8 @@ with tf.Session() as sess:
   step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_dataset)
-    validate_batches = dataset.gen_regression(validate_dataset)
+    validate_batches = dataset.gen_regression(validate_dataset, \
+        batch_size=len(validate_dataset))
 
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
