@@ -286,8 +286,15 @@ class Model():
       confusion = tf.confusion_matrix(categories, predictions, output.shape[1],
                                       dtype=tf.float32)
 
+      # Add batch dimension
+      confusion = tf.expand_dims(confusion, axis=0)
+      # Add color dimension
+      confusion = tf.expand_dims(confusion, axis=-1)
+
+      confusion = tf.summary.image('confusion', confusion)
+
       metrics = {}
       metrics['loss'] = loss
       metrics['accuracy'] = accuracy
 
-      return metrics
+      return metrics, tf.summary.merge([ confusion ])

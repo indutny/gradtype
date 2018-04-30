@@ -44,7 +44,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 model = Model(training=training)
 
 output = model.build(codes, deltas)
-t_metrics = model.get_regression_metrics(output, categories)
+t_metrics, t_summary = model.get_regression_metrics(output, categories)
 
 #
 # Initialize optimizer
@@ -96,12 +96,13 @@ with tf.Session() as sess:
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
-      metrics = sess.run(t_metrics, feed_dict={
+      metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
         training: False,
       })
+      writer.add_summary(summary, step)
 
       if mean_metrics is None:
         mean_metrics = {}
