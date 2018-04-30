@@ -14,7 +14,7 @@ MAX_SEQUENCE_LEN = 46
 VALIDATE_PERCENT = 0.33
 
 # Percent of categories in validation data (`triplet` mode only)
-VALIDATE_CATEGORY_PERCENT = 0.25
+VALIDATE_CATEGORY_PERCENT = 0.0
 
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
@@ -167,6 +167,8 @@ def gen_hard_batches(dataset, batch_size=32):
   return batches
 
 def flatten_dataset(dataset):
+  dataset, _ = trim_dataset(dataset, 1)
+
   sequences = []
   for category in dataset:
     for seq in category:
