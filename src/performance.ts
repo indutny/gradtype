@@ -6,6 +6,10 @@ export function now(): number {
 }
 
 export function detect(): boolean {
+  if (!/firefox/i.test(window.navigator.userAgent)) {
+    return false;
+  }
+
   const scope: any = {};
 
   function busy(times: number): void {
@@ -62,5 +66,5 @@ export function detect(): boolean {
   const percent = deltas.length / (values.length - 1);
 
   // Completely arbitrary
-  return percent > 0.6;
+  return percent > 0.5;
 }
