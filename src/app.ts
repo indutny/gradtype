@@ -1,5 +1,6 @@
 import * as wilde from '../data/wilde.txt';
 import leven = require('leven');
+import * as performance from './performance';
 
 const API_ENDPOINT = 'https://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
@@ -7,12 +8,21 @@ const INITIAL_COUNTER = 90;
 const TOLERANCE = 0.5;
 
 const elems = {
+  firefox: document.getElementById('firefox')!,
+  collect: document.getElementById('collect')!,
+
   display: document.getElementById('display')!,
   input: document.getElementById('input')! as HTMLInputElement,
   download: document.getElementById('download')!,
   counter: document.getElementById('counter')!,
   wrap: document.getElementById('wrap')!,
 };
+
+if (performance.detect()) {
+  elems.collect.style.display = 'inherit';
+} else {
+  elems.firefox.style.display = 'inherit';
+}
 
 interface ILogEvent {
   readonly ts: number;
@@ -73,12 +83,9 @@ function next() {
   }
 }
 
-const ts = window.performance === undefined ? () => Date.now() :
-  () => window.performance.now();
-
-const start = ts();
+const start = performance.now();
 elems.input.onkeypress = (e: KeyboardEvent) => {
-  log.push({ ts: ts(), k: e.key });
+  log.push({ ts: performance.now(), k: e.key });
 
   if (e.key === '.') {
     next();
