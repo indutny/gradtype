@@ -8,7 +8,7 @@ import numpy as np
 MAX_CHAR = 27
 
 # Sequence length
-MAX_SEQUENCE_LEN = 46
+MAX_SEQUENCE_LEN = 32
 
 # Percent of sequences in validation data
 VALIDATE_PERCENT = 0.33
@@ -25,7 +25,7 @@ def load_labels():
   with open(index_json, 'r') as f:
     return json.load(f)
 
-def load(mode='triplet', overlap=1):
+def load(mode='triplet', overlap=8):
   labels = load_labels()
   categories = []
   with open('./out/lstm.raw', 'rb') as f:
