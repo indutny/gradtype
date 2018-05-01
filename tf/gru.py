@@ -17,7 +17,7 @@ class GRUCell():
     self.bias_initializer = tf.initializers.zeros()
     self.activation = tf.nn.tanh
     self.recurrent_activation = hard_sigmoid
-    self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.l2 = tf.contrib.layers.l2_regularizer(0.02)
     self.recurrent_keep = 1.0 - \
         tf.cast(training, tf.float32) * recurrent_dropout
 
