@@ -52,6 +52,7 @@ t_metrics, t_summary = model.get_regression_metrics(output, categories)
 
 with tf.variable_scope('optimizer'):
   optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
+  t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
   grads = tf.gradients(t_loss, variables)
