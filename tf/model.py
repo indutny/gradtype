@@ -91,9 +91,7 @@ class Model():
 
     if self.use_pooling:
       x = tf.stack(outputs, axis=1, name='stacked_output')
-      x = tf.layers.average_pooling1d(x, (sequence_len), strides=1,
-                                      name='pooled_output')
-      x = tf.squeeze(x, axis=1, name='output')
+      x = tf.reduce_max(x, axis=1, name='output')
     else:
       x = outputs[-1]
 
