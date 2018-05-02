@@ -51,7 +51,7 @@ class Model():
 
     cells = []
     for i, width in enumerate(RNN_WIDTH):
-      cell = tf.nn.rnn_cell.LSTMCell(name='lstm_{}'.format(i), num_units=width)
+      cell = tf.nn.rnn_cell.GRUCell(name='lstm_{}'.format(i), num_units=width)
       cells.append(cell)
     self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
 
@@ -70,30 +70,30 @@ class Model():
     sequence_len = int(codes.shape[1])
 
     embedding = self.embedding.apply(codes)
-    deltas = tf.expand_dims(deltas, axis=-1)
-    series = tf.concat([ deltas, embedding ], axis=-1)
+    deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
+    series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
 
-    # [ time, batch, channels ]
-    series = tf.transpose(series, perm=[ 1, 0, 2 ])
+    frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    def apply_pre(frame):
+    new_frames = []
+    for frame in frames:
       for pre in self.pre:
         frame = pre(frame)
 
       for [ minor, major ] in self.pre_residual:
         frame = tf.nn.selu(frame + major(minor(frame)))
 
-      return frame
+      new_frames.append(frame)
+    frames = new_frames
 
-    series = tf.map_fn(apply_pre, series, dtype=tf.float32)
-
-    outputs, _ = tf.nn.dynamic_rnn(cell=self.rnn_cell, inputs=series,
-                                   time_major=True, dtype=tf.float32)
+    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, inputs=frames,
+                                  dtype=tf.float32)
 
     if self.use_pooling:
-      x = tf.transpose(outputs, perm=[ 1, 0, 2 ])
-      x = tf.layers.average_pooling1d(x, (sequence_len), strides=1)
-      x = tf.squeeze(x, axis=1)
+      x = tf.stack(outputs, axis=1, name='stacked_output')
+      x = tf.layers.average_pooling1d(x, (sequence_len), strides=1,
+                                      name='pooled_output')
+      x = tf.squeeze(x, axis=1, name='output')
     else:
       x = outputs[-1]
 
