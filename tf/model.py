@@ -88,8 +88,10 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, inputs=frames,
-                                  dtype=tf.float32)
+    outputs, _, _ = tf.nn.static_bidirectional_rnn(cell_fw=self.rnn_cell,
+                                                   cell_bw=self.rnn_cell,
+                                                   inputs=frames,
+                                                   dtype=tf.float32)
 
     if self.use_pooling:
       x = tf.stack(outputs, axis=1, name='stacked_output')
