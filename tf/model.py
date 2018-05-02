@@ -27,7 +27,7 @@ class Embedding():
 class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
-    self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0001)
+    self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0)
     self.training = training
     self.use_pooling = True
 
