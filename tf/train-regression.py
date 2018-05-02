@@ -61,7 +61,6 @@ with tf.variable_scope('optimizer'):
 
 grad_summary = []
 for grad, var in grads:
-  grad_summary.append(tf.summary.image(var.name + '/grad', grad))
   grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
 
 t_summary = tf.summary.merge([ t_summary ] + grad_summary)
