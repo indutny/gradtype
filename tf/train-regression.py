@@ -50,7 +50,7 @@ t_metrics, t_summary = model.get_regression_metrics(output, categories)
 # Initialize optimizer
 #
 
-optimizer = tf.train.MomentumOptimizer(LR, momentum=0.5)
+optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
 t_reg_loss = tf.losses.get_regularization_loss()
 train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 

@@ -53,7 +53,7 @@ t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
 # Initialize optimizer
 #
 
-optimizer = tf.train.MomentumOptimizer(LR, momentum=0.5)
+optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
 t_reg_loss = tf.losses.get_regularization_loss()
 train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
 
