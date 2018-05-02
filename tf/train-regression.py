@@ -53,14 +53,20 @@ t_metrics, t_summary = model.get_regression_metrics(output, categories)
 with tf.variable_scope('optimizer'):
   optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
   t_reg_loss = tf.losses.get_regularization_loss()
-  t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
-  grads = tf.gradients(t_loss, variables)
+
+  loss_grads = tf.gradients(t_metrics['loss'], variables)
+  reg_grads = tf.gradients(t_reg_loss, variables)
+
+  grads = reg_grads + loss_grads
+
   grads = list(zip(grads, variables))
+  loss_grads = list(zip(loss_grads, variables))
+
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
 grad_summary = []
-for grad, var in grads:
+for grad, var in loss_grads:
   grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
 
 t_summary = tf.summary.merge([ t_summary ] + grad_summary)
