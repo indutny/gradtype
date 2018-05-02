@@ -2,18 +2,13 @@ import tensorflow as tf
 
 # Internal
 import dataset
-from gru import GRUCell
 
 EMBED_WIDTH = 7
 DENSE_PRE_COUNT = 1
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 3
 
-CONV_FILTERS = DENSE_PRE_WIDTH
-CONV_KERNEL = 8
-CONV_COUNT = 0
-
-GRU_WIDTH = [ 32 ]
+RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
@@ -33,7 +28,6 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
     self.training = training
     self.use_pooling = True
-    self.use_bidir = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -55,24 +49,11 @@ class Model():
                           units=DENSE_PRE_WIDTH,
                           kernel_regularizer=self.l2) ])
 
-    self.conv = []
-    for i in range(0, CONV_COUNT):
-      self.conv.append(tf.layers.Conv1D(name='conv_{}'.format(i),
-                                        filters=CONV_FILTERS,
-                                        kernel_size=CONV_KERNEL,
-                                        padding='same',
-                                        kernel_regularizer=self.l2,
-                                        activation=tf.nn.selu))
-
-    self.gru = []
-    for i, width in enumerate(GRU_WIDTH):
-      self.gru.append(GRUCell(name='gru_{}'.format(i), units=width,
-                              training=training))
-
-    self.gru_dropouts = []
-    for i in range(0, len(GRU_WIDTH)):
-      self.gru_dropouts.append(tf.layers.Dropout(name='dropout_{}'.format(i),
-                                                 rate=0.5))
+    cells = []
+    for i, width in enumerate(RNN_WIDTH):
+      cell = tf.nn.rnn_cell.LSTMCell(name='lstm_{}'.format(i), num_units=width)
+      cells.append(cell)
+    self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -92,66 +73,29 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1)
     series = tf.concat([ deltas, embedding ], axis=-1)
 
-    states = []
-    rev_states = []
-    for input_width, gru in zip([ DENSE_PRE_WIDTH ] + GRU_WIDTH[:-1], self.gru):
-      gru.build((None, input_width))
-      states.append(gru.create_state())
-      rev_states.append(gru.create_state())
+    # [ time, batch, channels ]
+    series = tf.transpose(series, perm=[ 1, 0, 2 ])
 
-    if len(self.conv) != 0:
-      conv_series = series
-      for conv in self.conv:
-        conv_series = conv(conv_series)
-
-    frames = []
-    for i in range(0, sequence_len):
-      frame = series[:, i]
-
-      if len(self.conv) != 0:
-        conv_frame = conv_series[:, i]
-        frame = tf.concat([ frame, conv_frame ], axis=-1)
-
+    def apply_pre(frame):
       for pre in self.pre:
         frame = pre(frame)
 
       for [ minor, major ] in self.pre_residual:
         frame = tf.nn.selu(frame + major(minor(frame)))
 
-      frames.append(frame)
+      return frame
 
-    gru_outputs = []
-    for frame, rev_frame in zip(frames, reversed(frames)):
-      zipped = zip(states, rev_states, self.gru, self.gru_dropouts)
+    series = tf.map_fn(apply_pre, series, dtype=tf.float32)
 
-      next_states = []
-      next_rev_states = []
-      for state, rev_state, gru, drop in zipped:
-        frame, state = gru(frame, state)
-        if drop != None:
-          frame = drop.call(frame, training=self.training)
-        next_states.append(state)
-
-        if self.use_bidir:
-          rev_frame, rev_state = gru(rev_frame, rev_state)
-          if drop != None:
-            rev_frame = drop.call(rev_frame, training=self.training)
-          next_rev_states.append(rev_state)
-
-      states = next_states
-      rev_states = next_rev_states
-
-      if self.use_bidir:
-        gru_outputs.append(tf.concat([ frame, rev_frame ], axis=-1))
-      else:
-        gru_outputs.append(frame)
+    outputs, _ = tf.nn.dynamic_rnn(cell=self.rnn_cell, inputs=series,
+                                   time_major=True, dtype=tf.float32)
 
     if self.use_pooling:
-      x = tf.stack(gru_outputs, axis=1)
+      x = tf.transpose(outputs, perm=[ 1, 0, 2 ])
       x = tf.layers.average_pooling1d(x, (sequence_len), strides=1)
       x = tf.squeeze(x, axis=1)
     else:
-      x = gru_outputs[-1]
+      x = outputs[-1]
 
     for post in self.post:
       x = post(x)
@@ -159,25 +103,6 @@ class Model():
     x = self.features(x)
 
     return x
-
-  def build_conv(self, codes, deltas):
-    sequence_len = int(codes.shape[1])
-
-    embedding = self.embedding.apply(codes)
-    deltas = tf.expand_dims(deltas, axis=-1)
-    series = tf.concat([ deltas, embedding ], axis=-1)
-
-    dilation_rate = 1
-    while sequence_len > 1:
-      series = tf.layers.conv1d(series, 16 * dilation_rate, 4,
-                                kernel_regularizer=self.l2,
-                                activation=tf.nn.selu,
-                                dilation_rate=dilation_rate)
-      series = tf.layers.batch_normalization(series)
-      sequence_len -= dilation_rate * 3
-      dilation_rate *= 2
-
-    return tf.squeeze(series, axis=1)
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
