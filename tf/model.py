@@ -13,11 +13,12 @@ DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
 class Embedding():
-  def __init__(self, name, max_code, width):
+  def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
     self.width = width
     with tf.variable_scope(None, default_name=self.name):
-      self.weights = tf.get_variable('weights', shape=(max_code, width))
+      self.weights = tf.get_variable('weights', shape=(max_code, width),
+                                     regularizer=regularizer)
 
   def apply(self, codes):
     with tf.name_scope(None, values=[ codes ], default_name=self.name):
@@ -29,7 +30,8 @@ class Model():
     self.training = training
     self.use_pooling = True
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
+                               regularizer=self.l2)
 
     self.pre = []
     for i in range(0, DENSE_PRE_COUNT):
