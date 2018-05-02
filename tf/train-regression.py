@@ -50,9 +50,20 @@ t_metrics, t_summary = model.get_regression_metrics(output, categories)
 # Initialize optimizer
 #
 
-optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
-t_reg_loss = tf.losses.get_regularization_loss()
-train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
+with tf.variable_scope('optimizer'):
+  optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
+  t_loss = t_metrics['loss'] + t_reg_loss
+  variables = tf.trainable_variables()
+  grads = tf.gradients(t_loss, variables)
+  grads = list(zip(grads, variables))
+  train = optimizer.apply_gradients(grads_and_vars=grads)
+
+grad_summary = []
+for grad, var in grads:
+  grad_summary.append(tf.summary.image(var.name + '/grad', grad))
+  grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
+
+t_summary = tf.summary.merge([ t_summary ] + grad_summary)
 
 #
 # TensorBoard
