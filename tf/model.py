@@ -102,6 +102,10 @@ class Model():
 
     x = self.features(x)
 
+    for w in self.rnn_cell.trainable_weights:
+      if 'kernel' in w.name:
+        tf.losses.add_loss(self.l2(w), tf.GraphKeys.REGULARIZATION_LOSSES)
+
     return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
