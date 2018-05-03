@@ -96,7 +96,7 @@ with tf.Session() as sess:
       _, metrics, reg_loss = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        category_count: len(train_dataset),
+        category_count: K,
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
@@ -118,7 +118,7 @@ with tf.Session() as sess:
       v_metrics = sess.run(t_metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
-        category_count: len(validate_dataset),
+        category_count: K,
         training: False,
       })
 
