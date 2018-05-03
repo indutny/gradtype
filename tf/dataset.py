@@ -25,7 +25,12 @@ def load_labels():
   with open(index_json, 'r') as f:
     return json.load(f)
 
-def load(mode='triplet', overlap=8):
+def load(mode='triplet', overlap=None, train_overlap=None,
+         validate_overlap = None):
+  if overlap != None:
+    train_overlap = overlap
+    validate_overlap = overlap
+
   labels = load_labels()
   categories = []
   with open('./out/lstm.raw', 'rb') as f:
@@ -59,9 +64,9 @@ def load(mode='triplet', overlap=8):
           'deltas': deltas
         })
       categories.append(sequences)
-  return split(categories, mode, overlap)
+  return split(categories, mode, train_overlap, validate_overlap)
 
-def split(dataset, mode, overlap):
+def split(dataset, mode, train_overlap, validate_overlap):
   rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
   category_perm = rand_state.permutation(len(dataset))
   train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
@@ -89,7 +94,7 @@ def split(dataset, mode, overlap):
     for category_i in category_perm[train_cat_count:]:
       validate.append(dataset[category_i])
 
-  return expand(train, overlap), expand(validate, overlap)
+  return expand(train, train_overlap), expand(validate, validate_overlap)
 
 def expand(dataset, overlap):
   out = []
