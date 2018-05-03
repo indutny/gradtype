@@ -14,7 +14,7 @@ MAX_SEQUENCE_LEN = 32
 VALIDATE_PERCENT = 0.33
 
 # Percent of categories in validation data (`triplet` mode only)
-VALIDATE_CATEGORY_PERCENT = 0.0
+VALIDATE_CATEGORY_PERCENT = 0.25
 
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c

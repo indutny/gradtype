@@ -109,7 +109,7 @@ with tf.Session() as sess:
       continue
 
     validate_batches = dataset.gen_hard_batches(validate_dataset, \
-        k=16,
+        k=K,
         batch_size=BATCH_SIZE)
 
     print('Validation...')
