@@ -137,7 +137,9 @@ def expand_sequence(seq, overlap):
 def trim_dataset(dataset, batch_size):
   min_len = None
   for category in dataset:
-    if min_len == None:
+    if len(category) < batch_size:
+      continue
+    elif min_len == None:
       min_len = len(category)
     else:
       min_len = min(min_len, len(category))
@@ -147,6 +149,10 @@ def trim_dataset(dataset, batch_size):
 
   out = []
   for category in dataset:
+    if len(category) < min_len:
+      print(category[0]['label'] + ' has not enough sequences')
+      continue
+
     out_cat = []
     perm = np.random.permutation(len(category))
     for i in perm[:min_len]:
