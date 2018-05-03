@@ -177,7 +177,6 @@ def flatten_dataset(dataset, k=None):
 
   perm = np.random.permutation(len(dataset))
   categories = [ dataset[i] for i in perm[:k] ]
-  categories, _ = trim_dataset(categories, 1)
 
   sequences = []
   for category in categories:
