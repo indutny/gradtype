@@ -8,7 +8,7 @@ DENSE_PRE_COUNT = 0
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
-RNN_WIDTH = [ 32 ]
+RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
@@ -55,6 +55,8 @@ class Model():
     cells = []
     for i, width in enumerate(RNN_WIDTH):
       cell = tf.nn.rnn_cell.GRUCell(name='lstm_{}'.format(i), num_units=width)
+      cell = tf.contrib.rnn.DropoutWrapper(cell,
+          output_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
     self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
 
