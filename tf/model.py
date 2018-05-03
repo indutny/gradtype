@@ -55,8 +55,6 @@ class Model():
     cells = []
     for i, width in enumerate(RNN_WIDTH):
       cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
-      cell = tf.contrib.rnn.DropoutWrapper(cell,
-          input_keep_prob=tf.where(training, 1.0 - 0.5, 1.0))
       cells.append(cell)
     self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
 
