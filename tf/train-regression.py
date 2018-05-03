@@ -27,7 +27,6 @@ LR = 0.01
 #
 
 train_dataset, validate_dataset = dataset.load(mode='regression')
-validate_dataset = dataset.flatten_dataset(validate_dataset)
 
 #
 # Initialize model
@@ -87,8 +86,9 @@ with tf.Session() as sess:
   for epoch in range(0, MAX_EPOCHS):
     train_flat_dataset = dataset.flatten_dataset(train_dataset)
     train_batches = dataset.gen_regression(train_flat_dataset)
-    validate_batches = dataset.gen_regression(validate_dataset, \
-        batch_size=len(validate_dataset))
+    validate_flat_dataset = dataset.flatten_dataset(validate_dataset)
+    validate_batches = dataset.gen_regression(validate_flat_dataset, \
+        batch_size=len(validate_flat_dataset))
 
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
