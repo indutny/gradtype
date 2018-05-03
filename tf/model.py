@@ -54,7 +54,7 @@ class Model():
 
     cells = []
     for i, width in enumerate(RNN_WIDTH):
-      cell = tf.nn.rnn_cell.GRUCell(name='lstm_{}'.format(i), num_units=width)
+      cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
       cell = tf.contrib.rnn.DropoutWrapper(cell,
           output_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
