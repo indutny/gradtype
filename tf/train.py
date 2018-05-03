@@ -27,6 +27,9 @@ BATCH_SIZE = 32
 # Learning rate
 LR = 0.03
 
+# Number of categories in each epoch
+K = 32
+
 #
 # Load dataset
 #
@@ -83,6 +86,7 @@ with tf.Session() as sess:
   step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_hard_batches(train_dataset, \
+        k=K,
         batch_size=BATCH_SIZE)
 
     saver.save(sess, LOG_DIR, global_step=step)
@@ -105,6 +109,7 @@ with tf.Session() as sess:
       continue
 
     validate_batches = dataset.gen_hard_batches(validate_dataset, \
+        k=16,
         batch_size=BATCH_SIZE)
 
     print('Validation...')

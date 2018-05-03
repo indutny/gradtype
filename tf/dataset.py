@@ -155,9 +155,15 @@ def trim_dataset(dataset, batch_size):
   return out, min_len
 
 # TODO(indutny): use tf.data.Dataset
-def gen_hard_batches(dataset, batch_size=32):
+def gen_hard_batches(dataset, batch_size=32, k=None):
+  if k is None:
+    k = len(dataset)
+
   # Leave the same number of sequences in each batch
   dataset, sequence_count = trim_dataset(dataset, batch_size)
+
+  perm = np.random.permutation(len(dataset))
+  dataset = [ dataset[i] for i in perm[:k] ]
 
   batches = []
   for off in range(0, sequence_count, batch_size):
