@@ -171,11 +171,16 @@ def gen_hard_batches(dataset, batch_size=32):
     batches.append(batch)
   return batches
 
-def flatten_dataset(dataset):
-  dataset, _ = trim_dataset(dataset, 1)
+def flatten_dataset(dataset, k=None):
+  if k is None:
+    k = len(dataset)
+
+  perm = np.random.permutation(len(dataset))
+  categories = [ dataset[i] for i in perm[:k] ]
+  categories, _ = trim_dataset(categories, 1)
 
   sequences = []
-  for category in dataset:
+  for category in categories:
     for seq in category:
       sequences.append(seq)
   return sequences
