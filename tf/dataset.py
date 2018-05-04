@@ -134,7 +134,7 @@ def expand_sequence(seq, overlap):
     out.append(copy)
   return out
 
-def trim_dataset(dataset, batch_size):
+def trim_dataset(dataset, batch_size=1):
   min_len = None
   for category in dataset:
     if len(category) < batch_size:
