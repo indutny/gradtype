@@ -5,10 +5,10 @@ import json
 import numpy as np
 
 # Maximum character code
-MAX_CHAR = 28
+MAX_CHAR = 27
 
 # Sequence length
-MAX_SEQUENCE_LEN = 128
+MAX_SEQUENCE_LEN = 32
 
 # Percent of sequences in validation data
 VALIDATE_PERCENT = 0.33
