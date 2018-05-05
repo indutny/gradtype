@@ -106,8 +106,8 @@ class Model():
     ]
 
     states = [
-        state + tf.where(self.training, \
-            tf.random_normal(tf.shape(state), stddev=0.01), 0.0)
+        state + tf.where(self.training, 1.0, 0.0) * \
+            tf.random_normal(tf.shape(state), stddev=0.01)
         for state in states
     ]
 
