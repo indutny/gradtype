@@ -69,7 +69,11 @@ def load(mode='triplet', overlap=None, train_overlap=None,
 def split(dataset, mode, train_overlap, validate_overlap):
   rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
   category_perm = rand_state.permutation(len(dataset))
-  train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
+  if mode == 'triplet':
+    train_cat_count = int(len(dataset) * (1.0 - VALIDATE_CATEGORY_PERCENT))
+  else:
+    # For now
+    train_cat_count = len(dataset)
 
   train = []
   validate = []
