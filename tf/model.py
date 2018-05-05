@@ -101,7 +101,7 @@ class Model():
 
     # Add [ batch_size, ] dimension
     states = [
-        tf.expand_dims(tf.ones(batch_size, dtype=tf.float32), axis=1) * state
+        tf.tile(tf.expand_dims(state, axis=0), (batch_size, 1, ))
         for state in self.rnn_states
     ]
 
