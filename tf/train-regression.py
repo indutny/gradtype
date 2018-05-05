@@ -26,7 +26,8 @@ LR = 0.01
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load(mode='regression')
+train_dataset, validate_dataset = dataset.load(mode='regression', \
+    train_overlap=1)
 
 #
 # Initialize model
