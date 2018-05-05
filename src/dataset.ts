@@ -5,8 +5,7 @@ import { shuffle } from './utils';
 export const MAX_CHAR = 27;
 
 const CUTOFF_TIME = 3;
-const MIN_SEQUENCE = 128;
-const MAX_SEQUENCE = 128;
+const MIN_SEQUENCE = 8;
 
 // Moving average window
 const WINDOW = 7;
@@ -44,11 +43,6 @@ export class Dataset {
 
       sequence.push(event);
     }
-    while (sequence.length > MAX_SEQUENCE) {
-      out.push(sequence.slice(0, MAX_SEQUENCE));
-      sequence = sequence.slice(MAX_SEQUENCE);
-    }
-
     if (sequence.length > MIN_SEQUENCE) {
       out.push(sequence);
     }
