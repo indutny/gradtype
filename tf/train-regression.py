@@ -87,8 +87,7 @@ with tf.Session() as sess:
     # Select new categories every 8 epochs
     if epoch % 8 == 0:
       train_trim_dataset, _ =  dataset.trim_dataset(train_dataset)
-      train_flat_dataset = dataset.flatten_dataset(train_trim_dataset,
-          k=int(len(train_trim_dataset) * 3.0 / 4.0))
+      train_flat_dataset = dataset.flatten_dataset(train_trim_dataset)
     train_batches = dataset.gen_regression(train_flat_dataset)
 
     validate_trim_dataset, _ = dataset.trim_dataset(validate_dataset)
