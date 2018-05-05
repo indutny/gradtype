@@ -2,7 +2,7 @@ import * as assert from 'assert';
 
 import { shuffle } from './utils';
 
-export const MAX_CHAR = 27;
+export const MAX_CHAR = 28;
 
 const CUTOFF_TIME = 3;
 const MIN_SEQUENCE = 8;
@@ -64,9 +64,6 @@ export class Dataset {
       let k: string = event.k;
       if (k === 'Spacebar') {
         k = ' ';
-      } else if (k === '.') {
-        yield reset();
-        continue;
       }
 
       // XXX(indutny): skip everything that we don't understand
@@ -77,10 +74,6 @@ export class Dataset {
       assert(0 <= code && code <= MAX_CHAR);
 
       let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
-      if (delta > CUTOFF_TIME) {
-        yield reset();
-        continue;
-      }
 
       lastTS = event.ts;
 
@@ -142,6 +135,10 @@ export class Dataset {
     // ','
     } else if (code === 0x2c) {
       return 27;
+
+    // '.'
+    } else if (code === 0x2e) {
+      return 28;
     } else {
       return undefined;
     }
