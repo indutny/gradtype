@@ -8,7 +8,7 @@ DENSE_PRE_COUNT = 0
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
-RNN_WIDTH = [ 128, 128 ]
+RNN_WIDTH = [ 64, 64 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
@@ -53,13 +53,19 @@ class Model():
                           kernel_regularizer=self.l2) ])
 
     cells = []
+    states = []
     for i, width in enumerate(RNN_WIDTH):
       cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
+      states.append(tf.get_variable('initial_state_{}'.format(i), \
+          shape=(cell.state_size, ),
+          regularizer=self.l2))
+
       if i != len(RNN_WIDTH) - 1:
         cell = tf.contrib.rnn.DropoutWrapper(cell,
             state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
     self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+    self.rnn_states = states
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -73,6 +79,7 @@ class Model():
                                     kernel_regularizer=self.l2)
 
   def build(self, codes, deltas):
+    batch_size = tf.shape(codes)[0]
     sequence_len = int(codes.shape[1])
 
     embedding = self.embedding.apply(codes)
@@ -92,10 +99,18 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    outputs, _, _ = tf.nn.static_bidirectional_rnn(cell_fw=self.rnn_cell,
-                                                   cell_bw=self.rnn_cell,
-                                                   inputs=frames,
-                                                   dtype=tf.float32)
+    # Add [ batch_size, ] dimension
+    states = [
+        tf.expand_dims(tf.ones(batch_size, dtype=tf.float32), axis=1) * state
+        for state in self.rnn_states
+    ]
+
+    outputs, _, _ = tf.nn.static_bidirectional_rnn( \
+        cell_fw=self.rnn_cell,
+        cell_bw=self.rnn_cell,
+        initial_state_fw=states,
+        initial_state_bw=states,
+        inputs=frames)
 
     if self.use_pooling:
       x = tf.stack(outputs, axis=1, name='stacked_output')
