@@ -59,8 +59,13 @@ with tf.variable_scope('optimizer'):
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
 grad_summary = []
+t_grad_vec = []
 for grad, var in grads:
   grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
+  t_grad_vec.append(tf.reshape(grad, shape=[ -1 ]))
+
+t_grad_vec = tf.concat(t_grad_vec, axis=0)
+t_grad_norm = tf.norm(t_grad_vec)
 
 t_summary = tf.summary.merge([ t_summary ] + grad_summary)
 
@@ -99,14 +104,15 @@ with tf.Session() as sess:
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss ]
-      _, metrics, reg_loss = sess.run(tensors, feed_dict={
+      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
+      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
+      metrics['grad_norm'] = grad_norm
       log_summary('train', metrics, step)
 
       step += 1
