@@ -111,11 +111,9 @@ class Model():
         for state in states
     ]
 
-    outputs, _, _ = tf.nn.static_bidirectional_rnn( \
-        cell_fw=self.rnn_cell,
-        cell_bw=self.rnn_cell,
-        initial_state_fw=states,
-        initial_state_bw=states,
+    outputs, _ = tf.nn.static_rnn( \
+        cell=self.rnn_cell,
+        initial_state=states,
         inputs=frames)
 
     if self.use_pooling:
