@@ -5,7 +5,7 @@ import { shuffle } from './utils';
 export const MAX_CHAR = 28;
 
 const CUTOFF_TIME = 3;
-const MIN_SEQUENCE = 8;
+const MIN_SEQUENCE = 128;
 const MAX_SEQUENCE = 128;
 
 // Moving average window
