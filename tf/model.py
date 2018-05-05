@@ -105,6 +105,12 @@ class Model():
         for state in self.rnn_states
     ]
 
+    states = [
+        state + tf.where(self.training, \
+            tf.random_normal(tf.shape(state), stddev=0.01), 0.0)
+        for state in states
+    ]
+
     outputs, _, _ = tf.nn.static_bidirectional_rnn( \
         cell_fw=self.rnn_cell,
         cell_bw=self.rnn_cell,
