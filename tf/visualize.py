@@ -59,7 +59,7 @@ def pca(train, validate, fname=None):
       marker = 'o' if kind is 'train' else '^'
       size = 5 if kind is 'train' else 8
       plt.scatter(x, y, c=color, marker=marker,
-                  edgecolor='k', s=size, alpha=0.9, linewidths=0.0,
+                  edgecolor='k', s=size, alpha=0.7, linewidths=0.0,
                   edgecolors='none')
 
   if fname == None:

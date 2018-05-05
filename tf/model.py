@@ -4,11 +4,11 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 7
-DENSE_PRE_COUNT = 1
-DENSE_PRE_WIDTH = 128
+DENSE_PRE_COUNT = 0
+DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
-RNN_COUNT = 2
+RNN_WIDTH = [ 128, 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
@@ -26,7 +26,6 @@ class Embedding():
 
 class Model():
   def __init__(self, training):
-    self.pre_l2 = tf.contrib.layers.l2_regularizer(0.01)
     self.l2 = tf.contrib.layers.l2_regularizer(0.001)
     self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0)
     self.training = training
@@ -40,7 +39,7 @@ class Model():
       self.pre.append(tf.layers.Dense(name='dense_pre_{}'.format(i),
                                       units=DENSE_PRE_WIDTH,
                                       activation=tf.nn.selu,
-                                      kernel_regularizer=self.pre_l2))
+                                      kernel_regularizer=self.l2))
 
     self.pre_residual = []
     for i in range(0, DENSE_PRE_RESIDUAL_COUNT):
@@ -54,10 +53,9 @@ class Model():
                           kernel_regularizer=self.l2) ])
 
     cells = []
-    shared_cell = tf.nn.rnn_cell.GRUCell(name='gru', num_units=DENSE_PRE_WIDTH)
-    for i in range(RNN_COUNT):
-      cell = shared_cell
-      if i != RNN_COUNT - 1:
+    for i, width in enumerate(RNN_WIDTH):
+      cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
+      if i != len(RNN_WIDTH) - 1:
         cell = tf.contrib.rnn.DropoutWrapper(cell,
             state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
