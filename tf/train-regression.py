@@ -11,6 +11,7 @@ from model import Model
 RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = time.asctime()
+RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 
 # Maximum number of epochs to run for
@@ -87,6 +88,10 @@ saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
+
+  if RESTORE_FROM != None:
+    print('Restoring from "{}"'.format(RESTORE_FROM))
+    saver.restore(sess, RESTORE_FROM)
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
