@@ -1,3 +1,5 @@
+GRADTYPE_RUN ?=
+
 train: dataset
 	python3 ./keras/train.py
 
@@ -22,10 +24,10 @@ clean:
 	rm -rf logs/
 	rm -rf images/
 
-MODEL_WEIGHTS=$(wildcard out/gradtype-triplet-weights-*.h5)
-PCA_IMAGES_PRE=$(subst out/gradtype-triplet-weights-,images/pca/, \
+MODEL_WEIGHTS=$(wildcard logs/$(GRADTYPE_RUN)-*.index)
+PCA_IMAGES_PRE=$(subst logs/$(GRADTYPE_RUN)-,images/pca/, \
 							 $(MODEL_WEIGHTS))
-PCA_IMAGES=$(subst .h5,.png, $(PCA_IMAGES_PRE))
+PCA_IMAGES=$(subst .index,.png, $(PCA_IMAGES_PRE))
 
 images/pca.mp4: visualize
 	ffmpeg -v quiet -y -r 10 -pattern_type glob \
@@ -33,11 +35,12 @@ images/pca.mp4: visualize
 		-vcodec libx264 -preset veryslow -pix_fmt yuv420p $@
 
 visualize: images/pca $(PCA_IMAGES)
+	echo $(MODEL_WEIGHTS)
 
 images/pca:
 	mkdir -p images/pca
 
-images/pca/%.png: out/gradtype-triplet-weights-%.h5
-	python3 ./keras/visualize.py $< $@
+images/pca/%.png: logs/$(GRADTYPE_RUN)-%.index
+	python3 ./tf/visualize.py $< $@
 
 .PHONY: train train-tf regression dataset clean visualize skipgrams

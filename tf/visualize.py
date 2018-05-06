@@ -81,7 +81,10 @@ with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
   saver = tf.train.Saver(max_to_keep=0, name='visualize')
-  saver.restore(sess, sys.argv[1])
+  restore = sys.argv[1]
+  if restore.endswith('.index'):
+    restore = restore[:-6]
+  saver.restore(sess, restore)
 
   train_dataset, validate_dataset = dataset.load()
 
@@ -121,4 +124,5 @@ with tf.Session() as sess:
     validate_features.append(seq)
     features = features[1:]
 
-  pca(train_features, validate_features)
+  out_name = sys.argv[2] if len(sys.argv) >= 3 else None
+  pca(train_features, validate_features, fname=out_name)
