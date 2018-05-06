@@ -10,6 +10,7 @@ import matplotlib.patches as mpatches
 import matplotlib.axes as axes
 import numpy as np
 import sklearn.decomposition
+from sklearn.manifold import TSNE
 import tensorflow as tf
 
 # Internal
@@ -27,8 +28,7 @@ def pca(train, validate, fname=None):
   pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
 
   # pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
-  # tsne = sklearn.manifold.TSNE(n_components=2, verbose=2, \
-  #    random_state=0x7ed1ae6f)
+  # tsne = TSNE(n_components=2, verbose=2, random_state=0x7ed1ae6f)
 
   # Fit coordinates
   coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
