@@ -31,10 +31,10 @@ def pca(train, validate, fname=None):
   # ax.set_zlim(bottom=-0.9, top=0.9)
 
   # Fit coordinates
-  pca.fit([ seq['features'] for seq in (train + validate) ])
+  coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
 
-  train_coords = pca.transform([ seq['features'] for seq in train ])
-  validate_coords = pca.transform([ seq['features'] for seq in validate ])
+  train_coords = coords[:len(train)]
+  validate_coords = coords[len(train_coords):]
 
   for seq, coords in zip(train, train_coords):
     seq['coords'] = coords
