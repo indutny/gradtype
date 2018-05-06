@@ -22,13 +22,13 @@ MAX_EPOCHS = 500000
 VALIDATE_EVERY = 5
 
 # Number of sequences per category in batch
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 # Learning rate
 LR = 0.03
 
 # Number of categories in each epoch
-K = 32
+K = 64
 
 #
 # Load dataset
