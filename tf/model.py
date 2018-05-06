@@ -64,7 +64,7 @@ class Model():
         cell = tf.contrib.rnn.DropoutWrapper(cell,
             state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
-    self.rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+    self.rnn_cells = cells
     self.rnn_states = states
 
     self.post = []
@@ -111,10 +111,16 @@ class Model():
         for state in states
     ]
 
-    outputs, _ = tf.nn.static_rnn( \
-        cell=self.rnn_cell,
-        initial_state=states,
-        inputs=frames)
+    for i, cell, state in zip(range(len(states)), self.rnn_cells, states):
+      outputs, _ = tf.nn.static_rnn( \
+          cell=cell,
+          initial_state=state,
+          inputs=frames)
+
+      # Residual connection
+      if i != 0:
+        outputs = outputs + frames
+      frames = outputs
 
     if self.use_pooling:
       x = tf.stack(outputs, axis=1, name='stacked_output')
