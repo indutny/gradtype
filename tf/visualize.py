@@ -26,12 +26,12 @@ def pca(train, validate, fname=None):
   fig = plt.figure(1, figsize=(8, 6))
   pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
 
-  # ax.set_xlim(left=-0.9, right=0.9)
-  # ax.set_ylim(bottom=-0.9, top=0.9)
-  # ax.set_zlim(bottom=-0.9, top=0.9)
+  # pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
+  # tsne = sklearn.manifold.TSNE(n_components=2, random_state=0x7ed1ae6f)
 
   # Fit coordinates
   coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
+  # coords = tsne.fit_transform(coords)
 
   train_coords = coords[:len(train)]
   validate_coords = coords[len(train_coords):]
