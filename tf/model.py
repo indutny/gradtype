@@ -230,19 +230,38 @@ class Model():
       loss = tf.maximum(triplet_distance, zero)
       loss = tf.reduce_mean(loss, name='loss')
 
+      all_positives = tf.boolean_mask(distances, same_mask)
+      all_negatives = tf.boolean_mask(distances, not_same_mask)
+
       metrics = {}
       metrics['loss'] = loss
-      metrics['mean_positive'] = \
-          tf.reduce_mean(tf.boolean_mask(distances, same_mask),
-                         name='mean_positive')
-      metrics['mean_negative'] = \
-          tf.reduce_mean(tf.boolean_mask(distances, not_same_mask),
-                         name='mean_negative')
+      metrics['positive_50'] = tf.reduce_mean(all_positives, \
+          name='positive_50')
+      metrics['positive_75'] = tf.contrib.distributions.percentile( \
+          all_positives,
+          75.0,
+          name='positive_75')
+      metrics['positive_90'] = tf.contrib.distributions.percentile( \
+          all_positives,
+          90.0,
+          name='positive_90')
+
+      metrics['mean_negative'] = tf.reduce_mean(all_negatives, \
+          name='mean_negative')
+      metrics['negative_75'] = tf.contrib.distributions.percentile( \
+          all_negatives,
+          75.0,
+          name='negative_75')
+      metrics['negative_90'] = tf.contrib.distributions.percentile( \
+          all_negatives,
+          90.0,
+          name='negative_90')
+
       metrics['active_triplets'] = \
           tf.reduce_mean(tf.cast(tf.greater(triplet_distance, zero), \
                                  tf.float32),
                          name='active_triplets')
-      metrics['l2_norm'] = tf.reduce_mean(distances2, name='l2_norm')
+      metrics['norm'] = tf.sqrt(tf.reduce_mean(distances2, name='norm'))
 
       return metrics
 
