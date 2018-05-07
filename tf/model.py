@@ -235,6 +235,10 @@ class Model():
 
       metrics = {}
       metrics['loss'] = loss
+      metrics['positive_25'] = tf.contrib.distributions.percentile( \
+          all_positives,
+          25.0,
+          name='positive_25')
       metrics['positive_50'] = tf.reduce_mean(all_positives, \
           name='positive_50')
       metrics['positive_75'] = tf.contrib.distributions.percentile( \
@@ -248,6 +252,10 @@ class Model():
 
       metrics['mean_negative'] = tf.reduce_mean(all_negatives, \
           name='mean_negative')
+      metrics['negative_25'] = tf.contrib.distributions.percentile( \
+          all_negatives,
+          25.0,
+          name='negative_25')
       metrics['negative_75'] = tf.contrib.distributions.percentile( \
           all_negatives,
           75.0,
