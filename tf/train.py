@@ -56,9 +56,15 @@ t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
 # Initialize optimizer
 #
 
-optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
-t_reg_loss = tf.losses.get_regularization_loss()
-train = optimizer.minimize(t_metrics['loss'] + t_reg_loss)
+with tf.variable_scope('optimizer'):
+  optimizer = tf.train.MomentumOptimizer(LR, momentum=0.9)
+  t_reg_loss = tf.losses.get_regularization_loss()
+  t_loss = t_metrics['loss'] + t_reg_loss
+  variables = tf.trainable_variables()
+  grads = tf.gradients(t_loss, variables)
+  grads, _ = tf.clip_by_global_norm(grads, 7.0)
+  grads = list(zip(grads, variables))
+  train = optimizer.apply_gradients(grads_and_vars=grads)
 
 #
 # TensorBoard
