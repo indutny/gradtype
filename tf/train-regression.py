@@ -56,17 +56,13 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
   grads = tf.gradients(t_loss, variables)
+  grads, t_grad_norm = tf.clip_by_global_norm(grads, 7.0)
   grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
 grad_summary = []
-t_grad_vec = []
 for grad, var in grads:
   grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
-  t_grad_vec.append(tf.reshape(grad, shape=[ -1 ]))
-
-t_grad_vec = tf.concat(t_grad_vec, axis=0)
-t_grad_norm = tf.norm(t_grad_vec)
 
 t_summary = tf.summary.merge([ t_summary ] + grad_summary)
 
