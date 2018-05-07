@@ -250,7 +250,7 @@ class Model():
           90.0,
           name='positive_90')
 
-      metrics['mean_negative'] = tf.reduce_mean(all_negatives, \
+      metrics['negative_50'] = tf.reduce_mean(all_negatives, \
           name='mean_negative')
       metrics['negative_25'] = tf.contrib.distributions.percentile( \
           all_negatives,
