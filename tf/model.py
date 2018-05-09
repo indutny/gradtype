@@ -274,6 +274,18 @@ class Model():
 
       return metrics
 
+  def get_prediction_metrics(self, output, codes, deltas):
+    with tf.name_scope('prediction_loss', [ output, codes, deltas ]):
+      predictions = tf.map_fn(lambda x: tf.gather(x[0], x[1]),
+          (output, codes), dtype=tf.float32)
+
+      metrics = {}
+      metrics['loss'] = tf.losses.mean_squared_error(labels=deltas, \
+          predictions=predictions)
+
+      return metrics
+
+
   def get_regression_metrics(self, output, categories):
     with tf.name_scope('regression_loss', [ output, categories ]):
       categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
