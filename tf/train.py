@@ -19,7 +19,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 MAX_EPOCHS = 500000
 
 # Validate every epoch:
-VALIDATE_EVERY = 5
+VALIDATE_EVERY = 1
 
 # Number of sequences per category in batch
 BATCH_SIZE = 16

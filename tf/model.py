@@ -10,7 +10,7 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 128
+FEATURE_COUNT = 32
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -55,14 +55,15 @@ class Model():
     cells = []
     states = []
     for i, width in enumerate(RNN_WIDTH):
-      cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
+      cell = tf.contrib.rnn.GRUBlockCellV2(name='gru_{}'.format(i), \
+          num_units=width)
       states.append(tf.get_variable('initial_state_{}'.format(i), \
           shape=(cell.state_size, ),
           regularizer=self.l2))
 
-      if i != len(RNN_WIDTH) - 1:
-        cell = tf.contrib.rnn.DropoutWrapper(cell,
-            state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
+      cell = tf.contrib.rnn.DropoutWrapper(cell,
+          output_keep_prob=tf.where(training, 1.0 - 0.5, 1.0),
+          state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
     self.rnn_cells = cells
     self.rnn_states = states
