@@ -1,5 +1,4 @@
 import tensorflow as tf
-from gru import GRUCell
 
 # Internal
 import dataset
@@ -11,7 +10,7 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 32
+FEATURE_COUNT = 128
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -54,14 +53,19 @@ class Model():
                           kernel_regularizer=self.l2) ])
 
     cells = []
-    input_width = EMBED_WIDTH + 1
+    states = []
     for i, width in enumerate(RNN_WIDTH):
-      cell = GRUCell(width, name='gru_{}'.format(i), recurrent_dropout=0.5,
-                     output_dropout=0.5, training=self.training)
-      cell.build(input_shape=(None, input_width,))
-      input_width = width
+      cell = tf.nn.rnn_cell.GRUCell(name='gru_{}'.format(i), num_units=width)
+      states.append(tf.get_variable('initial_state_{}'.format(i), \
+          shape=(cell.state_size, ),
+          regularizer=self.l2))
+
+      if i != len(RNN_WIDTH) - 1:
+        cell = tf.contrib.rnn.DropoutWrapper(cell,
+            state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
       cells.append(cell)
     self.rnn_cells = cells
+    self.rnn_states = states
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -95,17 +99,27 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    for i, cell in enumerate(self.rnn_cells):
-      outputs = []
+    # Add [ batch_size, ] dimension
+    states = [
+        tf.tile(tf.expand_dims(state, axis=0), (batch_size, 1, ))
+        for state in self.rnn_states
+    ]
 
-      state = cell.create_state()
-      for frame in frames:
-        output, state = cell(frame, state, training=self.training)
-        outputs.append(output)
+    states = [
+        state + tf.where(self.training, 1.0, 0.0) * \
+            tf.random_normal(tf.shape(state), stddev=0.01)
+        for state in states
+    ]
+
+    for i, cell, state in zip(range(len(states)), self.rnn_cells, states):
+      outputs, _ = tf.nn.static_rnn( \
+          cell=cell,
+          initial_state=state,
+          inputs=frames)
 
       # Residual connection
       if i != 0:
-        outputs = [ output + frame for output, frame in zip(outputs, frames) ]
+        outputs = outputs + frames
       frames = outputs
 
     if self.use_pooling:
