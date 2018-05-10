@@ -9,9 +9,6 @@ tf-train: dataset
 tf-regression: dataset
 	python3 ./tf/train-regression.py
 
-tf-pred: dataset
-	python3 ./tf/train-predictions.py
-
 regression: dataset
 	python3 ./keras/train-regression.py
 
