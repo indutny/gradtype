@@ -150,7 +150,8 @@ class Model():
     def dropout(series):
       series_shape = tf.shape(series)
       noise_shape = series_shape[:1] + [ 1 ] +  series_shape[2:]
-      return tf.layers.dropout(series, noise_shape=noise_shape)
+      return tf.layers.dropout(series, noise_shape=noise_shape, \
+          training=self.training)
 
     series = tf.layers.conv1d(series, filters=16, kernel_size=12,
                               activation=tf.nn.selu,
