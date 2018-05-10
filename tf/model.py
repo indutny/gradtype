@@ -10,7 +10,7 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 32
+FEATURE_COUNT = 128
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -153,12 +153,15 @@ class Model():
       return tf.layers.dropout(series, noise_shape=noise_shape)
 
     series = tf.layers.conv1d(series, filters=16, kernel_size=12,
+                              activation=tf.nn.selu,
                               dilation_rate=1, kernel_regularizer=self.l2)
     series = dropout(series)
     series = tf.layers.conv1d(series, filters=16, kernel_size=8,
+                              activation=tf.nn.selu,
                               dilation_rate=2, kernel_regularizer=self.l2)
     series = dropout(series)
     series = tf.layers.conv1d(series, filters=16, kernel_size=6,
+                              activation=tf.nn.selu,
                               dilation_rate=4, kernel_regularizer=self.l2)
     series = dropout(series)
 
