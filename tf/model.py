@@ -155,15 +155,15 @@ class Model():
 
     series = tf.layers.conv1d(series, filters=16, kernel_size=16,
                               activation=tf.nn.selu,
-                              dilation_rate=1, kernel_regularizer=self.l2)
+                              kernel_regularizer=self.l2)
     series = dropout(series)
-    series = tf.layers.conv1d(series, filters=16, kernel_size=7,
+    series = tf.layers.conv1d(series, filters=16, kernel_size=10,
                               activation=tf.nn.selu,
-                              dilation_rate=2, kernel_regularizer=self.l2)
+                              kernel_regularizer=self.l2)
     series = dropout(series)
-    series = tf.layers.conv1d(series, filters=16, kernel_size=2,
+    series = tf.layers.conv1d(series, filters=16, kernel_size=8,
                               activation=tf.nn.selu,
-                              dilation_rate=4, kernel_regularizer=self.l2)
+                              kernel_regularizer=self.l2)
     series = dropout(series)
 
     x = tf.squeeze(series, axis=1)
