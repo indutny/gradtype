@@ -79,14 +79,18 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def build(self, codes, deltas):
-    batch_size = tf.shape(codes)[0]
-    sequence_len = int(codes.shape[1])
-
+  def apply_embedding(self, codes, deltas):
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
     series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
 
+    return series
+
+  def build(self, codes, deltas):
+    batch_size = tf.shape(codes)[0]
+    sequence_len = int(codes.shape[1])
+
+    series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
     new_frames = []
@@ -139,6 +143,28 @@ class Model():
     #     tf.losses.add_loss(self.rnn_l2(w), tf.GraphKeys.REGULARIZATION_LOSSES)
 
     return x
+
+  def build_conv(self, codes, deltas):
+    series = self.apply_embedding(codes, deltas)
+
+    def dropout(series):
+      series_shape = tf.shape(series)
+      noise_shape = series_shape[:1] + [ 1 ] +  series_shape[2:]
+      return tf.layers.dropout(series, noise_shape=noise_shape)
+
+    series = tf.layers.conv1d(series, filters=16, kernel_size=12,
+                              dilation_rate=1, kernel_regularizer=self.l2)
+    series = dropout(series)
+    series = tf.layers.conv1d(series, filters=16, kernel_size=8,
+                              dilation_rate=2, kernel_regularizer=self.l2)
+    series = dropout(series)
+    series = tf.layers.conv1d(series, filters=16, kernel_size=6,
+                              dilation_rate=4, kernel_regularizer=self.l2)
+    series = dropout(series)
+
+    x = tf.squeeze(series, axis=1)
+
+    return self.features(x)
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
