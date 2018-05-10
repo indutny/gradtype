@@ -147,26 +147,18 @@ class Model():
   def build_conv(self, codes, deltas):
     series = self.apply_embedding(codes, deltas)
 
-    def dropout(series):
-      series_shape = tf.shape(series)
-      noise_shape = (series_shape[0], 1,  series_shape[2], )
-      return tf.layers.dropout(series, noise_shape=noise_shape,
-          training=self.training)
-
-    series = tf.layers.conv1d(series, filters=16, kernel_size=16,
+    series = tf.layers.conv1d(series, filters=48, kernel_size=16,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = dropout(series)
-    series = tf.layers.conv1d(series, filters=16, kernel_size=10,
+    series = tf.layers.conv1d(series, filters=48, kernel_size=10,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = dropout(series)
-    series = tf.layers.conv1d(series, filters=16, kernel_size=8,
+    series = tf.layers.conv1d(series, filters=48, kernel_size=8,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = dropout(series)
 
     x = tf.squeeze(series, axis=1)
+    x = tf.layers.dropout(x, training=self.training)
 
     return self.features(x)
 
