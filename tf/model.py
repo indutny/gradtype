@@ -149,7 +149,7 @@ class Model():
 
     def dropout(series):
       series_shape = tf.shape(series)
-      noise_shape = (series_shape[0], 1,  series_shape[1], )
+      noise_shape = (series_shape[0], 1,  series_shape[2], )
       return tf.layers.dropout(series, noise_shape=noise_shape,
           training=self.training)
 
