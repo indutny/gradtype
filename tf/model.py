@@ -10,7 +10,7 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 128
+FEATURE_COUNT = 32
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -160,7 +160,9 @@ class Model():
     x = tf.squeeze(series, axis=1)
     x = tf.layers.dropout(x, training=self.training)
 
-    return self.features(x)
+    x = self.features(x)
+    x = tf.nn.l2_normalize(x, axis=-1)
+    return x
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
