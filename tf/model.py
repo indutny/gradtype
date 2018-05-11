@@ -26,7 +26,7 @@ class Embedding():
 
 class Model():
   def __init__(self, training):
-    self.l2 = tf.contrib.layers.l2_regularizer(0.001)
+    self.l2 = tf.contrib.layers.l2_regularizer(0.004)
     self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0)
     self.training = training
     self.use_pooling = True
@@ -147,13 +147,13 @@ class Model():
   def build_conv(self, codes, deltas):
     series = self.apply_embedding(codes, deltas)
 
-    series = tf.layers.conv1d(series, filters=48, kernel_size=16,
+    series = tf.layers.conv1d(series, filters=96, kernel_size=16,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = tf.layers.conv1d(series, filters=48, kernel_size=10,
+    series = tf.layers.conv1d(series, filters=96, kernel_size=10,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = tf.layers.conv1d(series, filters=48, kernel_size=8,
+    series = tf.layers.conv1d(series, filters=96, kernel_size=8,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
 
