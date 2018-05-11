@@ -76,7 +76,7 @@ input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 p_codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 p_deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 
-output = model.build_conv(p_codes, p_deltas)
+output = model.build(p_codes, p_deltas)
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())

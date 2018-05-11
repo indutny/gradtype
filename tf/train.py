@@ -49,7 +49,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
-output = model.build_conv(codes, deltas)
+output = model.build(codes, deltas)
 t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
 
 #
