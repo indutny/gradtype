@@ -150,12 +150,13 @@ class Model():
     series = tf.layers.conv1d(series, filters=96, kernel_size=16,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
-    series = tf.layers.conv1d(series, filters=96, kernel_size=10,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.l2)
     series = tf.layers.conv1d(series, filters=96, kernel_size=8,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2)
+    series = tf.layers.conv1d(series, filters=96, kernel_size=4,
+                              activation=tf.nn.selu,
+                              kernel_regularizer=self.l2)
+    series = tf.layers.max_pooling1d(series, pool_size=7, strides=1)
 
     x = tf.squeeze(series, axis=1)
     x = tf.layers.dropout(x, training=self.training)
