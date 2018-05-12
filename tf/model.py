@@ -3,12 +3,12 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 7
+EMBED_WIDTH = 127
 DENSE_PRE_COUNT = 0
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
-RNN_WIDTH = [ 128, 128 ]
+RNN_WIDTH = [ 128, 128, 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 32
 
@@ -62,9 +62,13 @@ class Model():
           shape=(cell.state_size, ),
           regularizer=self.l2))
 
-      cell = tf.contrib.rnn.DropoutWrapper(cell,
-          output_keep_prob=tf.where(training, 1.0 - 0.5, 1.0),
-          state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
+      # cell = tf.contrib.rnn.DropoutWrapper(cell,
+      #     output_keep_prob=tf.where(training, 1.0 - 0.5, 1.0),
+      #     state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
+
+      # NOTE: Residual wrapper is not really compatible with dropout
+      cell = tf.contrib.rnn.ResidualWrapper(cell)
+
       cells.append(cell)
     self.rnn_cells = cells
     self.rnn_states = states
@@ -123,9 +127,6 @@ class Model():
           initial_state=state,
           inputs=frames)
 
-      # Residual connection
-      if i != 0:
-        outputs = outputs + frames
       frames = outputs
 
     if self.use_pooling:
