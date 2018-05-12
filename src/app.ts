@@ -8,21 +8,12 @@ const INITIAL_COUNTER = 90;
 const TOLERANCE = 0.5;
 
 const elems = {
-  firefox: document.getElementById('firefox')!,
-  collect: document.getElementById('collect')!,
-
   display: document.getElementById('display')!,
   input: document.getElementById('input')! as HTMLInputElement,
   download: document.getElementById('download')!,
   counter: document.getElementById('counter')!,
   wrap: document.getElementById('wrap')!,
 };
-
-if (performance.detect()) {
-  elems.collect.style.display = 'inherit';
-} else {
-  elems.firefox.style.display = 'inherit';
-}
 
 interface ILogEvent {
   readonly ts: number;
