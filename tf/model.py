@@ -62,11 +62,9 @@ class Model():
           shape=(cell.state_size, ),
           regularizer=self.l2))
 
-      # cell = tf.contrib.rnn.DropoutWrapper(cell,
-      #     output_keep_prob=tf.where(training, 1.0 - 0.5, 1.0),
-      #     state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
+      cell = tf.contrib.rnn.DropoutWrapper(cell,
+          state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
 
-      # NOTE: Residual wrapper is not really compatible with dropout
       cell = tf.contrib.rnn.ResidualWrapper(cell)
 
       cells.append(cell)
