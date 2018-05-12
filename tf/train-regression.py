@@ -18,7 +18,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 MAX_EPOCHS = 500000
 
 # Learning rate
-LR = 0.001
+LR = 0.1
 
 #
 # Load dataset
@@ -40,7 +40,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
-output = model.build_conv(codes, deltas)
+output = model.build(codes, deltas)
 t_metrics, t_summary = model.get_regression_metrics(output, categories)
 
 #
@@ -53,6 +53,7 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
   grads = tf.gradients(t_loss, variables)
+  grads, t_grad_norm = tf.clip_by_global_norm(grads, 2.0)
   grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
@@ -99,14 +100,15 @@ with tf.Session() as sess:
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss ]
-      _, metrics, reg_loss = sess.run(tensors, feed_dict={
+      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
+      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
+      metrics['grad_norm'] = grad_norm
       log_summary('train', metrics, step)
 
       step += 1
