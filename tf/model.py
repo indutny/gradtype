@@ -384,7 +384,6 @@ class Model():
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
 
-      metrics = {}
       metrics['loss'] = loss
 
       return metrics
