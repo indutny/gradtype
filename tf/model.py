@@ -137,6 +137,7 @@ class Model():
       x = post(x)
 
     x = self.features(x)
+    x = tf.nn.l2_normalize(x, axis=-1)
 
     # for w in self.rnn_cell.trainable_weights:
     #   if 'kernel' in w.name:
@@ -331,6 +332,7 @@ class Model():
       batch_size = tf.shape(output)[0]
       proxies = tf.get_variable('points',
           shape=(category_count, FEATURE_COUNT,))
+      proxies = tf.nn.l2_normalize(proxies, axis=-1)
 
       positives = tf.gather(proxies, categories, axis=0,
           name='positive_proxies')
