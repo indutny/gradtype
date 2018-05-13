@@ -6,6 +6,9 @@ train: dataset
 tf-train: dataset
 	python3 ./tf/train.py
 
+tf-proxy: dataset
+	python3 ./tf/train-proxy.py
+
 tf-regression: dataset
 	python3 ./tf/train-regression.py
 

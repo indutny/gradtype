@@ -325,3 +325,57 @@ class Model():
       metrics['accuracy'] = accuracy
 
       return metrics, tf.summary.merge([ confusion ])
+
+  def get_proxy_loss(self, output, categories, category_count):
+    with tf.name_scope('proxy_loss', [ output, categories ]):
+      batch_size = tf.shape(output)[0]
+      proxies = tf.get_variable('points',
+          shape=(category_count, FEATURE_COUNT,))
+
+      positives = tf.gather(proxies, categories, axis=0,
+          name='positive_proxies')
+
+      negative_masks = tf.one_hot(categories, category_count, on_value=False,
+          off_value=True, name='negative_mask')
+
+      def apply_mask(mask):
+        return tf.boolean_mask(proxies, mask, axis=0, name='batch_negatives')
+
+      negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
+          dtype=tf.float32)
+
+      positive_distances = positives - output
+      negative_distances = negatives - tf.expand_dims(output, axis=1)
+
+      positive_distances **= 2
+      negative_distances **= 2
+
+      positive_distances = tf.reduce_sum(positive_distances, axis=-1,
+          name='positive_distances')
+      negative_distances = tf.reduce_sum(negative_distances, axis=-1,
+          name='negative_distances')
+
+      exp_pos = tf.exp(-positive_distances, name='exp_pos')
+      exp_neg = tf.exp(-negative_distances, name='exp_neg')
+
+      total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
+
+      epsilon = 1e-12
+      ratio = exp_pos / (total_exp_neg + epsilon)
+
+      loss = -tf.log(ratio + epsilon, name='loss_vector')
+      loss = tf.reduce_mean(loss, name='loss')
+
+      metrics = {}
+      metrics['loss'] = loss
+
+      for percentile in [ 25, 50, 75 ]:
+        neg_p = tf.contrib.distributions.percentile(negative_distances,
+            percentile)
+        metrics['negative_{}'.format(percentile)] = neg_p
+
+        pos_p = tf.contrib.distributions.percentile(positive_distances,
+            percentile)
+        metrics['positive_{}'.format(percentile)] = pos_p
+
+      return metrics
