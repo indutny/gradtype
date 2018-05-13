@@ -371,7 +371,7 @@ class Model():
       metrics = {}
       metrics['loss'] = loss
 
-      for percentile in [ 25, 50, 75 ]:
+      for percentile in [ 5, 25, 50, 75, 95 ]:
         neg_p = tf.contrib.distributions.percentile(negative_distances,
             percentile)
         metrics['negative_{}'.format(percentile)] = neg_p

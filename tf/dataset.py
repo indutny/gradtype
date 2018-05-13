@@ -138,7 +138,7 @@ def expand_sequence(seq, overlap):
     out.append(copy)
   return out
 
-def trim_dataset(dataset, batch_size=1):
+def trim_dataset(dataset, batch_size=1, random_state=None):
   min_len = None
   for category in dataset:
     if len(category) < batch_size:
@@ -151,6 +151,8 @@ def trim_dataset(dataset, batch_size=1):
   # Equal batches
   min_len -= min_len % batch_size
 
+  rand_state = np.random.RandomState(seed=random_state)
+
   out = []
   for category in dataset:
     if len(category) < min_len:
@@ -158,7 +160,7 @@ def trim_dataset(dataset, batch_size=1):
       continue
 
     out_cat = []
-    perm = np.random.permutation(len(category))
+    perm = rand_state.permutation(len(category))
     for i in perm[:min_len]:
       out_cat.append(category[i])
     out.append(out_cat)
