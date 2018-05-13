@@ -1,4 +1,6 @@
-const ts = window.performance === undefined ? () => Date.now() :
+const isFirefox = /firefox/i.test(window.navigator.userAgent);
+
+const ts = (isFirefox || window.performance === undefined) ? () => Date.now() :
   () => window.performance.now();
 
 export function now(): number {
@@ -6,7 +8,7 @@ export function now(): number {
 }
 
 export function detect(): boolean {
-  if (!/firefox/i.test(window.navigator.userAgent)) {
+  if (!isFirefox) {
     return false;
   }
 
