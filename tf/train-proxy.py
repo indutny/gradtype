@@ -27,31 +27,22 @@ BATCH_SIZE = 16
 # Learning rate
 LR = 0.01
 
-# Number of categories in each epoch
-K = 64
-
-#
-# Load dataset
-#
-
-train_dataset, validate_dataset = dataset.load(train_overlap=4)
-category_count = len(dataset.load_labels())
-
 #
 # Initialize model
 #
 
-input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
-
-codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
-deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
-training = tf.placeholder(tf.bool, shape=(), name='training')
+images = tf.placeholder(tf.float32, shape=(None, 784), name='images')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 
-model = Model(training=training)
+x = tf.layers.dense(images, 128)
+x = tf.layers.dense(x, 256)
+x = tf.layers.dense(x, 128)
 
-output = model.build(codes, deltas)
-t_metrics = model.get_proxy_loss(output, categories, category_count)
+model = Model(training=False)
+output = model.features(x)
+output = tf.nn.l2_normalize(output, axis=-1)
+
+t_metrics = model.get_proxy_loss(output, categories, 10)
 
 #
 # Initialize optimizer
@@ -89,6 +80,26 @@ def log_summary(prefix, metrics, step):
 
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
+mnist = tf.contrib.learn.datasets.load_dataset('mnist')
+
+train_data = mnist.train.images
+train_labels = mnist.train.labels
+eval_data = mnist.test.images
+eval_labels = mnist.test.labels
+
+def batchify(data, labels, batch_size=256):
+  batches = []
+  for i in range(0, len(data), batch_size):
+    batch = {
+      'data': data[i:i + batch_size],
+      'labels': labels[i:i + batch_size],
+    }
+    batches.append(batch)
+  return batches
+
+train_batches = batchify(train_data, train_labels)
+eval_batches = batchify(eval_data, eval_labels)
+
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
@@ -98,24 +109,13 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_trim_dataset, _ =  dataset.trim_dataset(train_dataset)
-    train_flat_dataset = dataset.flatten_dataset(train_trim_dataset)
-    train_batches = dataset.gen_regression(train_flat_dataset)
-
-    validate_trim_dataset, _ = dataset.trim_dataset(validate_dataset)
-    validate_flat_dataset = dataset.flatten_dataset(validate_trim_dataset)
-    validate_batches = dataset.gen_regression(validate_flat_dataset, \
-        batch_size=len(validate_flat_dataset))
-
     saver.save(sess, LOG_DIR, global_step=step)
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
       _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        categories: batch['categories'],
-        training: True,
+        images: batch['data'],
+        categories: batch['labels'],
       })
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
@@ -125,12 +125,10 @@ with tf.Session() as sess:
 
     print('Validation...')
     mean_metrics = None
-    for batch in validate_batches:
+    for batch in eval_batches:
       metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        categories: batch['categories'],
-        training: False,
+        images: batch['data'],
+        categories: batch['labels'],
       })
       writer.add_summary(summary, step)
 
