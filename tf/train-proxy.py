@@ -108,7 +108,7 @@ with tf.Session() as sess:
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
-    saver.save(sess, SAVE_DIR + '{:08d}'.format(step))
+    saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
