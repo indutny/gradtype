@@ -10,7 +10,7 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128, 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 32
+FEATURE_COUNT = 128
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
