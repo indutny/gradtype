@@ -1,6 +1,7 @@
 node_modules/
 survey/datasets/
 logs/
+saves/
 npm-debug.log
 mturk/
 lib/

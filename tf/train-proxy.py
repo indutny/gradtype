@@ -14,6 +14,7 @@ if RUN_NAME is None:
 RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
+SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -107,7 +108,7 @@ with tf.Session() as sess:
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
-    saver.save(sess, LOG_DIR, global_step=step)
+    saver.save(sess, SAVE_DIR + '{:08d}'.format(step))
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
