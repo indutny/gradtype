@@ -327,35 +327,51 @@ class Model():
 
       return metrics, tf.summary.merge([ confusion ])
 
+  def get_proxy_common(self, proxies, output, categories, category_count):
+    positives = tf.gather(proxies, categories, axis=0,
+        name='positive_proxies')
+
+    negative_masks = tf.one_hot(categories, category_count, on_value=False,
+        off_value=True, name='negative_mask')
+
+    def apply_mask(mask):
+      return tf.boolean_mask(proxies, mask, axis=0, name='batch_negatives')
+
+    negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
+        dtype=tf.float32)
+
+    positive_distances = positives - output
+    negative_distances = negatives - tf.expand_dims(output, axis=1)
+
+    positive_distances **= 2
+    negative_distances **= 2
+
+    positive_distances = tf.reduce_sum(positive_distances, axis=-1,
+        name='positive_distances')
+    negative_distances = tf.reduce_sum(negative_distances, axis=-1,
+        name='negative_distances')
+
+    metrics = {}
+    for percentile in [ 5, 25, 50, 75, 95 ]:
+      neg_p = tf.contrib.distributions.percentile(negative_distances,
+          percentile)
+      metrics['negative_{}'.format(percentile)] = neg_p
+
+      pos_p = tf.contrib.distributions.percentile(positive_distances,
+          percentile)
+      metrics['positive_{}'.format(percentile)] = pos_p
+
+    return positive_distances, negative_distances, metrics
+
+
   def get_proxy_loss(self, output, categories, category_count):
     with tf.name_scope('proxy_loss', [ output, categories ]):
-      batch_size = tf.shape(output)[0]
       proxies = tf.get_variable('points',
           shape=(category_count, FEATURE_COUNT,))
       proxies = tf.nn.l2_normalize(proxies, axis=-1)
 
-      positives = tf.gather(proxies, categories, axis=0,
-          name='positive_proxies')
-
-      negative_masks = tf.one_hot(categories, category_count, on_value=False,
-          off_value=True, name='negative_mask')
-
-      def apply_mask(mask):
-        return tf.boolean_mask(proxies, mask, axis=0, name='batch_negatives')
-
-      negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
-          dtype=tf.float32)
-
-      positive_distances = positives - output
-      negative_distances = negatives - tf.expand_dims(output, axis=1)
-
-      positive_distances **= 2
-      negative_distances **= 2
-
-      positive_distances = tf.reduce_sum(positive_distances, axis=-1,
-          name='positive_distances')
-      negative_distances = tf.reduce_sum(negative_distances, axis=-1,
-          name='negative_distances')
+      positive_distances, negative_distances, metrics = \
+          self.get_proxy_common(proxies, output, categories, category_count)
 
       exp_pos = tf.exp(-positive_distances, name='exp_pos')
       exp_neg = tf.exp(-negative_distances, name='exp_neg')
@@ -371,13 +387,20 @@ class Model():
       metrics = {}
       metrics['loss'] = loss
 
-      for percentile in [ 5, 25, 50, 75, 95 ]:
-        neg_p = tf.contrib.distributions.percentile(negative_distances,
-            percentile)
-        metrics['negative_{}'.format(percentile)] = neg_p
+      return metrics
 
-        pos_p = tf.contrib.distributions.percentile(positive_distances,
-            percentile)
-        metrics['positive_{}'.format(percentile)] = pos_p
+  def get_proxy_val_metrics(self, output, categories, category_count):
+    with tf.name_scope('proxy_val_metrics', [ output, categories ]):
+      # Compute proxies as mean points
+      def compute_mean_proxy(category):
+        points = tf.boolean_mask(output, tf.equal(categories, category),
+            'category_points')
+        return tf.reduce_mean(points, axis=0)
+
+      proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
+          dtype=tf.float32)
+
+      _, _, metrics = \
+          self.get_proxy_common(proxies, output, categories, category_count)
 
       return metrics

@@ -53,6 +53,7 @@ model = Model(training=training)
 
 output = model.build(codes, deltas)
 t_metrics = model.get_proxy_loss(output, categories, category_count)
+t_val_metrics = model.get_proxy_val_metrics(output, categories, category_count)
 
 #
 # Initialize optimizer
@@ -67,12 +68,6 @@ with tf.variable_scope('optimizer'):
   grads, t_grad_norm = tf.clip_by_global_norm(grads, 2.0)
   grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
-
-grad_summary = []
-for grad, var in grads:
-  grad_summary.append(tf.summary.histogram(var.name + '/grad', grad))
-
-t_summary = tf.summary.merge(grad_summary)
 
 #
 # TensorBoard
@@ -127,13 +122,12 @@ with tf.Session() as sess:
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
-      metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
+      metrics = sess.run(t_val_metrics, feed_dict={
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
         training: False,
       })
-      writer.add_summary(summary, step)
 
       if mean_metrics is None:
         mean_metrics = {}
