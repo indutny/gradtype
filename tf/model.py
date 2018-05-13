@@ -364,6 +364,7 @@ class Model():
     return positive_distances, negative_distances, metrics
 
 
+  # As in https://arxiv.org/pdf/1703.07464.pdf
   def get_proxy_loss(self, output, categories, category_count):
     with tf.name_scope('proxy_loss', [ output, categories ]):
       proxies = tf.get_variable('points',
