@@ -209,7 +209,7 @@ def flatten_dataset(dataset, k=None):
   for seq in sequences:
     weights[seq['category']] += 1.0
 
-  weights = np.min(weights) / weights
+  weights = np.min(weights) / (weights + 1e-12)
 
   return sequences, weights
 
