@@ -314,7 +314,7 @@ class Model():
       predictions = tf.cast(tf.argmax(output, axis=-1), tf.int32)
 
       accuracy = tf.equal(predictions, tf.cast(categories, tf.int32))
-      accuracy = tf.cast(accuracy, tf.float32) * weights
+      accuracy = tf.cast(accuracy, tf.float32) * batch_weights
       accuracy = tf.reduce_mean(accuracy)
 
       confusion = tf.confusion_matrix(categories, predictions, output.shape[1],
