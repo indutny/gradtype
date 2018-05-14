@@ -303,12 +303,12 @@ class Model():
     with tf.name_scope('regression_loss', [ output, categories, weights ]):
       categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
 
-      weights = tf.gather(weights, categories, axis=0, \
+      batch_weights = tf.gather(weights, categories, axis=0, \
           name='per_category_weight')
 
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories_one_hot)
-      loss *= weights
+      loss *= batch_weights
       loss = tf.reduce_mean(loss)
 
       predictions = tf.cast(tf.argmax(output, axis=-1), tf.int32)
