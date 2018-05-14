@@ -26,6 +26,9 @@ LR = 0.1
 
 train_dataset, validate_dataset = dataset.load(mode='regression', \
     train_overlap=1)
+train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
+validate_flat_dataset, validate_weights = \
+    dataset.flatten_dataset(validate_dataset)
 
 #
 # Initialize model
@@ -36,12 +39,13 @@ input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
+weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
 output = model.build(codes, deltas)
-t_metrics, t_summary = model.get_regression_metrics(output, categories)
+t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
 # Initialize optimizer
@@ -88,12 +92,7 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_trim_dataset, _ =  dataset.trim_dataset(train_dataset)
-    train_flat_dataset = dataset.flatten_dataset(train_trim_dataset)
     train_batches = dataset.gen_regression(train_flat_dataset)
-
-    validate_trim_dataset, _ = dataset.trim_dataset(validate_dataset)
-    validate_flat_dataset = dataset.flatten_dataset(validate_trim_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
@@ -105,6 +104,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        weights: train_weights,
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
@@ -120,6 +120,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        weights: validate_weights,
         training: False,
       })
       writer.add_summary(summary, step)

@@ -48,12 +48,14 @@ codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
+weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
 output = model.build(codes, deltas)
-t_metrics = model.get_proxy_loss(output, categories, category_count)
-t_val_metrics = model.get_proxy_val_metrics(output, categories, category_count)
+t_metrics = model.get_proxy_loss(output, categories, weights, category_count)
+t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
+    category_count)
 
 #
 # Initialize optimizer
@@ -95,11 +97,9 @@ with tf.Session() as sess:
   step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_trim_dataset, _ =  dataset.trim_dataset(train_dataset)
-    train_flat_dataset = dataset.flatten_dataset(train_trim_dataset)
     train_batches = dataset.gen_regression(train_flat_dataset)
 
     validate_trim_dataset, _ = dataset.trim_dataset(validate_dataset)
-    validate_flat_dataset = dataset.flatten_dataset(validate_trim_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
@@ -111,6 +111,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        weights: batch['weights'],
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
@@ -126,6 +127,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        weights: batch['weights'],
         training: False,
       })
 

@@ -147,6 +147,7 @@ def trim_dataset(dataset, batch_size=1, random_state=None):
       min_len = len(category)
     else:
       min_len = min(min_len, len(category))
+  print(min_len, batch_size)
 
   # Equal batches
   min_len -= min_len % batch_size
@@ -200,7 +201,7 @@ def flatten_dataset(dataset, k=None):
   for category in categories:
     for seq in category:
       sequences.append(seq)
-  return sequences
+  return sequences, []
 
 def gen_regression(sequences, batch_size=256):
   perm = np.random.permutation(len(sequences))

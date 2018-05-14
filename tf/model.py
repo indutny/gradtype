@@ -299,8 +299,8 @@ class Model():
 
       return metrics
 
-  def get_regression_metrics(self, output, categories):
-    with tf.name_scope('regression_loss', [ output, categories ]):
+  def get_regression_metrics(self, output, categories, weights):
+    with tf.name_scope('regression_loss', [ output, categories, weights ]):
       categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories_one_hot)
@@ -365,8 +365,8 @@ class Model():
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
-  def get_proxy_loss(self, output, categories, category_count):
-    with tf.name_scope('proxy_loss', [ output, categories ]):
+  def get_proxy_loss(self, output, categories, weights, category_count):
+    with tf.name_scope('proxy_loss', [ output, categories, weights ]):
       proxies = tf.get_variable('points',
           shape=(category_count, FEATURE_COUNT,))
       proxies = tf.nn.l2_normalize(proxies, axis=-1)
@@ -389,8 +389,8 @@ class Model():
 
       return metrics
 
-  def get_proxy_val_metrics(self, output, categories, category_count):
-    with tf.name_scope('proxy_val_metrics', [ output, categories ]):
+  def get_proxy_val_metrics(self, output, categories, weights, category_count):
+    with tf.name_scope('proxy_val_metrics', [ output, categories, weights ]):
       # Compute proxies as mean points
       def compute_mean_proxy(category):
         points = tf.boolean_mask(output, tf.equal(categories, category),
