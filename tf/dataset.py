@@ -209,10 +209,6 @@ def gen_regression(sequences, batch_size=256):
     batch = []
     batch_perm = perm[i:i + batch_size]
 
-    # Even batches
-    if len(batch_perm) != batch_size:
-      break
-
     categories = []
     codes = []
     deltas = []
