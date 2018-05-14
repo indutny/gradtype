@@ -84,13 +84,6 @@ class Model():
 
   def apply_embedding(self, codes, deltas):
     embedding = self.embedding.apply(codes)
-
-    # Given that the deltas are logarithms of the time delta - adding same noise
-    # to each sequence element should train network to be time-scale independent
-    delta_noise = tf.cast(self.training, tf.float32) * \
-        tf.random_normal([ tf.shape(deltas)[0], 1 ], stddev=0.1,
-            name='delta_noise')
-    deltas += delta_noise
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
