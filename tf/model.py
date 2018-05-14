@@ -39,9 +39,6 @@ class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
-    self.rnn_activity_l2 = tf.contrib.layers.l2_regularizer(RNN_ACTIVATION_L2)
-    self.rnn_temp_activity_l2 = \
-        tf.contrib.layers.l2_regularizer(RNN_TEMP_ACTIVATION_L2)
     self.training = training
     self.use_pooling = True
 
@@ -145,14 +142,29 @@ class Model():
       stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
       if RNN_ACTIVATION_L2 != 0.0:
-        tf.losses.add_loss(self.rnn_activity_l2(stacked_output), \
-            tf.GraphKeys.REGULARIZATION_LOSSES)
+        l2 = stacked_output ** 2
+        # Sum over activations
+        l2 = tf.reduce_sum(l2, axis=-1)
+        # Mean over time dimension
+        l2 = tf.reduce_mean(l2, axis=1)
+        # Mean over batch dimensions
+        l2 = tf.reduce_mean(l2, axis=0)
+        l2 *= RNN_ACTIVATION_L2
+
+        tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
       if RNN_TEMP_ACTIVATION_L2 != 0.0:
         left = stacked_output[:, :-1]
         right = stacked_output[:, 1:]
-        tf.losses.add_loss(self.rnn_temp_activity_l2(left - right), \
-            tf.GraphKeys.REGULARIZATION_LOSSES)
+        l2 = (left - right) ** 2
+        # Sum over activations
+        l2 = tf.reduce_sum(l2, axis=-1)
+        # Mean over time dimension
+        l2 = tf.reduce_mean(l2, axis=1)
+        # Mean over batch dimensions
+        l2 = tf.reduce_mean(l2, axis=0)
+        l2 *= RNN_TEMP_ACTIVATION_L2
+        tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
       frames = outputs
 
