@@ -37,6 +37,9 @@ K = 64
 
 train_dataset, validate_dataset = dataset.load(train_overlap=4)
 category_count = len(dataset.load_labels())
+train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
+validate_flat_dataset, validate_weights = \
+    dataset.flatten_dataset(validate_dataset)
 
 #
 # Initialize model
@@ -96,10 +99,7 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_trim_dataset, _ =  dataset.trim_dataset(train_dataset)
     train_batches = dataset.gen_regression(train_flat_dataset)
-
-    validate_trim_dataset, _ = dataset.trim_dataset(validate_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
@@ -111,7 +111,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
-        weights: batch['weights'],
+        weights: train_weights,
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
@@ -127,7 +127,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
-        weights: batch['weights'],
+        weights: validate_weights,
         training: False,
       })
 
