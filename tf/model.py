@@ -4,8 +4,8 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 127
-DENSE_PRE_COUNT = 0
-DENSE_PRE_WIDTH = 32
+DENSE_PRE_COUNT = 1
+DENSE_PRE_WIDTH = 128
 DENSE_PRE_RESIDUAL_COUNT = 0
 
 RNN_WIDTH = [ 128, 128, 128 ]
@@ -30,7 +30,7 @@ class Model():
     self.cnn_l2 = tf.contrib.layers.l2_regularizer(0.004)
     self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0)
     self.training = training
-    self.use_pooling = True
+    self.use_pooling = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
                                regularizer=self.l2)
