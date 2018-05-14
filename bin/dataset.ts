@@ -54,6 +54,10 @@ let datasets = labels.map((name) => {
   };
 });
 
+datasets.slice()
+  .sort((a, b) => b.sequences.length - a.sequences.length)
+  .forEach((ds) => console.log(ds.name, ds.sequences.length));
+
 try {
   fs.mkdirSync(OUT_DIR);
 } catch (e) {
