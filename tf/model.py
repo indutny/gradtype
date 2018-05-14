@@ -360,11 +360,11 @@ class Model():
 
     metrics = {}
     for percentile in [ 5, 25, 50, 75, 95 ]:
-      neg_p = tf.contrib.distributions.percentile(positive_distances,
+      neg_p = tf.contrib.distributions.percentile(negative_distances,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
 
-      pos_p = tf.contrib.distributions.percentile(negative_distances,
+      pos_p = tf.contrib.distributions.percentile(positive_distances,
           percentile, name='positive_{}'.format(percentile))
       metrics['positive_{}'.format(percentile)] = pos_p
 
