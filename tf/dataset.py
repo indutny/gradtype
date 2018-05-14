@@ -198,10 +198,16 @@ def flatten_dataset(dataset, k=None):
   categories = [ dataset[i] for i in perm[:k] ]
 
   sequences = []
+  weights = []
   for category in categories:
+    weights.append(len(category))
     for seq in category:
       sequences.append(seq)
-  return sequences, []
+
+  weights = np.array(weights, dtype='float32')
+  weights = np.min(weights) / weights
+
+  return sequences, weights
 
 def gen_regression(sequences, batch_size=256):
   perm = np.random.permutation(len(sequences))

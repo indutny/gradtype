@@ -302,17 +302,24 @@ class Model():
   def get_regression_metrics(self, output, categories, weights):
     with tf.name_scope('regression_loss', [ output, categories, weights ]):
       categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
+
+      weights = tf.gather(weights, categories, axis=0, \
+          name='per_category_weight')
+
       loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
           labels=categories_one_hot)
+      loss *= weights
       loss = tf.reduce_mean(loss)
 
       predictions = tf.cast(tf.argmax(output, axis=-1), tf.int32)
 
       accuracy = tf.equal(predictions, tf.cast(categories, tf.int32))
-      accuracy = tf.reduce_mean(tf.cast(accuracy, tf.float32))
+      accuracy = tf.cast(accuracy, tf.float32) * weights
+      accuracy = tf.reduce_mean(accuracy)
 
       confusion = tf.confusion_matrix(categories, predictions, output.shape[1],
                                       dtype=tf.float32)
+      confusion *= weights
 
       # Add batch dimension
       confusion = tf.expand_dims(confusion, axis=0)
@@ -327,7 +334,8 @@ class Model():
 
       return metrics, tf.summary.merge([ confusion ])
 
-  def get_proxy_common(self, proxies, output, categories, category_count):
+  def get_proxy_common(self, proxies, output, categories, weights, \
+      category_count):
     positives = tf.gather(proxies, categories, axis=0,
         name='positive_proxies')
 
@@ -351,13 +359,16 @@ class Model():
     negative_distances = tf.reduce_sum(negative_distances, axis=-1,
         name='negative_distances')
 
+    weighted_positives = positive_distances * weights
+    weighted_negatives = negative_distances * weights
+
     metrics = {}
     for percentile in [ 5, 25, 50, 75, 95 ]:
-      neg_p = tf.contrib.distributions.percentile(negative_distances,
+      neg_p = tf.contrib.distributions.percentile(weighted_negatives,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
 
-      pos_p = tf.contrib.distributions.percentile(positive_distances,
+      pos_p = tf.contrib.distributions.percentile(weighted_positives,
           percentile, name='positive_{}'.format(percentile))
       metrics['positive_{}'.format(percentile)] = pos_p
 
@@ -371,8 +382,11 @@ class Model():
           shape=(category_count, FEATURE_COUNT,))
       proxies = tf.nn.l2_normalize(proxies, axis=-1)
 
-      positive_distances, negative_distances, metrics = \
-          self.get_proxy_common(proxies, output, categories, category_count)
+      weights = tf.gather(weights, categories, axis=0, \
+          name='per_category_weight')
+
+      positive_distances, negative_distances, metrics = self.get_proxy_common( \
+          proxies, output, categories, weights, category_count)
 
       exp_pos = tf.exp(-positive_distances, name='exp_pos')
       exp_neg = tf.exp(-negative_distances, name='exp_neg')
@@ -383,6 +397,7 @@ class Model():
       ratio = exp_pos / (total_exp_neg + epsilon)
 
       loss = -tf.log(ratio + epsilon, name='loss_vector')
+      loss *= weights
       loss = tf.reduce_mean(loss, name='loss')
 
       metrics['loss'] = loss
@@ -400,7 +415,10 @@ class Model():
       proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
           dtype=tf.float32)
 
-      _, _, metrics = \
-          self.get_proxy_common(proxies, output, categories, category_count)
+      weights = tf.gather(weights, categories, axis=0, \
+          name='per_category_weight')
+
+      _, _, metrics = self.get_proxy_common(proxies, output, categories, \
+          weights, category_count)
 
       return metrics
