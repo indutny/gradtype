@@ -58,9 +58,10 @@ def pca(train, validate, fname=None):
       color = COLOR_MAP(to_color(category))
 
       marker = 'o' if kind is 'train' else '^'
-      size = 5 if kind is 'train' else 8
+      size = 6 if kind is 'train' else 10
+      alpha = 0.1 if kind is 'train' else 0.8
       plt.scatter(x, y, c=color, marker=marker,
-                  edgecolor='k', s=size, alpha=0.9, linewidths=0.0,
+                  edgecolor='k', s=size, alpha=alpha, linewidths=0.0,
                   edgecolors='none')
 
   if fname == None:

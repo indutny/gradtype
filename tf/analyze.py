@@ -72,7 +72,7 @@ with tf.Session() as sess:
     restore = restore[:-6]
   saver.restore(sess, restore)
 
-  train_dataset, validate_dataset = dataset.load()
+  train_dataset, validate_dataset = dataset.load(overlap=1)
 
   train_dataset = dataset.flatten_dataset(train_dataset)
   validate_dataset = dataset.flatten_dataset(validate_dataset)
