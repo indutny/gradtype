@@ -4,7 +4,6 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 27;
 
-const CUTOFF_TIME = 3;
 const MIN_SEQUENCE = 8;
 
 // Moving average window
@@ -77,11 +76,6 @@ export class Dataset {
       assert(0 <= code && code <= MAX_CHAR);
 
       let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
-      if (delta > CUTOFF_TIME) {
-        yield reset();
-        continue;
-      }
-
       lastTS = event.ts;
 
       // Skip first keystroke
