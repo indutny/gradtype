@@ -137,7 +137,7 @@ class Model():
     for post in self.post:
       x = post(x)
 
-    # x = self.features(x)
+    x = self.features(x)
     x = tf.nn.l2_normalize(x, axis=-1)
 
     # for w in self.rnn_cell.trainable_weights:
