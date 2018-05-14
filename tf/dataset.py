@@ -147,7 +147,6 @@ def trim_dataset(dataset, batch_size=1, random_state=None):
       min_len = len(category)
     else:
       min_len = min(min_len, len(category))
-  print(min_len, batch_size)
 
   # Equal batches
   min_len -= min_len % batch_size

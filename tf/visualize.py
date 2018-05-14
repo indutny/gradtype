@@ -88,15 +88,17 @@ with tf.Session() as sess:
     restore = restore[:-6]
   saver.restore(sess, restore)
 
-  train_dataset, validate_dataset = dataset.load()
+  train_dataset, validate_dataset = dataset.load(overlap=1)
 
   train_dataset, _ = dataset.trim_dataset(train_dataset,
       random_state=0x37255c25)
   validate_dataset, _ = dataset.trim_dataset(validate_dataset,
       random_state=0x37255c25)
 
-  train_dataset = dataset.flatten_dataset(train_dataset)
-  validate_dataset = dataset.flatten_dataset(validate_dataset)
+  train_dataset, _ = dataset.flatten_dataset(train_dataset)
+  validate_dataset, _ = dataset.flatten_dataset(validate_dataset)
+  validate_dataset += train_dataset
+  train_dataset = []
 
   codes = []
   deltas = []
