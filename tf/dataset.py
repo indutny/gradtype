@@ -197,14 +197,18 @@ def flatten_dataset(dataset, k=None):
   perm = np.random.permutation(len(dataset))
   categories = [ dataset[i] for i in perm[:k] ]
 
+  max_category = 0
   sequences = []
-  weights = []
   for category in categories:
-    weights.append(len(category))
     for seq in category:
+      # NOTE: lame
+      max_category = max(max_category, seq['category'])
       sequences.append(seq)
 
-  weights = np.array(weights, dtype='float32')
+  weights = np.zeros(max_category + 1, dtype='float32')
+  for seq in sequences:
+    weights[seq['category']] += 1.0
+
   weights = np.min(weights) / weights
 
   return sequences, weights
