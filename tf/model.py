@@ -8,6 +8,17 @@ DENSE_PRE_COUNT = 0
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
+INPUT_DROPOUT = 0.5
+RNN_STATE_DROPOUT = 0.0
+RNN_OUTPUT_DROPOUT = 0.3
+
+DENSE_L2 = 0.001
+CNN_L2 = 0.004
+
+# See: https://arxiv.org/pdf/1708.01009.pdf
+RNN_ACTIVATION_L2 = 5.0
+RNN_TEMP_ACTIVATION_L2 = 2.0
+
 RNN_WIDTH = [ 128, 128, 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
@@ -26,9 +37,11 @@ class Embedding():
 
 class Model():
   def __init__(self, training):
-    self.l2 = tf.contrib.layers.l2_regularizer(0.001)
-    self.cnn_l2 = tf.contrib.layers.l2_regularizer(0.004)
-    self.rnn_l2 = tf.contrib.layers.l2_regularizer(0.0)
+    self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
+    self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
+    self.rnn_activity_l2 = tf.contrib.layers.l2_regularizer(RNN_ACTIVATION_L2)
+    self.rnn_temp_activity_l2 = \
+        tf.contrib.layers.l2_regularizer(RNN_TEMP_ACTIVATION_L2)
     self.training = training
     self.use_pooling = True
 
@@ -58,12 +71,14 @@ class Model():
     for i, width in enumerate(RNN_WIDTH):
       cell = tf.contrib.rnn.GRUBlockCellV2(name='gru_{}'.format(i), \
           num_units=width)
+
       states.append(tf.get_variable('initial_state_{}'.format(i), \
           shape=(cell.state_size, ),
           regularizer=self.l2))
 
       cell = tf.contrib.rnn.DropoutWrapper(cell,
-          state_keep_prob=tf.where(training, 1.0 - 0.3, 1.0))
+          state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
+          output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
 
       cell = tf.contrib.rnn.ResidualWrapper(cell)
 
@@ -87,6 +102,8 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
+    series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
+        training=self.training)
 
     return series
 
@@ -125,12 +142,22 @@ class Model():
           cell=cell,
           initial_state=state,
           inputs=frames)
+      stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
+
+      if RNN_ACTIVATION_L2 != 0.0:
+        tf.losses.add_loss(self.rnn_activity_l2(stacked_output), \
+            tf.GraphKeys.REGULARIZATION_LOSSES)
+
+      if RNN_TEMP_ACTIVATION_L2 != 0.0:
+        left = stacked_output[:, :-1]
+        right = stacked_output[:, 1:]
+        tf.losses.add_loss(self.rnn_temp_activity_l2(left - right), \
+            tf.GraphKeys.REGULARIZATION_LOSSES)
 
       frames = outputs
 
     if self.use_pooling:
-      x = tf.stack(outputs, axis=1, name='stacked_output')
-      x = tf.reduce_max(x, axis=1, name='output')
+      x = tf.reduce_max(stacked_output, axis=1, name='output')
     else:
       x = outputs[-1]
 
@@ -139,10 +166,6 @@ class Model():
 
     x = self.features(x)
     x = tf.nn.l2_normalize(x, axis=-1)
-
-    # for w in self.rnn_cell.trainable_weights:
-    #   if 'kernel' in w.name:
-    #     tf.losses.add_loss(self.rnn_l2(w), tf.GraphKeys.REGULARIZATION_LOSSES)
 
     return x
 
