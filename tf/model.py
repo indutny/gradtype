@@ -16,6 +16,7 @@ DENSE_L2 = 0.001
 CNN_L2 = 0.004
 
 # See: https://arxiv.org/pdf/1708.01009.pdf
+# And: https://arxiv.org/pdf/1511.08400.pdf
 RNN_ACTIVATION_L2 = 0.0
 RNN_TEMP_ACTIVATION_L2 = 0.0
 
@@ -156,9 +157,7 @@ class Model():
       if RNN_TEMP_ACTIVATION_L2 != 0.0:
         left = stacked_output[:, :-1]
         right = stacked_output[:, 1:]
-        l2 = (left - right) ** 2
-        # Sum over activations
-        l2 = tf.reduce_sum(l2, axis=-1)
+        l2 = (tf.norm(left, axis=-1) - tf.norm(right, axis=-1)) ** 2
         # Mean over time dimension
         l2 = tf.reduce_mean(l2, axis=1)
         # Mean over batch dimensions
