@@ -168,7 +168,7 @@ class Model():
       frames = outputs
 
     if self.use_pooling:
-      x = tf.reduce_max(stacked_output, axis=1, name='output')
+      x = tf.reduce_mean(stacked_output, axis=1, name='output')
     else:
       x = outputs[-1]
 
