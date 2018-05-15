@@ -34,7 +34,9 @@ K = 64
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load(train_overlap=4)
+loaded = dataset.load(train_overlap=4)
+train_dataset = loaded['train']
+validate_dataset = loaded['validate']
 
 #
 # Initialize model

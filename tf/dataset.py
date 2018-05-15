@@ -14,7 +14,7 @@ MAX_SEQUENCE_LEN = 32
 VALIDATE_PERCENT = 0.33
 
 # Percent of categories in validation data (`triplet` mode only)
-VALIDATE_CATEGORY_PERCENT = 0.25
+VALIDATE_CATEGORY_PERCENT = 0.5
 
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
@@ -77,11 +77,20 @@ def split(dataset, mode, train_overlap, validate_overlap):
 
   train = []
   validate = []
+  train_mask = [ False ] * len(dataset)
+  validate_mask = [ False ] * len(dataset)
+
   for category_i in category_perm[:train_cat_count]:
     category = dataset[category_i]
 
     perm = rand_state.permutation(len(category))
     train_seq_count = int(len(category) * (1.0 - VALIDATE_PERCENT))
+    train_mask[category_i] = True
+
+    # Full categories only in triplet mode
+    if mode == 'triplet':
+      train.append(category)
+      continue
 
     train_category = []
     for i in perm[:train_seq_count]:
@@ -96,9 +105,16 @@ def split(dataset, mode, train_overlap, validate_overlap):
 
   if mode == 'triplet':
     for category_i in category_perm[train_cat_count:]:
+      validate_mask[category_i] = True
       validate.append(dataset[category_i])
 
-  return expand(train, train_overlap), expand(validate, validate_overlap)
+  return {
+    'category_count': len(dataset),
+    'train': expand(train, train_overlap),
+    'train_mask': train_mask,
+    'validate': expand(validate, validate_overlap),
+    'validate_mask': validate_mask,
+  }
 
 def expand(dataset, overlap):
   out = []

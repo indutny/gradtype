@@ -371,12 +371,16 @@ class Model():
 
       return metrics, tf.summary.merge([ confusion ])
 
-  def get_proxy_common(self, proxies, output, categories, category_count):
+  # TODO(indutny): use `weights`?
+  def get_proxy_common(self, proxies, output, categories, category_count, \
+      category_mask):
     positives = tf.gather(proxies, categories, axis=0,
         name='positive_proxies')
 
     negative_masks = tf.one_hot(categories, category_count, on_value=False,
         off_value=True, name='negative_mask')
+    negative_masks = tf.logical_and(negative_masks, \
+        tf.expand_dims(category_mask, axis=0))
 
     def apply_mask(mask):
       return tf.boolean_mask(proxies, mask, axis=0, name='batch_negatives')
@@ -409,8 +413,10 @@ class Model():
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
-  def get_proxy_loss(self, output, categories, weights, category_count):
-    with tf.name_scope('proxy_loss', [ output, categories, weights ]):
+  def get_proxy_loss(self, output, categories, weights, category_count, \
+      category_mask):
+    with tf.name_scope('proxy_loss', [ output, categories, weights, \
+        category_mask ]):
       proxies = tf.get_variable('points',
           shape=(category_count, FEATURE_COUNT,))
       proxies = tf.nn.l2_normalize(proxies, axis=-1)
@@ -419,7 +425,7 @@ class Model():
           name='per_category_weight')
 
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
-          proxies, output, categories, category_count)
+          proxies, output, categories, category_count, category_mask)
 
       exp_pos = tf.exp(-positive_distances, name='exp_pos')
       exp_neg = tf.exp(-negative_distances, name='exp_neg')
@@ -437,8 +443,10 @@ class Model():
 
       return metrics
 
-  def get_proxy_val_metrics(self, output, categories, weights, category_count):
-    with tf.name_scope('proxy_val_metrics', [ output, categories ]):
+  def get_proxy_val_metrics(self, output, categories, weights, category_count, \
+      category_mask):
+    with tf.name_scope('proxy_val_metrics', [ output, categories, \
+        category_mask ]):
       # Compute proxies as mean points
       def compute_mean_proxy(category):
         points = tf.boolean_mask(output, tf.equal(categories, category),
@@ -449,6 +457,6 @@ class Model():
           dtype=tf.float32)
 
       _, _, metrics = self.get_proxy_common(proxies, output, categories, \
-          category_count)
+          category_count, category_mask)
 
       return metrics

@@ -35,8 +35,13 @@ K = 64
 # Load dataset
 #
 
-train_dataset, validate_dataset = dataset.load(train_overlap=4)
-category_count = len(dataset.load_labels())
+loaded = dataset.load(overlap=4)
+train_dataset = loaded['train']
+train_mask = loaded['train_mask']
+validate_dataset = loaded['validate']
+validate_mask = loaded['validate_mask']
+category_count = loaded['category_count']
+
 train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
 validate_flat_dataset, validate_weights = \
     dataset.flatten_dataset(validate_dataset)
@@ -51,14 +56,17 @@ codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
+category_mask = tf.placeholder(tf.bool, shape=(category_count,),
+    name='category_mask')
 weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
 output = model.build(codes, deltas)
-t_metrics = model.get_proxy_loss(output, categories, weights, category_count)
+t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
+    category_mask)
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
-    category_count)
+    category_count, category_mask)
 
 #
 # Initialize optimizer
@@ -111,6 +119,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        category_mask: train_mask,
         weights: train_weights,
         training: True,
       })
@@ -127,6 +136,7 @@ with tf.Session() as sess:
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
+        category_mask: validate_mask,
         weights: validate_weights,
         training: False,
       })
