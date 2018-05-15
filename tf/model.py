@@ -9,7 +9,7 @@ DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
 INPUT_DROPOUT = 0.0
-RNN_STATE_DROPOUT = 0.2
+RNN_STATE_DROPOUT = 0.5
 RNN_OUTPUT_DROPOUT = 0.0
 
 DENSE_L2 = 0.001
@@ -140,7 +140,6 @@ class Model():
           cell=cell,
           initial_state=state,
           inputs=frames)
-      stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
       if RNN_ACTIVATION_L2 != 0.0:
         l2 = stacked_output ** 2
@@ -154,18 +153,20 @@ class Model():
 
         tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
-      if RNN_TEMP_ACTIVATION_L2 != 0.0:
-        left = stacked_output[:, :-1]
-        right = stacked_output[:, 1:]
-        l2 = (tf.norm(left, axis=-1) - tf.norm(right, axis=-1)) ** 2
-        # Mean over time dimension
-        l2 = tf.reduce_mean(l2, axis=1)
-        # Mean over batch dimensions
-        l2 = tf.reduce_mean(l2, axis=0)
-        l2 *= RNN_TEMP_ACTIVATION_L2
-        tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
-
       frames = outputs
+
+    stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
+
+    if RNN_TEMP_ACTIVATION_L2 != 0.0:
+      left = stacked_output[:, :-1]
+      right = stacked_output[:, 1:]
+      l2 = tf.norm(left - right, axis=-1)
+      # Mean over time dimension
+      l2 = tf.reduce_mean(l2, axis=1)
+      # Mean over batch dimensions
+      l2 = tf.reduce_mean(l2, axis=0)
+      l2 *= RNN_TEMP_ACTIVATION_L2
+      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
     if self.use_pooling:
       x = tf.reduce_mean(stacked_output, axis=1, name='output')

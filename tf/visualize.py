@@ -88,7 +88,7 @@ with tf.Session() as sess:
     restore = restore[:-6]
   saver.restore(sess, restore)
 
-  train_dataset, validate_dataset = dataset.load(overlap=1)
+  train_dataset, validate_dataset = dataset.load(overlap=8)
 
   train_dataset, _ = dataset.trim_dataset(train_dataset,
       random_state=0x37255c25)
