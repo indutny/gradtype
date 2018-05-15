@@ -99,8 +99,6 @@ with tf.Session() as sess:
 
   train_dataset, _ = dataset.flatten_dataset(train_dataset)
   validate_dataset, _ = dataset.flatten_dataset(validate_dataset)
-  validate_dataset += train_dataset
-  train_dataset = []
 
   codes = []
   deltas = []
