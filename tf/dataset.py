@@ -166,7 +166,9 @@ def normalize_dataset(dataset):
 def normalize_sequence(seq):
   res = seq.copy()
   deltas = seq['deltas']
-  deltas = (deltas - np.mean(deltas)) / (np.var(deltas) + 1e-9)
+  # NOTE: `deltas` are logarithms of time difference. Normalizing `mean` to 0,
+  # means rescaling. Normalizing `var` is non-applicable.
+  deltas = deltas - np.mean(deltas)
   res.update({ 'deltas': deltas })
   return res
 
