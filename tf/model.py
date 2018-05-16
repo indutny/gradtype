@@ -77,7 +77,7 @@ class Model():
           state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
           output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
 
-      if RNN_USE_RESIDUAL:
+      if RNN_USE_RESIDUAL and i != 0:
         cell = tf.contrib.rnn.ResidualWrapper(cell)
 
       cells.append(cell)
