@@ -19,6 +19,8 @@ CNN_L2 = 0.004
 # TODO(indutny): Use https://arxiv.org/pdf/1708.01009.pdf
 #                or https://arxiv.org/pdf/1511.08400.pdf
 
+TEMPORAL_REGULARIZATION = 0.0
+
 RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
@@ -118,9 +120,34 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    for i, cell in enumerate(self.rnn_cells):
-      outputs, _ = tf.nn.static_rnn(cell=cell, dtype=tf.float32, inputs=frames)
-      frames = outputs
+    if TEMPORAL_REGULARIZATION == 0.0:
+      for i, cell in enumerate(self.rnn_cells):
+        outputs, _ = tf.nn.static_rnn(cell=cell, dtype=tf.float32,
+            inputs=frames)
+        frames = outputs
+    else:
+      for i, cell in enumerate(self.rnn_cells):
+        state = cell.zero_state(batch_size, tf.float32)
+
+        outputs = []
+        states = []
+        for frame in frames:
+          output, state = cell(frame, state)
+          outputs.append(output)
+          states.append(state.h)
+
+        frames = outputs
+
+      states = tf.stack(states, axis=1, name='stacked_states')
+      left = states[:, :-1]
+      right = states[:, 1:]
+      l2 = (tf.norm(left, axis=-1) - tf.norm(right, axis=-1)) ** 2
+      # Mean over time dimension
+      l2 = tf.reduce_mean(l2, axis=1)
+      # Mean over batch dimensions
+      l2 = tf.reduce_mean(l2, axis=0)
+      l2 *= TEMPORAL_REGULARIZATION
+      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
