@@ -130,13 +130,13 @@ class Model():
       random_len = tf.random_uniform(shape=(batch_size,),
           minval=tf.where(self.training, int(sequence_len / 2), sequence_len),
           maxval=sequence_len,
+          dtype=tf.int32,
           name='random_len')
 
       def select_random(pair):
         outputs = pair[0]
         random_len = pair[1]
-        return tf.gather(outputs, tf.cast(random_len, tf.int32), axis=0,
-            name='select_random')
+        return tf.gather(outputs, random_len, axis=0, name='select_random')
 
       x = tf.map_fn(select_random, (stacked_output, random_len),
           dtype=tf.float32)
