@@ -9,7 +9,8 @@ DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
 
 INPUT_DROPOUT = 0.0
-RNN_STATE_DROPOUT = 0.5
+RNN_INPUT_DROPOUT = 0.0
+RNN_STATE_DROPOUT = 0.0
 RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
 
@@ -72,6 +73,7 @@ class Model():
           num_units=width)
 
       cell = tf.contrib.rnn.DropoutWrapper(cell,
+          input_keep_prob=tf.where(training, 1.0 - RNN_INPUT_DROPOUT, 1.0),
           state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
           output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
 
