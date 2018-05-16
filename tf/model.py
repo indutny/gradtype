@@ -125,7 +125,7 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    if TEMPORAL_REGULARIZATION == 0.0:
+    if TEMPORAL_REGULARIZATION == 0.0 and ACTIVITY_REGULARIZATION == 0.0:
       for i, cell in enumerate(self.rnn_cells):
         outputs, _ = tf.nn.static_rnn(cell=cell, dtype=tf.float32,
             inputs=frames)
