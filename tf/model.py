@@ -11,14 +11,13 @@ DENSE_PRE_RESIDUAL_COUNT = 0
 INPUT_DROPOUT = 0.0
 RNN_STATE_DROPOUT = 0.5
 RNN_OUTPUT_DROPOUT = 0.0
+RNN_USE_RESIDUAL = False
 
 DENSE_L2 = 0.001
 CNN_L2 = 0.004
 
-# See: https://arxiv.org/pdf/1708.01009.pdf
-# And: https://arxiv.org/pdf/1511.08400.pdf
-RNN_ACTIVATION_L2 = 0.0
-RNN_TEMP_ACTIVATION_L2 = 0.0
+# TODO(indutny): Use https://arxiv.org/pdf/1708.01009.pdf
+#                or https://arxiv.org/pdf/1511.08400.pdf
 
 RNN_WIDTH = [ 128, 128, 128 ]
 DENSE_POST_WIDTH = [ ]
@@ -41,7 +40,8 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
     self.training = training
-    self.use_pooling = True
+    self.use_pooling = False
+    self.random_len = True
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
                                regularizer=self.l2)
@@ -65,24 +65,19 @@ class Model():
                           kernel_regularizer=self.l2) ])
 
     cells = []
-    states = []
     for i, width in enumerate(RNN_WIDTH):
-      cell = tf.contrib.rnn.GRUBlockCellV2(name='gru_{}'.format(i), \
+      cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_{}'.format(i), \
           num_units=width)
-
-      states.append(tf.get_variable('initial_state_{}'.format(i), \
-          shape=(cell.state_size, ),
-          regularizer=self.l2))
 
       cell = tf.contrib.rnn.DropoutWrapper(cell,
           state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
           output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
 
-      cell = tf.contrib.rnn.ResidualWrapper(cell)
+      if RNN_USE_RESIDUAL:
+        cell = tf.contrib.rnn.ResidualWrapper(cell)
 
       cells.append(cell)
     self.rnn_cells = cells
-    self.rnn_states = states
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -123,53 +118,28 @@ class Model():
       new_frames.append(frame)
     frames = new_frames
 
-    # Add [ batch_size, ] dimension
-    states = [
-        tf.tile(tf.expand_dims(state, axis=0), (batch_size, 1, ))
-        for state in self.rnn_states
-    ]
-
-    states = [
-        state + tf.cast(self.training, tf.float32) * \
-            tf.random_normal(tf.shape(state), stddev=0.01)
-        for state in states
-    ]
-
-    for i, cell, state in zip(range(len(states)), self.rnn_cells, states):
-      outputs, _ = tf.nn.static_rnn( \
-          cell=cell,
-          initial_state=state,
-          inputs=frames)
-
-      if RNN_ACTIVATION_L2 != 0.0:
-        l2 = stacked_output ** 2
-        # Sum over activations
-        l2 = tf.reduce_sum(l2, axis=-1)
-        # Mean over time dimension
-        l2 = tf.reduce_mean(l2, axis=1)
-        # Mean over batch dimensions
-        l2 = tf.reduce_mean(l2, axis=0)
-        l2 *= RNN_ACTIVATION_L2
-
-        tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
-
+    for i, cell in enumerate(self.rnn_cells):
+      outputs, _ = tf.nn.static_rnn(cell=cell, dtype=tf.float32, inputs=frames)
       frames = outputs
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
-    if RNN_TEMP_ACTIVATION_L2 != 0.0:
-      left = stacked_output[:, :-1]
-      right = stacked_output[:, 1:]
-      l2 = tf.norm(left - right, axis=-1)
-      # Mean over time dimension
-      l2 = tf.reduce_mean(l2, axis=1)
-      # Mean over batch dimensions
-      l2 = tf.reduce_mean(l2, axis=0)
-      l2 *= RNN_TEMP_ACTIVATION_L2
-      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
-
     if self.use_pooling:
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
+    elif self.random_len:
+      random_len = tf.random_uniform(shape=(batch_size,),
+          minval=int(sequence_len / 2),
+          maxval=sequence_len,
+          name='random_len')
+
+      def select_random(pair):
+        outputs = pair[0]
+        random_len = pair[1]
+        return tf.gather(outputs, tf.cast(random_len, tf.int32), axis=0,
+            name='select_random')
+
+      x = tf.map_fn(select_random, (stacked_output, random_len),
+          dtype=tf.float32)
     else:
       x = outputs[-1]
 
