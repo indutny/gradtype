@@ -49,8 +49,7 @@ class Model():
     self.use_pooling = False
     self.random_len = True
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
-                               regularizer=self.l2)
+    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
     self.pre = []
     for i in range(0, DENSE_PRE_COUNT):
