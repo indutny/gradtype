@@ -33,6 +33,8 @@ class Embedding():
     with tf.variable_scope(None, default_name=self.name):
       self.weights = tf.get_variable('weights', shape=(max_code, width),
                                      regularizer=regularizer)
+      self.weights = tf.nn.l2_normalize(self.weights, axis=-1,
+          name='normalized_weights')
 
   def apply(self, codes):
     with tf.name_scope(None, values=[ codes ], default_name=self.name):
