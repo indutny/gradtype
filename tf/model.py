@@ -21,6 +21,7 @@ CNN_L2 = 0.004
 #                or https://arxiv.org/pdf/1511.08400.pdf
 
 TEMPORAL_REGULARIZATION = 0.0
+ACTIVITY_REGULARIZATION = 0.0
 
 RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
@@ -145,12 +146,20 @@ class Model():
       states = tf.stack(states, axis=1, name='stacked_states')
       left = states[:, :-1]
       right = states[:, 1:]
-      l2 = (tf.norm(left, axis=-1) - tf.norm(right, axis=-1)) ** 2
+      l2 = tf.norm(left - right, axis=-1)
       # Mean over time dimension
       l2 = tf.reduce_mean(l2, axis=1)
       # Mean over batch dimensions
       l2 = tf.reduce_mean(l2, axis=0)
       l2 *= TEMPORAL_REGULARIZATION
+      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
+
+      l2 = tf.norm(states, axis=-1)
+      # Mean over time dimension
+      l2 = tf.reduce_mean(l2, axis=1)
+      # Mean over batch dimensions
+      l2 = tf.reduce_mean(l2, axis=0)
+      l2 *= ACTIVITY_REGULARIZATION
       tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
