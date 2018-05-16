@@ -123,7 +123,7 @@ def expand(dataset, overlap):
     for seq in category:
       out_category += expand_sequence(seq, overlap)
     out.append(out_category)
-  return out
+  return normalize_dataset(out)
 
 def expand_sequence(seq, overlap):
   if overlap is None:
@@ -153,6 +153,22 @@ def expand_sequence(seq, overlap):
     copy.update({ 'codes': codes, 'deltas': deltas })
     out.append(copy)
   return out
+
+def normalize_dataset(dataset):
+  out = []
+  for category in dataset:
+    new_category = []
+    for seq in category:
+      new_category.append(normalize_sequence(seq))
+    out.append(new_category)
+  return out
+
+def normalize_sequence(seq):
+  res = seq.copy()
+  deltas = seq['deltas']
+  deltas = (deltas - np.mean(deltas)) / (np.var(deltas) + 1e-9)
+  res.update({ 'deltas': deltas })
+  return res
 
 def trim_dataset(dataset, batch_size=1, random_state=None):
   min_len = None
