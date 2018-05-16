@@ -3,7 +3,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 127
+EMBED_WIDTH = 3
 DENSE_PRE_COUNT = 0
 DENSE_PRE_WIDTH = 32
 DENSE_PRE_RESIDUAL_COUNT = 0
@@ -19,7 +19,7 @@ CNN_L2 = 0.004
 # TODO(indutny): Use https://arxiv.org/pdf/1708.01009.pdf
 #                or https://arxiv.org/pdf/1511.08400.pdf
 
-RNN_WIDTH = [ 128, 128, 128 ]
+RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 128
 
@@ -128,7 +128,7 @@ class Model():
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
     elif self.random_len:
       random_len = tf.random_uniform(shape=(batch_size,),
-          minval=int(sequence_len / 2),
+          minval=tf.where(self.training, int(sequence_len / 2), sequence_len),
           maxval=sequence_len,
           name='random_len')
 
