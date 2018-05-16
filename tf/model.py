@@ -128,7 +128,7 @@ class Model():
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
     elif self.random_len:
       random_len = tf.random_uniform(shape=(batch_size,),
-          minval=tf.where(self.training, int(sequence_len / 2), sequence_len),
+          minval=int(sequence_len / 2),
           maxval=sequence_len,
           dtype=tf.int32,
           name='random_len')
@@ -138,8 +138,10 @@ class Model():
         random_len = pair[1]
         return tf.gather(outputs, random_len, axis=0, name='select_random')
 
-      x = tf.map_fn(select_random, (stacked_output, random_len),
+      random_output = tf.map_fn(select_random, (stacked_output, random_len),
           dtype=tf.float32)
+
+      x = tf.where(self.training, random_output, outputs[-1])
     else:
       x = outputs[-1]
 
