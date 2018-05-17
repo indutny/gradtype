@@ -37,7 +37,7 @@ const Dataset = Joi.array().items(
       k: Joi.string().required()
     }),
     Joi.string().valid('r')
-  ]
+  ])
 ).min(MIN_SEQUENCE_LEN);
 
 const server = microHttps(async (req, res) => {
