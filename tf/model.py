@@ -6,10 +6,6 @@ import dataset
 
 EMBED_WIDTH = 3
 
-WIDE_EMBED_KEY_WIDTH = 8
-WIDE_EMBED_WIDTH = 32
-WIDE_EMBED_COUNT = 512 # Note more than max_char^2
-
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
 RNN_STATE_DROPOUT = 0.0
@@ -76,11 +72,6 @@ class Model():
                                        activation=tf.nn.selu,
                                        kernel_regularizer=self.l2))
 
-    self.embed_query = tf.layers.Dense(name='embed_query',
-                                       units=WIDE_EMBED_KEY_WIDTH,
-                                       activation=tf.nn.selu,
-                                       kernel_regularizer=self.l2)
-
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
@@ -101,22 +92,6 @@ class Model():
 
     series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
-
-    wide_embedding_keys = tf.get_variable('wide_embedding_keys',
-        (WIDE_EMBED_COUNT, WIDE_EMBED_KEY_WIDTH))
-    wide_embedding_values = tf.get_variable('wide_embedding_values',
-        (WIDE_EMBED_COUNT, WIDE_EMBED_WIDTH,))
-
-    new_frames = []
-    for frame in frames:
-      embed_query = self.embed_query(frame)
-      dot = tf.matmul(embed_query, wide_embedding_keys, transpose_b=True,
-          name='wide_embed_dot')
-      dot /= math.sqrt(EMBED_WIDTH + 1)
-      dot = tf.nn.softmax(dot, name='wide_embed_softmax')
-      frame = tf.matmul(dot, wide_embedding_values, name='wide_embedding')
-      new_frames.append(frame)
-    frames = new_frames
 
     if TEMPORAL_REGULARIZATION == 0.0 and ACTIVITY_REGULARIZATION == 0.0:
       for i, cell in enumerate(self.rnn_cells):
