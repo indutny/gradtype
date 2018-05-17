@@ -135,7 +135,6 @@ class Model():
       if sequence_len == current_sequence_len:
         return series
       to_pad = sequence_len - current_sequence_len
-      print(to_pad)
 
       return tf.pad(series, [ [ 0, 0 ], [ to_pad, 0 ], [ 0, 0 ] ])
 
