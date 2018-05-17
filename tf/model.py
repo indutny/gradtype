@@ -4,7 +4,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 128
+EMBED_WIDTH = 31
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
@@ -152,14 +152,17 @@ class Model():
 
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    _, state = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
+    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
         inputs=frames)
 
     decoder = tf.contrib.rnn.LSTMBlockCell(name='decoder',
-        num_units=EMBED_WIDTH)
+        num_units=RNN_WIDTH[-1])
     decoder = tf.contrib.rnn.DropoutWrapper(decoder,
         state_keep_prob=tf.where(self.training, 1.0 - 0.0, 1.0))
-    decoder_state = state[0]
+
+    batch_size = tf.shape(codes)[0]
+    decoder_state = decoder.zero_state(batch_size, dtype=tf.float32)
+    decoder_state = tf.contrib.rnn.LSTMStateTuple(outputs[-1], decoder_state.h)
 
     unstacked_embeddings = tf.unstack(embeddings, axis=1, \
         name='unstacked_embeddings')
