@@ -6,7 +6,8 @@ import dataset
 
 EMBED_WIDTH = 3
 
-WIDE_EMBED_WIDTH = 31
+WIDE_EMBED_KEY_WIDTH = 8
+WIDE_EMBED_WIDTH = 32
 WIDE_EMBED_COUNT = 512 # Note more than max_char^2
 
 INPUT_DROPOUT = 0.0
@@ -75,6 +76,11 @@ class Model():
                                        activation=tf.nn.selu,
                                        kernel_regularizer=self.l2))
 
+    self.embed_query = tf.layers.Dense(name='embed_query',
+                                       units=WIDE_EMBED_KEY_WIDTH,
+                                       activation=tf.nn.selu,
+                                       kernel_regularizer=self.l2)
+
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
@@ -97,13 +103,15 @@ class Model():
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
     wide_embedding_keys = tf.get_variable('wide_embedding_keys',
-        (EMBED_WIDTH + 1, WIDE_EMBED_COUNT))
+        (WIDE_EMBED_COUNT, WIDE_EMBED_KEY_WIDTH))
     wide_embedding_values = tf.get_variable('wide_embedding_values',
         (WIDE_EMBED_COUNT, WIDE_EMBED_WIDTH,))
 
     new_frames = []
     for frame in frames:
-      dot = tf.matmul(frame, wide_embedding_keys, name='wide_embed_dot')
+      embed_query = self.embed_query(frame)
+      dot = tf.matmul(embed_query, wide_embedding_keys, transpose_b=True,
+          name='wide_embed_dot')
       dot /= math.sqrt(EMBED_WIDTH + 1)
       dot = tf.nn.softmax(dot, name='wide_embed_softmax')
       frame = tf.matmul(dot, wide_embedding_values, name='wide_embedding')
