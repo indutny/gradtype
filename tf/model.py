@@ -19,7 +19,7 @@ RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 34
 
-CNN_WIDTH = [ 64, 64, FEATURE_COUNT ]
+CNN_WIDTH = [ 64, 64, 64 ]
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -165,6 +165,7 @@ class Model():
 
     x = series[:, -1]
 
+    x = self.features(x)
     # x = tf.nn.l2_normalize(x, axis=-1)
     return x
 
