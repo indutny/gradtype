@@ -1,144 +1,147 @@
-import * as wilde from '../data/wilde.txt';
-import leven = require('leven');
 import * as performance from './performance';
+import { default as sentences } from './sentences';
 
 const API_ENDPOINT = 'https://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
-const INITIAL_COUNTER = 90;
-const TOLERANCE = 0.5;
 
-const elems = {
-  display: document.getElementById('display')!,
-  input: document.getElementById('input')! as HTMLInputElement,
-  download: document.getElementById('download')!,
-  counter: document.getElementById('counter')!,
-  wrap: document.getElementById('wrap')!,
-};
-
-interface ILogEvent {
+type LogEvent = {
   readonly ts: number;
   readonly k: string;
-}
+} | 'r';
 
-const text: string = wilde.toString().replace(/\s+/g, ' ');
-const sentences = text.split(/\.+/g)
-  .filter((line) => !/["?!]/.test(line))
-  .map((line) => line.trim())
-  .filter((line) => line.length > 15);
+class Application {
+  private readonly log: LogEvent[] = [];
+  private readonly start: number = performance.now();
+  private readonly elems = {
+    display: document.getElementById('display')!,
+    counter: document.getElementById('counter')!,
+    wrap: document.getElementById('wrap')!,
+  };
 
-let index = 0xdeadbeef % sentences.length;
+  private sentenceIndex: number = 0;
+  private charIndex: number = 0;
 
-let counter = INITIAL_COUNTER;
-elems.counter.textContent = counter.toString();
+  constructor() {
+    if (window.localStorage && window.localStorage.getItem(LS_KEY)) {
+      this.complete();
+      return;
+    }
 
-const log: ILogEvent[] = [];
+    this.displaySentence();
 
-function next() {
-  const prior = (elems.display.textContent || '').trim();
+    window.addEventListener('keydown', (e) => {
+      this.onKeyDown(e.key);
+    }, true);
+  }
 
-  const entered = elems.input.value;
-  if (prior !== '') {
-    const distance = leven(entered, prior);
+  displaySentence() {
+    const sentence = sentences[this.sentenceIndex];
 
-    // Remove last sentence
-    if (entered.length < 5 || distance > TOLERANCE * prior.length) {
-      let i: number = 0;
-      for (i = log.length - 1; i >= 0; i--) {
-        if (log[i].k === '.') {
-          break;
+    this.elems.counter.textContent =
+      (sentences.length - this.sentenceIndex).toString();
+    this.elems.display.innerHTML =
+      '<span class=sentence-completed>' +
+      sentence.slice(0, this.charIndex) +
+      '</span>' +
+      '<span class=sentence-pending>' +
+      sentence.slice(this.charIndex)
+      '</span>';
+  }
+
+  onKeyDown(key: string) {
+    const now = performance.now();
+
+    if (this.sentenceIndex === sentences.length) {
+      return;
+    }
+
+    const sentence = sentences[this.sentenceIndex];
+    const expected = sentence[this.charIndex];
+    if (key !== expected && !(key === ' ' && expected === '␣')) {
+      return;
+    }
+
+    this.log.push({ ts: now - this.start, k: key });
+
+    this.charIndex++;
+    this.displaySentence();
+
+    if (this.charIndex !== sentence.length) {
+      return;
+    }
+
+    // Next sentence
+    this.charIndex = 0;
+    this.sentenceIndex++;
+    this.log.push('r');
+
+    if (this.sentenceIndex === sentences.length) {
+      this.elems.counter.textContent = '0';
+      this.save((err, code) => {
+        if (err) {
+          return this.error();
         }
+        this.complete(code!);
+      });
+      return;
+    }
+
+    this.displaySentence();
+  }
+
+  save(callback: (err?: Error, code?: string) => void) {
+    const json = JSON.stringify(this.log.map((event) => {
+      if (event === 'r') {
+        return event;
+      }
+      return { ts: (event.ts - this.start) / 1000, k: event.k };
+    }));
+
+    this.elems.wrap.innerHTML =
+      '<h1>Uploading, please do not close this window...</h1>';
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.onload = () => {
+      let response: any;
+      try {
+        response = JSON.parse(xhr.responseText);
+      } catch (e) {
+        return callback(e);
       }
 
-      log.splice(i, log.length - i);
-      elems.input.value = '';
-      return;
+      if (!response.code) {
+        return callback(new Error('No response code'));
+      }
+
+      return callback(undefined, response.code);
+    };
+
+    xhr.onerror = (err) => {
+      return callback(new Error('XHR error'));
+    };
+
+    xhr.open('PUT', API_ENDPOINT, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(json);
+  }
+
+  complete(code?: string) {
+    if (window.localStorage) {
+      window.localStorage.setItem(LS_KEY, 'submitted');
+    }
+    const wrap = this.elems.wrap;
+    if (code === undefined) {
+      wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
+    } else {
+      wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>' +
+        `<h1 style="color:red">Your code is ${code}</h1>`;
     }
   }
 
-  let sentence;
-  do {
-    sentence = sentences[index++];
-    if (index === sentences.length) {
-      index = 0;
-    }
-  } while (sentence.length > 60 || sentence.length < 30);
-
-  elems.display.textContent = sentence + '.';
-
-  elems.input.focus();
-  elems.input.value = '';
-  elems.counter.textContent = counter.toString();
-
-  if (counter-- === 0) {
-    save();
+  error() {
+    this.elems.wrap.innerHTML = '<h1>Server error, please retry later!</h1>';
   }
 }
 
-const start = performance.now();
-elems.input.onkeypress = (e: KeyboardEvent) => {
-  log.push({ ts: performance.now(), k: e.key });
-
-  if (e.key === '.') {
-    next();
-    e.preventDefault();
-    return;
-  }
-};
-
-function save() {
-  const json = JSON.stringify(log.map((event) => {
-    return { ts: (event.ts - start) / 1000, k: event.k };
-  }));
-
-  elems.wrap.innerHTML =
-    '<h1>Uploading, please do not close this window...</h1>';
-
-  const xhr = new XMLHttpRequest();
-
-  xhr.onload = () => {
-    let response: any;
-    try {
-      response = JSON.parse(xhr.responseText);
-    } catch (e) {
-      error();
-      return;
-    }
-
-    if (!response.code) {
-      error();
-      return;
-    }
-
-    complete(response.code);
-  };
-
-  xhr.onerror = () => {
-    error();
-  };
-
-  xhr.open('PUT', API_ENDPOINT, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.send(json);
-};
-
-function complete(code?: string) {
-  if (window.localStorage) {
-    window.localStorage.setItem(LS_KEY, 'submitted');
-  }
-  if (code === undefined) {
-    elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>';
-  } else {
-    elems.wrap.innerHTML = '<h1>Thank you for submitting survey!</h1>' +
-      `<h1 style="color:red">Your code is ${code}</h1>`;
-  }
-}
-
-function error() {
-  elems.wrap.innerHTML = '<h1>Server error, please retry later!</h1>';
-}
-
-if (window.localStorage && window.localStorage.getItem(LS_KEY)) {
-  complete();
-} else {
-  next();
-}
+const app = new Application();
