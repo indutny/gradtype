@@ -31,10 +31,13 @@ try {
 }
 
 const Dataset = Joi.array().items(
-  Joi.object().keys({
-    ts: Joi.number().required(),
-    k: Joi.string().required()
-  }).or('r')
+  Joi.alternatives().try([
+    Joi.object().keys({
+      ts: Joi.number().required(),
+      k: Joi.string().required()
+    }),
+    Joi.string().valid('r')
+  ]
 ).min(MIN_SEQUENCE_LEN);
 
 const server = microHttps(async (req, res) => {
