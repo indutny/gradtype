@@ -10,7 +10,7 @@ const { run, send, json } = require('micro');
 
 const Joi = require('joi');
 
-const MIN_SEQUENCE_LEN = 100;
+const MIN_SEQUENCE_LEN = 3200;
 const OUT_DIR = path.join(__dirname, 'datasets');
 const KEY_FILE = process.env.KEY_FILE;
 const CERT_FILE = process.env.CERT_FILE;
@@ -34,7 +34,7 @@ const Dataset = Joi.array().items(
   Joi.object().keys({
     ts: Joi.number().required(),
     k: Joi.string().required()
-  })
+  }).or('r')
 ).min(MIN_SEQUENCE_LEN);
 
 const server = microHttps(async (req, res) => {
@@ -87,6 +87,7 @@ const server = microHttps(async (req, res) => {
   const hash = crypto.createHmac('sha256', HMAC_KEY).update(data).digest('hex');
 
   const file = path.join(OUT_DIR, hash + '.json');
+  const meta = path.join(OUT_DIR, hash + '.meta.json');
 
   const exists = await util.promisify(fs.exists)(file);
   if (exists) {
@@ -96,6 +97,15 @@ const server = microHttps(async (req, res) => {
 
   try {
     await util.promisify(fs.writeFile)(file, data);
+  } catch (e) {
+    send(res, 500, { error: 'internal error' });
+    return;
+  }
+
+  try {
+    await util.promisify(fs.writeFile)(meta, JSON.stringify({
+      headers: req.headers
+    }));
   } catch (e) {
     send(res, 500, { error: 'internal error' });
     return;
