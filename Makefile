@@ -12,6 +12,9 @@ tf-proxy: dataset
 tf-regression: dataset
 	python3 ./tf/train-regression.py
 
+tf-auto: dataset
+	python3 ./tf/train-auto.py
+
 regression: dataset
 	python3 ./keras/train-regression.py
 

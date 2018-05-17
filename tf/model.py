@@ -4,7 +4,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 3
+EMBED_WIDTH = 128
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
@@ -14,12 +14,6 @@ RNN_USE_RESIDUAL = False
 
 DENSE_L2 = 0.001
 CNN_L2 = 0.004
-
-# TODO(indutny): Use https://arxiv.org/pdf/1708.01009.pdf
-#                or https://arxiv.org/pdf/1511.08400.pdf
-
-TEMPORAL_REGULARIZATION = 0.0
-ACTIVITY_REGULARIZATION = 0.0
 
 RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
@@ -63,7 +57,7 @@ class Model():
         cell = tf.contrib.rnn.ResidualWrapper(cell)
 
       cells.append(cell)
-    self.rnn_cells = cells
+    self.rnn_cell = tf.contrib.rnn.MultiRNNCell(cells)
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -76,13 +70,16 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, codes, deltas):
+  def apply_embedding(self, codes, deltas, return_raw=False):
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
         training=self.training)
+
+    if return_raw:
+      return series, embedding
 
     return series
 
@@ -93,42 +90,8 @@ class Model():
     series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    if TEMPORAL_REGULARIZATION == 0.0 and ACTIVITY_REGULARIZATION == 0.0:
-      for i, cell in enumerate(self.rnn_cells):
-        outputs, _ = tf.nn.static_rnn(cell=cell, dtype=tf.float32,
-            inputs=frames)
-        frames = outputs
-    else:
-      for i, cell in enumerate(self.rnn_cells):
-        state = cell.zero_state(batch_size, tf.float32)
-
-        outputs = []
-        states = []
-        for frame in frames:
-          output, state = cell(frame, state)
-          outputs.append(output)
-          states.append(state.h)
-
-        frames = outputs
-
-      states = tf.stack(states, axis=1, name='stacked_states')
-      left = states[:, :-1]
-      right = states[:, 1:]
-      l2 = tf.norm(left - right, axis=-1)
-      # Mean over time dimension
-      l2 = tf.reduce_mean(l2, axis=1)
-      # Mean over batch dimensions
-      l2 = tf.reduce_mean(l2, axis=0)
-      l2 *= TEMPORAL_REGULARIZATION
-      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
-
-      l2 = tf.norm(states, axis=-1)
-      # Mean over time dimension
-      l2 = tf.reduce_mean(l2, axis=1)
-      # Mean over batch dimensions
-      l2 = tf.reduce_mean(l2, axis=0)
-      l2 *= ACTIVITY_REGULARIZATION
-      tf.losses.add_loss(l2, tf.GraphKeys.REGULARIZATION_LOSSES)
+    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
+        inputs=frames)
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
@@ -183,6 +146,31 @@ class Model():
     x = self.features(x)
     x = tf.nn.l2_normalize(x, axis=-1)
     return x
+
+  def build_auto(self, codes, deltas):
+    series, embeddings = self.apply_embedding(codes, deltas, return_raw=True)
+
+    frames = tf.unstack(series, axis=1, name='unstacked_output')
+
+    _, state = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
+        inputs=frames)
+
+    decoder = tf.contrib.rnn.LSTMBlockCell(name='decoder',
+        num_units=EMBED_WIDTH)
+    decoder = tf.contrib.rnn.DropoutWrapper(decoder,
+        state_keep_prob=tf.where(self.training, 1.0 - 0.0, 1.0))
+    decoder_state = state[0]
+
+    unstacked_embeddings = tf.unstack(embeddings, axis=1, \
+        name='unstacked_embeddings')
+    outputs, _ = tf.nn.static_rnn(cell=decoder, inputs=unstacked_embeddings,
+        initial_state=decoder_state)
+
+    mux = tf.layers.Dense(name='mux', units=1, kernel_regularizer=self.l2)
+    outputs = [ mux(output) for output in outputs ]
+
+    outputs = tf.stack(outputs, axis=1, name='stacked_decoder_output')
+    return outputs, deltas
 
   # Batch Hard as in https://arxiv.org/pdf/1703.07737.pdf
   def get_metrics(self, output, category_count, batch_size,
@@ -437,3 +425,24 @@ class Model():
           category_count, category_mask)
 
       return metrics
+
+  def get_auto_metrics(self, output, deltas, categories, weights):
+    with tf.name_scope('auto_metrics', [ output, deltas, categories, \
+        weights ]):
+      batch_weights = tf.gather(weights, categories, axis=0, \
+          name='per_category_weight')
+
+      output = tf.squeeze(output, axis=2)
+      loss = batch_weights * tf.reduce_mean((deltas - output) ** 2, axis=-1)
+      loss = tf.reduce_mean(loss, axis=0, name='mean_loss')
+
+      metrics = {}
+      metrics['loss'] = loss
+
+      # Add batch dimension
+      embedding = tf.expand_dims(self.embedding.weights, axis=0)
+      # Add color dimension
+      embedding = tf.expand_dims(embedding, axis=-1)
+      embedding = tf.summary.image('embedding', embedding)
+
+      return metrics, tf.summary.merge([ embedding ])
