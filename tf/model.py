@@ -1,12 +1,13 @@
+import math
 import tensorflow as tf
 
 # Internal
 import dataset
 
 EMBED_WIDTH = 3
-DENSE_PRE_COUNT = 0
-DENSE_PRE_WIDTH = 32
-DENSE_PRE_RESIDUAL_COUNT = 0
+
+WIDE_EMBED_WIDTH = 31
+WIDE_EMBED_COUNT = 512 # Note more than max_char^2
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
@@ -50,24 +51,6 @@ class Model():
     self.random_len = True
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
-
-    self.pre = []
-    for i in range(0, DENSE_PRE_COUNT):
-      self.pre.append(tf.layers.Dense(name='dense_pre_{}'.format(i),
-                                      units=DENSE_PRE_WIDTH,
-                                      activation=tf.nn.selu,
-                                      kernel_regularizer=self.l2))
-
-    self.pre_residual = []
-    for i in range(0, DENSE_PRE_RESIDUAL_COUNT):
-      self.pre_residual.append([
-          tf.layers.Dense(name='dense_pre_residual_minor_{}'.format(i),
-                          units=int(DENSE_PRE_WIDTH / 2),
-                          activation=tf.nn.selu,
-                          kernel_regularizer=self.l2),
-          tf.layers.Dense(name='dense_pre_residual_major_{}'.format(i),
-                          units=DENSE_PRE_WIDTH,
-                          kernel_regularizer=self.l2) ])
 
     cells = []
     for i, width in enumerate(RNN_WIDTH):
@@ -113,14 +96,17 @@ class Model():
     series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
+    wide_embedding_keys = tf.get_variable('wide_embedding_keys',
+        (EMBED_WIDTH + 1, WIDE_EMBED_COUNT))
+    wide_embedding_values = tf.get_variable('wide_embedding_values',
+        (WIDE_EMBED_COUNT, WIDE_EMBED_WIDTH,))
+
     new_frames = []
     for frame in frames:
-      for pre in self.pre:
-        frame = pre(frame)
-
-      for [ minor, major ] in self.pre_residual:
-        frame = tf.nn.selu(frame + major(minor(frame)))
-
+      dot = tf.matmul(frame, wide_embedding_keys, name='wide_embed_dot')
+      dot /= math.sqrt(EMBED_WIDTH + 1)
+      dot = tf.nn.softmax(dot, name='wide_embed_softmax')
+      frame = tf.matmul(dot, wide_embedding_values, name='wide_embedding')
       new_frames.append(frame)
     frames = new_frames
 
