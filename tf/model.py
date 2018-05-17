@@ -17,7 +17,7 @@ CNN_L2 = 0.0
 
 RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 34
+FEATURE_COUNT = 128
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
@@ -122,7 +122,7 @@ class Model():
       x = post(x)
 
     x = self.features(x)
-    x = tf.nn.l2_normalize(x, axis=-1)
+    # x = tf.nn.l2_normalize(x, axis=-1)
 
     return x
 
@@ -143,22 +143,22 @@ class Model():
         x = series
 
         x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.relu,
+                             dilation_rate=dilation, activation=tf.nn.selu,
                              kernel_regularizer=self.cnn_l2)
         x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.1, training=self.training)
+        x = tf.layers.dropout(x, rate=0.2, training=self.training)
 
         x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.relu,
+                             dilation_rate=dilation, activation=tf.nn.selu,
                              kernel_regularizer=self.cnn_l2)
         x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.1, training=self.training)
+        x = tf.layers.dropout(x, rate=0.2, training=self.training)
 
         if series.shape[2] != x.shape[2]:
           series = tf.layers.conv1d(x, filters=x.shape[2], kernel_size=1,
                                     kernel_regularizer=self.cnn_l2)
 
-        return tf.nn.relu(series + x)
+        return tf.nn.selu(series + x)
 
     for i, width in enumerate(CNN_WIDTH):
       series = residual_block(i, width, 2 ** i, series)
