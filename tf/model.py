@@ -195,13 +195,16 @@ class Model():
   def build_conv(self, codes, deltas):
     series = self.apply_embedding(codes, deltas)
 
-    series = tf.layers.conv1d(series, filters=96, kernel_size=16,
+    series = tf.layers.conv1d(series, filters=128, kernel_size=4,
+                              strides=4,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.cnn_l2)
-    series = tf.layers.conv1d(series, filters=96, kernel_size=10,
+    series = tf.layers.conv1d(series, filters=512, kernel_size=4,
+                              strides=4,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.cnn_l2)
-    series = tf.layers.conv1d(series, filters=96, kernel_size=8,
+    series = tf.layers.conv1d(series, filters=64, kernel_size=2,
+                              strides=2,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.cnn_l2)
 
@@ -462,7 +465,7 @@ class Model():
       def compute_mean_proxy(category):
         points = tf.boolean_mask(output, tf.equal(categories, category),
             'category_points')
-        return tf.reduce_mean(points, axis=0)
+        return tf.nn.l2_normalize(tf.reduce_mean(points, axis=0), axis=-1)
 
       proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
           dtype=tf.float32)
