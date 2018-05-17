@@ -46,7 +46,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
-output = model.build(codes, deltas)
+output = model.build_conv(codes, deltas)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
@@ -98,23 +98,6 @@ with tf.Session() as sess:
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 
-    saver.save(sess, LOG_DIR, global_step=step)
-    print('Epoch {}'.format(epoch))
-    for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
-      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        categories: batch['categories'],
-        weights: train_weights,
-        training: True,
-      })
-      metrics['regularization_loss'] = reg_loss
-      metrics['grad_norm'] = grad_norm
-      log_summary('train', metrics, step)
-
-      step += 1
-
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
@@ -139,4 +122,22 @@ with tf.Session() as sess:
       mean_metrics[key] = np.mean(mean_metrics[key])
 
     log_summary('validate', mean_metrics, step)
+
+    saver.save(sess, LOG_DIR, global_step=step)
+    print('Epoch {}'.format(epoch))
+    for batch in train_batches:
+      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
+      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+        codes: batch['codes'],
+        deltas: batch['deltas'],
+        categories: batch['categories'],
+        weights: train_weights,
+        training: True,
+      })
+      metrics['regularization_loss'] = reg_loss
+      metrics['grad_norm'] = grad_norm
+      log_summary('train', metrics, step)
+
+      step += 1
+
     writer.flush()

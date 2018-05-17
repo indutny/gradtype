@@ -13,11 +13,13 @@ RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
 
 DENSE_L2 = 0.001
-CNN_L2 = 0.004
+CNN_L2 = 0.0
 
 RNN_WIDTH = [ 128 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 128
+FEATURE_COUNT = 34
+
+CNN_WIDTH = [ 64, 64, FEATURE_COUNT ]
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -126,25 +128,45 @@ class Model():
 
   def build_conv(self, codes, deltas):
     series = self.apply_embedding(codes, deltas)
+    sequence_len = int(deltas.shape[1])
 
-    series = tf.layers.conv1d(series, filters=128, kernel_size=4,
-                              strides=4,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.cnn_l2)
-    series = tf.layers.conv1d(series, filters=512, kernel_size=4,
-                              strides=4,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.cnn_l2)
-    series = tf.layers.conv1d(series, filters=64, kernel_size=2,
-                              strides=2,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.cnn_l2)
+    def causal_padding(series):
+      current_sequence_len = int(series.shape[1])
+      if sequence_len == current_sequence_len:
+        return series
+      to_pad = sequence_len - current_sequence_len
+      print(to_pad)
 
-    x = tf.squeeze(series, axis=1)
-    x = tf.layers.dropout(x, training=self.training)
+      return tf.pad(series, [ [ 0, 0 ], [ to_pad, 0 ], [ 0, 0 ] ])
 
-    x = self.features(x)
-    x = tf.nn.l2_normalize(x, axis=-1)
+    def residual_block(i, width, dilation, series):
+      with tf.name_scope('residual_block_{}'.format(i), [ series ]):
+        x = series
+
+        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
+                             dilation_rate=dilation, activation=tf.nn.relu,
+                             kernel_regularizer=self.cnn_l2)
+        x = causal_padding(x)
+        x = tf.layers.dropout(x, rate=0.1, training=self.training)
+
+        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
+                             dilation_rate=dilation, activation=tf.nn.relu,
+                             kernel_regularizer=self.cnn_l2)
+        x = causal_padding(x)
+        x = tf.layers.dropout(x, rate=0.1, training=self.training)
+
+        if series.shape[2] != x.shape[2]:
+          series = tf.layers.conv1d(x, filters=x.shape[2], kernel_size=1,
+                                    kernel_regularizer=self.cnn_l2)
+
+        return tf.nn.relu(series + x)
+
+    for i, width in enumerate(CNN_WIDTH):
+      series = residual_block(i, width, 2 ** i, series)
+
+    x = series[:, -1]
+
+    # x = tf.nn.l2_normalize(x, axis=-1)
     return x
 
   def build_auto(self, codes, deltas):
