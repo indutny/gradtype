@@ -402,19 +402,13 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    positive_distances = positives - output
-    negative_distances = negatives - tf.expand_dims(output, axis=1)
-
-    positive_distances **= 2
-    negative_distances **= 2
-
-    positive_distances = tf.reduce_sum(positive_distances, axis=-1,
+    positive_distances = tf.norm(positives - output, axis=-1,
         name='positive_distances')
-    negative_distances = tf.reduce_sum(negative_distances, axis=-1,
-        name='negative_distances')
+    negative_distances = tf.norm(negatives - tf.expand_dims(output, axis=1),
+        axis=-1, name='negative_distances')
 
     metrics = {}
-    for percentile in [ 5, 25, 50, 75, 95 ]:
+    for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
       neg_p = tf.contrib.distributions.percentile(negative_distances,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
