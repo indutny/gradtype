@@ -46,7 +46,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
-output = model.build_conv(codes, deltas)
+output = model.build(codes, deltas)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
