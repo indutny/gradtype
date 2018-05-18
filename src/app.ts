@@ -94,7 +94,7 @@ class Application {
       if (event === 'r') {
         return event;
       }
-      return { ts: (event.ts - this.start) / 1000, k: event.k };
+      return { ts: event.ts / 1000, k: event.k };
     }));
 
     this.elems.wrap.innerHTML =
