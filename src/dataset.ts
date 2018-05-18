@@ -49,7 +49,7 @@ export class Dataset {
     return out;
   }
 
-  private *preprocess(events: Input): Iterator<IntermediateEntry> {
+  public *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
     let deltaHistory: number[] = [];
 
@@ -82,6 +82,28 @@ export class Dataset {
         delta,
         code,
       };
+    }
+  }
+
+  public *port(events: Input): Iterator<Input> {
+    for (const event of events) {
+      if (event.k === '.') {
+        yield 'r';
+        continue;
+      }
+
+      let k: string = event.k;
+      if (k === 'Spacebar') {
+        k = ' ';
+      }
+
+      try {
+        this.compress(k.charCodeAt(0));
+      } catch (e) {
+        continue;
+      }
+
+      yield { k, ts: event.ts };
     }
   }
 
