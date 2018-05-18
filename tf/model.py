@@ -5,6 +5,7 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 3
+DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.05
@@ -77,7 +78,7 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     # Process deltas
-    deltas = tf.layers.conv1d(deltas, filters=1, kernel_size=1,
+    deltas = tf.layers.conv1d(deltas, filters=DELTA_WIDTH, kernel_size=1,
                               activation=tf.nn.selu,
                               kernel_regularizer=self.l2,
                               name='processed_deltas')
