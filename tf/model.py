@@ -4,7 +4,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 3
+EMBED_WIDTH = 11
 DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
@@ -16,9 +16,9 @@ RNN_USE_RESIDUAL = False
 DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
-RNN_WIDTH = [ 32, 32 ]
+RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 20
+FEATURE_COUNT = 28
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
