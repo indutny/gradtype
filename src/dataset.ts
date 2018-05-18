@@ -2,17 +2,17 @@ import * as assert from 'assert';
 
 import { shuffle } from './utils';
 
-export const MAX_CHAR = 27;
+export const MAX_CHAR = 28;
 
 const MIN_SEQUENCE = 8;
 
 // Moving average window
 const WINDOW = 7;
 
-export interface IInputEntry {
+export type InputEntry = {
   readonly k: string;
   readonly ts: number;
-}
+} | 'r';
 
 export interface ISequenceElem {
   readonly code: number;
@@ -21,7 +21,7 @@ export interface ISequenceElem {
 
 export type Sequence = ReadonlyArray<ISequenceElem>;
 
-export type Input = ReadonlyArray<IInputEntry>;
+export type Input = ReadonlyArray<InputEntry>;
 export type Output = ReadonlyArray<Sequence>;
 
 type IntermediateEntry = 'reset' | ISequenceElem;
@@ -60,19 +60,14 @@ export class Dataset {
     };
 
     for (const event of events) {
-      let k: string = event.k;
-      if (k === 'Spacebar') {
-        k = ' ';
-      } else if (k === '.') {
+      if (event === 'r') {
         yield reset();
         continue;
       }
 
-      // XXX(indutny): skip everything that we don't understand
+      let k: string = event.k;
+
       const code = this.compress(event.k.charCodeAt(0));
-      if (code === undefined) {
-        continue;
-      }
       assert(0 <= code && code <= MAX_CHAR);
 
       let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
@@ -85,34 +80,6 @@ export class Dataset {
 
       delta = Math.log(delta);
 
-      /*
-      // Box Cox transform
-      deltaHistory.push(delta);
-
-      if (deltaHistory.length < WINDOW) {
-        continue;
-      }
-
-      let average = 0;
-      let variance = 0;
-      for (const d of deltaHistory) {
-        average += d;
-        variance += Math.pow(d, 2);
-      }
-      average /= deltaHistory.length;
-      variance /= deltaHistory.length;
-      deltaHistory.shift();
-      variance -= Math.pow(average, 2);
-      if (variance < 1e-9) {
-        continue;
-      }
-      variance = Math.sqrt(variance);
-
-      // Normalize
-      delta -= average;
-      delta /= variance;
-      */
-
       yield {
         delta,
         code,
@@ -120,7 +87,8 @@ export class Dataset {
     }
   }
 
-  private compress(code: number): number | undefined {
+  private compress(code: number): number {
+    // 'abcdefghijklmnopqrstuvwxyz ,.'
     // a - z
     if (0x61 <= code && code <= 0x7a) {
       return code - 0x61;
@@ -136,8 +104,12 @@ export class Dataset {
     // ','
     } else if (code === 0x2c) {
       return 27;
+
+    // '.'
+    } else if (code === 0x2e) {
+      return 28;
     } else {
-      return undefined;
+      throw new Error('Unexpected code: ' + code);
     }
   }
 }

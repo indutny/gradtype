@@ -5,7 +5,7 @@ import json
 import numpy as np
 
 # Maximum character code
-MAX_CHAR = 27
+MAX_CHAR = 28
 
 # Sequence length
 MAX_SEQUENCE_LEN = 32
