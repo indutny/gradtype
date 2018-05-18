@@ -78,8 +78,6 @@ export class Dataset {
         continue;
       }
 
-      delta = Math.log(delta);
-
       yield {
         delta,
         code,

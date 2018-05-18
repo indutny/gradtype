@@ -75,6 +75,10 @@ class Model():
   def apply_embedding(self, codes, deltas, return_raw=False):
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
+    deltas = tf.layers.conv1d(deltas, filters=1, kernel_size=1,
+                              activation=tf.nn.selu,
+                              kernel_regularizer=self.l2,
+                              name='processed_deltas')
 
     series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
