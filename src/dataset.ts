@@ -4,10 +4,7 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 28;
 
-const MIN_SEQUENCE = 8;
-
-// Moving average window
-const WINDOW = 7;
+const SAMPLE_INTERVAL = 1 / 128;  // 1 / 128 of second
 
 export type InputEntry = {
   readonly e: 'u' | 'd';
@@ -15,47 +12,38 @@ export type InputEntry = {
   readonly ts: number;
 } | 'r';
 
-export interface ISequenceElem {
-  readonly event: 'u' | 'd';
-  readonly code: number;
-  readonly delta: number;
-}
-
-export type Sequence = ReadonlyArray<ISequenceElem>;
+export type SequenceRow = ReadonlyArray<number>;
+export type Sequence = ReadonlyArray<SequenceRow>;
 
 export type Input = ReadonlyArray<InputEntry>;
 export type Output = ReadonlyArray<Sequence>;
 
-type IntermediateEntry = 'reset' | ISequenceElem;
+type IntermediateEntry = 'reset' | SequenceRow;
 
 export class Dataset {
   public generate(events: Input): Output {
     const out: ISequenceElem[][] = [];
 
     let sequence: ISequenceElem[] = [];
-    for (const event of this.preprocess(events)) {
+    for (const row of this.preprocess(events)) {
       if (event === 'reset') {
-        if (sequence.length > MIN_SEQUENCE) {
-          out.push(sequence);
-        }
         sequence = [];
         continue;
       }
 
-      sequence.push(event);
+      sequence.push(row);
     }
-    if (sequence.length > MIN_SEQUENCE) {
-      out.push(sequence);
-    }
+    out.push(sequence);
 
     return out;
   }
 
   public *preprocess(events: Input): Iterator<IntermediateEntry> {
-    let lastTS: number | undefined;
+    let ts: number | undefined;
+    let row: SequenceRow = new Array(MAX_CHAR + 1).fill(0);
 
     const reset = (): IntermediateEntry => {
-      lastTS = undefined;
+      ts = undefined;
       return 'reset';
     };
 
@@ -75,15 +63,25 @@ export class Dataset {
       }
       assert(0 <= code && code <= MAX_CHAR);
 
-      if (lastTS === undefined) {
-        lastTS = event.ts;
+      if (ts === undefined) {
+        ts = event.ts;
       }
 
-      yield {
-        event: event.e,
-        delta: event.ts - lastTS,
-        code,
-      };
+      while (event.ts - ts > SAMPLE_INTERVAL) {
+        yield row.slice();
+        ts += SAMPLE_INTERVAL;
+      }
+
+      if (event.e === 'u') {
+        row[code] = 0;
+      } else {
+        row[code] = 1;
+      }
+    }
+
+    // Final row
+    if (row.some(e => e != 0)) {
+      yield row.slice();
     }
   }
 
