@@ -197,7 +197,7 @@ class Model():
 
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
+    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell_fw, dtype=tf.float32,
         inputs=frames)
 
     decoder = tf.contrib.rnn.LSTMBlockCell(name='decoder',
