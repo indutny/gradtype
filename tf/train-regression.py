@@ -28,7 +28,7 @@ BPTT_DEPTH = 64
 
 print('Loading data...')
 
-loaded = dataset.load(mode='regression', train_overlap=1)
+loaded = dataset.load(mode='regression', train_overlap=None)
 train_dataset = loaded['train']
 validate_dataset = loaded['validate']
 
@@ -104,16 +104,18 @@ def run_batch(kind, batch, batch_weights, tensors):
     weights: batch_weights,
     training: kind is 'train',
   }
-  model.assign_states(feed_dict, state, initial_state)
+  model.assign_states(feed_dict, states, sess.run(initial_states,
+      feed_dict=feed_dict))
 
   saved_states = sess.run(output_states, feed_dict=feed_dict)
 
-  feed_dict['rows'] = batch['rows'][:, -BPTT_DEPTH:]
-  model.assign_states(feed_dict, state, saved_states)
+  feed_dict[rows] = batch['rows'][:, -BPTT_DEPTH:]
+  model.assign_states(feed_dict, states, saved_states)
 
   return sess.run(tensors, feed_dict=feed_dict)
 
 with tf.Session() as sess:
+  print('Initializing variables...')
   sess.run(tf.global_variables_initializer())
 
   if RESTORE_FROM != None:
@@ -122,6 +124,7 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
+    print('Generating batches...')
     train_batches = dataset.gen_regression(train_flat_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
@@ -129,7 +132,7 @@ with tf.Session() as sess:
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
-      metrics, summary = run_batches('validate', batch, validate_weights,
+      metrics, summary = run_batch('validate', batch, validate_weights,
           [ t_metrics, t_summary ])
       writer.add_summary(summary, step)
 
@@ -150,7 +153,7 @@ with tf.Session() as sess:
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
-      _, metrics, reg_loss, grad_norm = run_batches('train', batch,
+      _, metrics, reg_loss, grad_norm = run_batch('train', batch,
           validate_weights, tensors)
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
