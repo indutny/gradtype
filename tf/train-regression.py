@@ -41,6 +41,7 @@ validate_flat_dataset, validate_weights = \
 input_shape = (None, dataset.MAX_SEQUENCE_LEN, dataset.MAX_CHAR + 1, )
 
 rows = tf.placeholder(tf.float32, shape=input_shape, name='rows')
+sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 training = tf.placeholder(tf.bool, shape=(), name='training')
@@ -49,7 +50,7 @@ print('Building model...')
 
 model = Model(training=training)
 
-output = model.build(rows)
+output = model.build(rows, sequence_lens)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
@@ -108,6 +109,7 @@ with tf.Session() as sess:
     for batch in validate_batches:
       metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
         rows: batch['rows'],
+        sequence_lens: batch['sequence_lens'],
         categories: batch['categories'],
         weights: validate_weights,
         training: False,
@@ -133,6 +135,7 @@ with tf.Session() as sess:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
       _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
         rows: batch['rows'],
+        sequence_lens: batch['sequence_lens'],
         categories: batch['categories'],
         weights: train_weights,
         training: True,

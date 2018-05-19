@@ -64,42 +64,27 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def build(self, rows):
+  def build(self, rows, sequence_lens):
     if RNN_USE_BIDIR:
       outputs, _, _ = tf.nn.dynamic_bidirectional_rnn(
           cell_fw=self.rnn_cell_fw,
           cell_bw=self.rnn_cell_bw,
           dtype=tf.float32,
-          inputs=rows)
+          inputs=rows,
+          sequence_len=sequence_lens)
     else:
       outputs, _ = tf.nn.dynamic_rnn(
           cell=self.rnn_cell_fw,
           dtype=tf.float32,
           inputs=rows)
 
-    if self.use_pooling:
-      x = tf.reduce_mean(outputs, axis=1, name='output')
-    elif self.random_len:
-      batch_size = tf.shape(rows)[0]
-      sequence_len = int(rows.shape[1])
+    def select_last(pair):
+      output = pair[0]
+      sequence_len = pair[1]
+      return output[sequence_len]
 
-      random_len = tf.random_uniform(shape=(batch_size,),
-          minval=int(sequence_len / 2),
-          maxval=sequence_len,
-          dtype=tf.int32,
-          name='random_len')
-
-      def select_random(pair):
-        outputs = pair[0]
-        random_len = pair[1]
-        return tf.gather(outputs, random_len, axis=0, name='select_random')
-
-      random_output = tf.map_fn(select_random, (outputs, random_len),
-          dtype=tf.float32)
-
-      x = tf.where(self.training, random_output, outputs[-1])
-    else:
-      x = outputs[:, -1]
+    x = tf.map_fn(select_last, (outputs, sequence_lens - 1), name='last_output',
+        dtype=tf.float32)
 
     for post in self.post:
       x = post(x)
