@@ -113,7 +113,7 @@ class Model():
           dtype=tf.float32,
           inputs=frames)
     else:
-      outputs, _, _ = tf.nn.static_rnn(
+      outputs, _ = tf.nn.static_rnn(
           cell=self.rnn_cell_fw,
           dtype=tf.float32,
           inputs=frames)
