@@ -23,29 +23,13 @@ FEATURE_COUNT = 28
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
-class Embedding():
-  def __init__(self, name, max_code, width, regularizer=None):
-    self.name = name
-    self.width = width
-    with tf.variable_scope(None, default_name=self.name):
-      self.weights = tf.get_variable('weights', shape=(max_code, width),
-                                     regularizer=regularizer)
-      self.weights = tf.nn.l2_normalize(self.weights, axis=-1,
-          name='normalized_weights')
-
-  def apply(self, codes):
-    with tf.name_scope(None, values=[ codes ], default_name=self.name):
-      return tf.gather(self.weights, codes)
-
 class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
     self.training = training
     self.use_pooling = False
-    self.random_len = True
-
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+    self.random_len = False # for now
 
     def create_rnn_cell(name):
       cells = []
@@ -80,40 +64,15 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, codes, deltas, return_raw=False):
-    embedding = self.embedding.apply(codes)
-    deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
-
-    # Process deltas
-    deltas = tf.layers.conv1d(deltas, filters=DELTA_WIDTH, kernel_size=1,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.l2,
-                              name='processed_deltas')
-
-    series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
-    series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
-        training=self.training)
-
-    if return_raw:
-      return series, embedding
-
-    return series
-
-  def build(self, codes, deltas):
-    batch_size = tf.shape(codes)[0]
-    sequence_len = int(codes.shape[1])
-
-    series = self.apply_embedding(codes, deltas)
-    frames = tf.unstack(series, axis=1, name='unstacked_output')
-
+  def build(self, rows):
     if RNN_USE_BIDIR:
-      outputs, _, _ = tf.nn.static_bidirectional_rnn(
+      outputs, _, _ = tf.nn.dynamic_bidirectional_rnn(
           cell_fw=self.rnn_cell_fw,
           cell_bw=self.rnn_cell_bw,
           dtype=tf.float32,
           inputs=frames)
     else:
-      outputs, _ = tf.nn.static_rnn(
+      outputs, _ = tf.nn.dynamic_rnn(
           cell=self.rnn_cell_fw,
           dtype=tf.float32,
           inputs=frames)
@@ -123,6 +82,9 @@ class Model():
     if self.use_pooling:
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
     elif self.random_len:
+      batch_size = tf.shape(rows)[0]
+      sequence_len = int(rows.shape[1])
+
       random_len = tf.random_uniform(shape=(batch_size,),
           minval=int(sequence_len / 2),
           maxval=sequence_len,
@@ -139,7 +101,7 @@ class Model():
 
       x = tf.where(self.training, random_output, outputs[-1])
     else:
-      x = outputs[-1]
+      x = outputs[:, -1]
 
     for post in self.post:
       x = post(x)
