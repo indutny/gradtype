@@ -8,7 +8,7 @@ import numpy as np
 MAX_CHAR = 28
 
 # Sequence length
-MAX_SEQUENCE_LEN = 31
+MAX_SEQUENCE_LEN = 1024
 
 # Percent of sequences in validation data
 VALIDATE_PERCENT = 0.33
@@ -24,6 +24,19 @@ def load_labels():
   index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
   with open(index_json, 'r') as f:
     return json.load(f)
+
+def load_sequence(f):
+  sequence_len = struct.unpack('<i', f.read(4))[0]
+
+  rows = []
+  for i in range(sequence_len):
+    row = []
+    for j in range(MAX_CHAR + 1):
+      row.append(struct.unpack('B', f.read(1))[0])
+
+    rows.append(row)
+  rows = np.array(rows, dtype='float32')
+  return rows
 
 def load(mode='triplet', overlap=None, train_overlap=None,
          validate_overlap = None):
@@ -42,26 +55,12 @@ def load(mode='triplet', overlap=None, train_overlap=None,
       sequence_count = struct.unpack('<i', f.read(4))[0]
       sequences = []
       for j in range(0, sequence_count):
-        sequence_len = struct.unpack('<i', f.read(4))[0]
+        rows = load_sequence(f)
 
-        codes = []
-        deltas = []
-        for k in range(0, sequence_len):
-          code = struct.unpack('<i', f.read(4))[0]
-          delta = struct.unpack('f', f.read(4))[0]
-
-          if code < -1 or code > MAX_CHAR:
-            raise Exception('Invalid code: "{}"'.format(code))
-
-          codes.append(code + 1)
-          deltas.append(delta)
-        codes = np.array(codes, dtype='int32')
-        deltas = np.array(deltas, dtype='float32')
         sequences.append({
           'category': i,
           'label': labels[i],
-          'codes': codes,
-          'deltas': deltas
+          'rows': rows,
         })
       categories.append(sequences)
   return split(categories, mode, train_overlap, validate_overlap)
@@ -123,51 +122,34 @@ def expand(dataset, overlap):
     for seq in category:
       out_category += expand_sequence(seq, overlap)
     out.append(out_category)
-  return normalize_dataset(out)
+  return out
 
 def expand_sequence(seq, overlap):
   if overlap is None:
     overlap = MAX_SEQUENCE_LEN
 
-  count = len(seq['codes'])
+  count = len(seq['rows'])
 
   # Pad
   if count < MAX_SEQUENCE_LEN:
-    pad_size = MAX_SEQUENCE_LEN - len(seq['codes'])
-    codes = seq['codes']
-    deltas = seq['deltas']
+    pad_size = MAX_SEQUENCE_LEN - count
 
-    codes = np.concatenate([ codes, np.zeros(pad_size, dtype='int32') ])
-    deltas = np.concatenate([ deltas, np.zeros(pad_size, dtype='float32') ])
+    padding = np.zeros((pad_size, MAX_CHAR + 1,), dtype='float32')
+
+    rows = np.concatenate([ seq['rows'], padding ])
 
     padded_seq = seq.copy()
-    padded_seq.update({ 'codes': codes, 'deltas': deltas })
+    padded_seq.update({ 'rows': rows })
     return [ padded_seq ]
 
   # Expand
   out = []
   for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
-    codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
-    deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
+    rows = seq['rows'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
-    copy.update({ 'codes': codes, 'deltas': deltas })
+    copy.update({ 'rows': rows })
     out.append(copy)
   return out
-
-def normalize_dataset(dataset):
-  out = []
-  for category in dataset:
-    new_category = []
-    for seq in category:
-      new_category.append(normalize_sequence(seq))
-    out.append(new_category)
-  return out
-
-def normalize_sequence(seq):
-  res = seq.copy()
-  deltas = seq['deltas']
-  res.update({ 'deltas': deltas })
-  return res
 
 def trim_dataset(dataset, batch_size=1, random_state=None):
   min_len = None
@@ -196,29 +178,6 @@ def trim_dataset(dataset, batch_size=1, random_state=None):
       out_cat.append(category[i])
     out.append(out_cat)
   return out, min_len
-
-# TODO(indutny): use tf.data.Dataset
-def gen_hard_batches(dataset, batch_size=32, k=None):
-  if k is None:
-    k = len(dataset)
-
-  # Leave the same number of sequences in each batch
-  dataset, sequence_count = trim_dataset(dataset, batch_size)
-
-  perm = np.random.permutation(len(dataset))
-  dataset = [ dataset[i] for i in perm[:k] ]
-
-  batches = []
-  for off in range(0, sequence_count, batch_size):
-    batch = { 'codes': [], 'deltas': [] }
-    for category in dataset:
-      for seq in category[off:off + batch_size]:
-        batch['codes'].append(seq['codes'])
-        batch['deltas'].append(seq['deltas'])
-    batch['codes'] = np.array(batch['codes'])
-    batch['deltas'] = np.array(batch['deltas'])
-    batches.append(batch)
-  return batches
 
 def flatten_dataset(dataset, k=None):
   if k is None:
@@ -252,21 +211,17 @@ def gen_regression(sequences, batch_size=256):
     batch_perm = perm[i:i + batch_size]
 
     categories = []
-    codes = []
-    deltas = []
+    rows = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
-      codes.append(seq['codes'])
-      deltas.append(seq['deltas'])
+      rows.append(seq['rows'])
 
     categories = np.array(categories)
-    codes = np.array(codes)
-    deltas = np.array(deltas)
+    rows = np.array(rows)
 
     batches.append({
       'categories': categories,
-      'codes': codes,
-      'deltas': deltas
+      'rows': rows,
     })
   return batches

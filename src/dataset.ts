@@ -26,8 +26,9 @@ export class Dataset {
 
     let sequence: ISequenceElem[] = [];
     for (const row of this.preprocess(events)) {
-      if (event === 'reset') {
+      if (row === 'reset') {
         sequence = [];
+        out.push(sequence);
         continue;
       }
 
