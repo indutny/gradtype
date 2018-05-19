@@ -24,6 +24,8 @@ LR = 0.01
 # Load dataset
 #
 
+print('Loading data...')
+
 loaded = dataset.load(mode='regression', train_overlap=1)
 train_dataset = loaded['train']
 validate_dataset = loaded['validate']
@@ -42,6 +44,8 @@ rows = tf.placeholder(tf.float32, shape=input_shape, name='rows')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 training = tf.placeholder(tf.bool, shape=(), name='training')
+
+print('Building model...')
 
 model = Model(training=training)
 
@@ -83,6 +87,8 @@ def log_summary(prefix, metrics, step):
   writer.add_summary(summary, step)
 
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
+
+print('Starting...')
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
