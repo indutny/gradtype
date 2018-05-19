@@ -104,7 +104,7 @@ class Model():
     series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    outputs, _ = tf.nn.static_bidirectional_rnn(
+    outputs, _, _ = tf.nn.static_bidirectional_rnn(
         cell_fw=self.rnn_cell_fw,
         cell_bw=self.rnn_cell_bw,
         dtype=tf.float32,
