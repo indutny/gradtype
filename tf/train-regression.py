@@ -26,7 +26,7 @@ LR = 0.01
 
 print('Loading data...')
 
-loaded = dataset.load(mode='regression', train_overlap=1)
+loaded = dataset.load(mode='regression', train_overlap=128)
 train_dataset = loaded['train']
 validate_dataset = loaded['validate']
 
