@@ -4,6 +4,14 @@ import { default as sentences } from './sentences';
 const API_ENDPOINT = 'https://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
 
+const REASSURE: string[] = [
+  'You\'re doing great!',
+  'Just few more!',
+  'Almost there!'
+];
+
+const REASSURE_EVERY = Math.floor(sentences.length) / (REASSURE.length + 1);
+
 type LogKind = 'd' | 'u';
 
 type LogEvent = {
@@ -19,10 +27,12 @@ class Application {
     display: document.getElementById('display')!,
     counter: document.getElementById('counter')!,
     wrap: document.getElementById('wrap')!,
+    reassure: document.getElementById('reassure')!,
   };
 
   private sentenceIndex: number = 0;
   private charIndex: number = 0;
+  private lastReassure: number = 0;
 
   constructor() {
     if (window.localStorage && window.localStorage.getItem(LS_KEY)) {
@@ -59,6 +69,11 @@ class Application {
     this.charIndex = 0;
     this.sentenceIndex++;
     this.log.push('r');
+
+    if (this.sentenceIndex - this.lastReassure >= REASSURE_EVERY) {
+      this.lastReassure = this.sentenceIndex;
+      this.elems.reassure.textContent = REASSURE.shift() || '';
+    }
 
     if (this.sentenceIndex === sentences.length) {
       this.elems.counter.textContent = '0';
