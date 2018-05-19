@@ -49,7 +49,7 @@ print('Building model...')
 
 model = Model(training=training)
 
-output = model.build(rows)
+output = model.build_conv(rows)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #

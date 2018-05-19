@@ -21,7 +21,7 @@ RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 7
 
-CNN_WIDTH = [ 64, 64, 64 ]
+CNN_WIDTH = [ 8, 8, 8, 16, 16, 16, 32, 32 ]
 
 class Model():
   def __init__(self, training):
@@ -87,15 +87,15 @@ class Model():
 
     return x
 
-  def build_conv(self, codes, deltas):
-    series = self.apply_embedding(codes, deltas)
-    sequence_len = int(deltas.shape[1])
+  def build_conv(self, series):
+    sequence_len = int(series.shape[1])
 
     def causal_padding(series):
       current_sequence_len = int(series.shape[1])
       if sequence_len == current_sequence_len:
         return series
       to_pad = sequence_len - current_sequence_len
+      print('padded', to_pad)
 
       return tf.pad(series, [ [ 0, 0 ], [ to_pad, 0 ], [ 0, 0 ] ])
 
@@ -103,13 +103,13 @@ class Model():
       with tf.name_scope('residual_block_{}'.format(i), [ series ]):
         x = series
 
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
+        x = tf.layers.conv1d(x, filters=width, kernel_size=5,
                              dilation_rate=dilation, activation=tf.nn.selu,
                              kernel_regularizer=self.cnn_l2)
         x = causal_padding(x)
         x = tf.layers.dropout(x, rate=0.2, training=self.training)
 
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
+        x = tf.layers.conv1d(x, filters=width, kernel_size=5,
                              dilation_rate=dilation, activation=tf.nn.selu,
                              kernel_regularizer=self.cnn_l2)
         x = causal_padding(x)
