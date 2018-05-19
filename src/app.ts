@@ -4,7 +4,10 @@ import { default as sentences } from './sentences';
 const API_ENDPOINT = 'https://gradtype-survey.darksi.de/';
 const LS_KEY = 'gradtype-survey-v1';
 
+type LogKind = 'd' | 'u';
+
 type LogEvent = {
+  readonly e: LogKind;
   readonly ts: number;
   readonly k: string;
 } | 'r';
@@ -32,6 +35,10 @@ class Application {
     window.addEventListener('keydown', (e) => {
       this.onKeyDown(e.key);
     }, true);
+
+    window.addEventListener('keyup', (e) => {
+      this.onKeyUp(e.key);
+    }, true);
   }
 
   displaySentence() {
@@ -48,35 +55,14 @@ class Application {
       '</span>';
   }
 
-  onKeyDown(key: string) {
-    const now = performance.now();
-
-    if (this.sentenceIndex === sentences.length) {
-      return;
-    }
-
-    const sentence = sentences[this.sentenceIndex];
-    const expected = sentence[this.charIndex];
-    if (key !== expected && !(key === ' ' && expected === '␣')) {
-      return;
-    }
-
-    this.log.push({ ts: now - this.start, k: key });
-
-    this.charIndex++;
-    this.displaySentence();
-
-    if (this.charIndex !== sentence.length) {
-      return;
-    }
-
-    // Next sentence
+  nextSentence() {
     this.charIndex = 0;
     this.sentenceIndex++;
     this.log.push('r');
 
     if (this.sentenceIndex === sentences.length) {
       this.elems.counter.textContent = '0';
+
       this.save((err, code) => {
         if (err) {
           return this.error();
@@ -89,13 +75,40 @@ class Application {
     this.displaySentence();
   }
 
+  onKeyDown(key: string) {
+    const now = performance.now();
+    this.log.push({ e: 'd', ts: (now - this.start) / 1000, k: key });
+
+    if (this.sentenceIndex === sentences.length) {
+      return;
+    }
+
+    const sentence = sentences[this.sentenceIndex];
+    const expected = sentence[this.charIndex];
+    if (key !== expected && !(key === ' ' && expected === '␣')) {
+      return;
+    }
+
+    this.charIndex++;
+    this.displaySentence();
+
+    if (this.charIndex !== sentence.length) {
+      return;
+    }
+
+    // Give enough time to record the last keystroke
+    setTimeout(() => {
+      this.nextSentence();
+    }, 50);
+  }
+
+  onKeyUp(key: string) {
+    const now = performance.now();
+    this.log.push({ e: 'u', ts: (now - this.start) / 1000, k: key });
+  }
+
   save(callback: (err?: Error, code?: string) => void) {
-    const json = JSON.stringify(this.log.map((event) => {
-      if (event === 'r') {
-        return event;
-      }
-      return { ts: event.ts / 1000, k: event.k };
-    }));
+    const json = JSON.stringify(this.log);
 
     this.elems.wrap.innerHTML =
       '<h1>Uploading, please do not close this window...</h1>';
