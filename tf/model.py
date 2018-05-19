@@ -70,17 +70,15 @@ class Model():
           cell_fw=self.rnn_cell_fw,
           cell_bw=self.rnn_cell_bw,
           dtype=tf.float32,
-          inputs=frames)
+          inputs=rows)
     else:
       outputs, _ = tf.nn.dynamic_rnn(
           cell=self.rnn_cell_fw,
           dtype=tf.float32,
-          inputs=frames)
-
-    stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
+          inputs=rows)
 
     if self.use_pooling:
-      x = tf.reduce_mean(stacked_output, axis=1, name='output')
+      x = tf.reduce_mean(outputs, axis=1, name='output')
     elif self.random_len:
       batch_size = tf.shape(rows)[0]
       sequence_len = int(rows.shape[1])
@@ -96,7 +94,7 @@ class Model():
         random_len = pair[1]
         return tf.gather(outputs, random_len, axis=0, name='select_random')
 
-      random_output = tf.map_fn(select_random, (stacked_output, random_len),
+      random_output = tf.map_fn(select_random, (outputs, random_len),
           dtype=tf.float32)
 
       x = tf.where(self.training, random_output, outputs[-1])

@@ -30,10 +30,7 @@ def load_sequence(f):
 
   rows = []
   for i in range(sequence_len):
-    row = []
-    for j in range(MAX_CHAR + 1):
-      row.append(struct.unpack('B', f.read(1))[0])
-
+    row = struct.unpack('B' * (MAX_CHAR + 1), f.read(MAX_CHAR + 1))
     rows.append(row)
   rows = np.array(rows, dtype='float32')
   return rows
