@@ -23,12 +23,6 @@ fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
 function encodeSequence(sequence) {
   totalSequences++;
 
-  // Stop-gap
-  if (sequence.length < 100) {
-    console.log('artifact');
-    return;
-  }
-
   const enc = Buffer.alloc(4 + sequence.length * (MAX_CHAR + 1));
   enc.writeUInt32LE(sequence.length, 0);
 
