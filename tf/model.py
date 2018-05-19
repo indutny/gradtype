@@ -46,21 +46,26 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    cells = []
-    for i, width in enumerate(RNN_WIDTH):
-      cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_{}'.format(i), \
-          num_units=width)
+    def create_rnn_cell():
+      cells = []
+      for i, width in enumerate(RNN_WIDTH):
+        cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_{}'.format(i), \
+            num_units=width)
 
-      cell = tf.contrib.rnn.DropoutWrapper(cell,
-          input_keep_prob=tf.where(training, 1.0 - RNN_INPUT_DROPOUT, 1.0),
-          state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
-          output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
+        cell = tf.contrib.rnn.DropoutWrapper(cell,
+            input_keep_prob=tf.where(training, 1.0 - RNN_INPUT_DROPOUT, 1.0),
+            state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
+            output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
 
-      if RNN_USE_RESIDUAL and i != 0:
-        cell = tf.contrib.rnn.ResidualWrapper(cell)
+        if RNN_USE_RESIDUAL and i != 0:
+          cell = tf.contrib.rnn.ResidualWrapper(cell)
 
-      cells.append(cell)
-    self.rnn_cell = tf.contrib.rnn.MultiRNNCell(cells)
+        cells.append(cell)
+
+      return tf.contrib.rnn.MultiRNNCell(cells)
+
+    self.rnn_cell_fw = create_rnn_cell()
+    self.rnn_cell_bw = create_rnn_cell()
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -99,7 +104,10 @@ class Model():
     series = self.apply_embedding(codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
-    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell, dtype=tf.float32,
+    outputs, _ = tf.nn.static_bidirectional_rnn(
+        cell_fw=self.rnn_cell_fw,
+        cell_bw=self.rnn_cell_bw,
+        dtype=tf.float32,
         inputs=frames)
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')

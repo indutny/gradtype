@@ -18,7 +18,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 MAX_EPOCHS = 500000
 
 # Learning rate
-LR = 0.1
+LR = 0.01
 
 #
 # Load dataset
