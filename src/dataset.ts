@@ -10,11 +10,13 @@ const MIN_SEQUENCE = 8;
 const WINDOW = 7;
 
 export type InputEntry = {
+  readonly e: 'u' | 'd';
   readonly k: string;
   readonly ts: number;
 } | 'r';
 
 export interface ISequenceElem {
+  readonly event: 'u' | 'd';
   readonly code: number;
   readonly delta: number;
 }
@@ -51,11 +53,9 @@ export class Dataset {
 
   public *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
-    let deltaHistory: number[] = [];
 
     const reset = (): IntermediateEntry => {
       lastTS = undefined;
-      deltaHistory = [];
       return 'reset';
     };
 
@@ -67,19 +67,21 @@ export class Dataset {
 
       let k: string = event.k;
 
-      const code = this.compress(event.k.charCodeAt(0));
+      let code: number;
+      try {
+        code = this.compress(event.k.charCodeAt(0));
+      } catch (e) {
+        continue;
+      }
       assert(0 <= code && code <= MAX_CHAR);
 
-      let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
-      lastTS = event.ts;
-
-      // Skip first keystroke
-      if (delta === 0) {
-        continue;
+      if (lastTS === undefined) {
+        lastTS = event.ts;
       }
 
       yield {
-        delta,
+        event: event.e,
+        delta: event.ts - lastTS,
         code,
       };
     }
