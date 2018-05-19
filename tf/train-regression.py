@@ -38,6 +38,7 @@ validate_flat_dataset, validate_weights = \
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
+types = tf.placeholder(tf.float32, shape=input_shape, name='types')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
@@ -46,7 +47,7 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 
 model = Model(training=training)
 
-output = model.build(codes, deltas)
+output = model.build(types, codes, deltas)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
@@ -102,6 +103,7 @@ with tf.Session() as sess:
     mean_metrics = None
     for batch in validate_batches:
       metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
+        types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
@@ -128,6 +130,7 @@ with tf.Session() as sess:
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
       _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+        types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],

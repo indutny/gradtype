@@ -19,7 +19,7 @@ CNN_L2 = 0.0
 
 RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ ]
-FEATURE_COUNT = 28
+FEATURE_COUNT = 8
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
@@ -80,9 +80,10 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, codes, deltas, return_raw=False):
+  def apply_embedding(self, types, codes, deltas, return_raw=False):
     embedding = self.embedding.apply(codes)
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
+    types = tf.expand_dims(types, axis=-1, name='expanded_types')
 
     # Process deltas
     deltas = tf.layers.conv1d(deltas, filters=DELTA_WIDTH, kernel_size=1,
@@ -90,7 +91,7 @@ class Model():
                               kernel_regularizer=self.l2,
                               name='processed_deltas')
 
-    series = tf.concat([ deltas, embedding ], axis=-1, name='full_input')
+    series = tf.concat([ types, deltas, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
         training=self.training)
 
@@ -99,11 +100,11 @@ class Model():
 
     return series
 
-  def build(self, codes, deltas):
+  def build(self, types, codes, deltas):
     batch_size = tf.shape(codes)[0]
     sequence_len = int(codes.shape[1])
 
-    series = self.apply_embedding(codes, deltas)
+    series = self.apply_embedding(types, codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
     if RNN_USE_BIDIR:
@@ -149,8 +150,8 @@ class Model():
 
     return x
 
-  def build_conv(self, codes, deltas):
-    series = self.apply_embedding(codes, deltas)
+  def build_conv(self, types, codes, deltas):
+    series = self.apply_embedding(types, codes, deltas)
     sequence_len = int(deltas.shape[1])
 
     def causal_padding(series):

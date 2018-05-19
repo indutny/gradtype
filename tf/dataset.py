@@ -138,23 +138,26 @@ def expand_sequence(seq, overlap):
   # Pad
   if count < MAX_SEQUENCE_LEN:
     pad_size = MAX_SEQUENCE_LEN - len(seq['codes'])
+    types = seq['types']
     codes = seq['codes']
     deltas = seq['deltas']
 
-    codes = np.concatenate([ codes, np.zeros(pad_size, dtype='int32') ])
-    deltas = np.concatenate([ deltas, np.zeros(pad_size, dtype='float32') ])
+    types = np.concatenate([ np.zeros(pad_size, dtype='float32'), types ])
+    codes = np.concatenate([ np.zeros(pad_size, dtype='int32'), codes ])
+    deltas = np.concatenate([ np.zeros(pad_size, dtype='float32'), deltas ])
 
     padded_seq = seq.copy()
-    padded_seq.update({ 'codes': codes, 'deltas': deltas })
+    padded_seq.update({ 'types': types, 'codes': codes, 'deltas': deltas })
     return [ padded_seq ]
 
   # Expand
   out = []
   for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
+    types = seq['types'][i:i + MAX_SEQUENCE_LEN]
     codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
     deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
-    copy.update({ 'codes': codes, 'deltas': deltas })
+    copy.update({ 'types': types, 'codes': codes, 'deltas': deltas })
     out.append(copy)
   return out
 
@@ -256,11 +259,13 @@ def gen_regression(sequences, batch_size=256):
     batch_perm = perm[i:i + batch_size]
 
     categories = []
+    types = []
     codes = []
     deltas = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
+      types.append(seq['types'])
       codes.append(seq['codes'])
       deltas.append(seq['deltas'])
 
@@ -270,6 +275,7 @@ def gen_regression(sequences, batch_size=256):
 
     batches.append({
       'categories': categories,
+      'types': types,
       'codes': codes,
       'deltas': deltas
     })
