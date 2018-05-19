@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Dataset, Output, MAX_CHAR } from '../src/dataset';
+import { Dataset, Output } from '../src/dataset';
 
 let totalSequences = 0;
 
@@ -23,16 +23,20 @@ fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
 function encodeSequence(sequence) {
   totalSequences++;
 
-  const enc = Buffer.alloc(4 + sequence.length * (MAX_CHAR + 1));
+  const enc = Buffer.alloc(4 + sequence.length * 12);
   enc.writeUInt32LE(sequence.length, 0);
 
   let nonEmpty = false;
-  let off = 4;
-  for (const row of sequence) {
-    for (const elem of row) {
-      enc.writeInt8(elem, off++);
+  for (let i = 0; i < sequence.length; i++) {
+    const code = sequence[i].code;
+    if (code !== -1) {
+      nonEmpty = true;
     }
+    enc.writeInt32LE(code, 4 + i * 12);
+    enc.writeFloatLE(sequence[i].type, 4 + i * 12 + 4);
+    enc.writeFloatLE(sequence[i].delta, 4 + i * 12 + 8);
   }
+  assert(nonEmpty);
   return enc;
 }
 

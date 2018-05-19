@@ -4,7 +4,10 @@ import { shuffle } from './utils';
 
 export const MAX_CHAR = 28;
 
-const SAMPLE_INTERVAL = 1 / 128;  // 1 / 128 of second
+const MIN_SEQUENCE = 8;
+
+// Moving average window
+const WINDOW = 7;
 
 export type InputEntry = {
   readonly e: 'u' | 'd';
@@ -12,39 +15,49 @@ export type InputEntry = {
   readonly ts: number;
 } | 'r';
 
-export type SequenceRow = ReadonlyArray<number>;
-export type Sequence = ReadonlyArray<SequenceRow>;
+export interface ISequenceElem {
+  readonly type: number;
+  readonly code: number;
+  readonly delta: number;
+}
+
+export type Sequence = ReadonlyArray<ISequenceElem>;
 
 export type Input = ReadonlyArray<InputEntry>;
 export type Output = ReadonlyArray<Sequence>;
 
-type IntermediateEntry = 'reset' | SequenceRow;
+type IntermediateEntry = 'reset' | ISequenceElem;
 
 export class Dataset {
   public generate(events: Input): Output {
     const out: ISequenceElem[][] = [];
 
     let sequence: ISequenceElem[] = [];
-    for (const row of this.preprocess(events)) {
-      if (row === 'reset') {
+    for (const event of this.preprocess(events)) {
+      if (event === 'reset') {
+        if (sequence.length > MIN_SEQUENCE) {
+          out.push(sequence);
+        }
         sequence = [];
-        out.push(sequence);
         continue;
       }
 
-      sequence.push(row);
+      sequence.push(event);
     }
-    out.push(sequence);
+    if (sequence.length > MIN_SEQUENCE) {
+      out.push(sequence);
+    }
 
     return out;
   }
 
   public *preprocess(events: Input): Iterator<IntermediateEntry> {
-    let ts: number | undefined;
-    let row: SequenceRow = new Array(MAX_CHAR + 1).fill(0);
+    let lastTS: number | undefined;
+    let deltaHistory: number[] = [];
 
     const reset = (): IntermediateEntry => {
-      ts = undefined;
+      lastTS = undefined;
+      deltaHistory = [];
       return 'reset';
     };
 
@@ -56,7 +69,7 @@ export class Dataset {
 
       let k: string = event.k;
 
-      let code: number;
+      let code: number = 0;
       try {
         code = this.compress(event.k.charCodeAt(0));
       } catch (e) {
@@ -64,25 +77,19 @@ export class Dataset {
       }
       assert(0 <= code && code <= MAX_CHAR);
 
-      if (ts === undefined) {
-        ts = event.ts;
+      let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
+      lastTS = event.ts;
+
+      // Skip first keystroke
+      if (delta === 0) {
+        continue;
       }
 
-      while (event.ts - ts > SAMPLE_INTERVAL) {
-        yield row.slice();
-        ts += SAMPLE_INTERVAL;
-      }
-
-      if (event.e === 'u') {
-        row[code] = 0;
-      } else {
-        row[code] = 1;
-      }
-    }
-
-    // Final row
-    if (row.some(e => e != 0)) {
-      yield row.slice();
+      yield {
+        type: event.e === 'd' ? 0.5 : -0.5,
+        delta,
+        code,
+      };
     }
   }
 

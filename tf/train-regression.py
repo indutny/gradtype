@@ -24,9 +24,7 @@ LR = 0.01
 # Load dataset
 #
 
-print('Loading data...')
-
-loaded = dataset.load(mode='regression', train_overlap=128)
+loaded = dataset.load(mode='regression', train_overlap=1)
 train_dataset = loaded['train']
 validate_dataset = loaded['validate']
 
@@ -38,18 +36,17 @@ validate_flat_dataset, validate_weights = \
 # Initialize model
 #
 
-input_shape = (None, dataset.MAX_SEQUENCE_LEN, dataset.MAX_CHAR + 1, )
+input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
-rows = tf.placeholder(tf.float32, shape=input_shape, name='rows')
+codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
+deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 
-print('Building model...')
-
 model = Model(training=training)
 
-output = model.build_conv(rows)
+output = model.build(codes, deltas)
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
@@ -88,10 +85,7 @@ def log_summary(prefix, metrics, step):
 
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
-print('Starting...')
-
 with tf.Session() as sess:
-  print('Initializing vars...')
   sess.run(tf.global_variables_initializer())
 
   if RESTORE_FROM != None:
@@ -100,7 +94,6 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    print('Generating batches...')
     train_batches = dataset.gen_regression(train_flat_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
@@ -109,7 +102,8 @@ with tf.Session() as sess:
     mean_metrics = None
     for batch in validate_batches:
       metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
-        rows: batch['rows'],
+        codes: batch['codes'],
+        deltas: batch['deltas'],
         categories: batch['categories'],
         weights: validate_weights,
         training: False,
@@ -134,7 +128,8 @@ with tf.Session() as sess:
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
       _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        rows: batch['rows'],
+        codes: batch['codes'],
+        deltas: batch['deltas'],
         categories: batch['categories'],
         weights: train_weights,
         training: True,
