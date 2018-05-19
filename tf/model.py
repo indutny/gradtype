@@ -17,7 +17,7 @@ RNN_USE_BIDIR = False
 DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
-RNN_WIDTH = [ 32 ]
+RNN_WIDTH = [ 32, 32 ]
 DENSE_POST_WIDTH = [ ]
 FEATURE_COUNT = 28
 
@@ -64,18 +64,38 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def build(self, rows, sequence_lens):
+  def create_states(self):
+    out = ()
+    for i, lstm_tuple in enumerate(self.rnn_cell_fw.state_size):
+      c = tf.placeholder(tf.float32, shape=(None, lstm_tuple.c),
+          name='lstm_{}_state_c'.format(i))
+      h = tf.placeholder(tf.float32, shape=(None, lstm_tuple.h),
+          name='lstm_{}_state_h'.format(i))
+
+      out += (tf.contrib.rnn.LSTMStateTuple(c, h),)
+    return out
+
+  def initial_states(self, batch_size):
+    return self.rnn_cell_fw.zero_state(batch_size, dtype=tf.float32)
+
+  def assign_states(self, feed_dict, placeholders, values):
+    for p_state, v_state in zip(placeholders, values):
+      feed_dict[p_state.c] = v_state.c
+      feed_dict[p_state.h] = v_state.h
+
+  def build(self, rows, initial_state):
     if RNN_USE_BIDIR:
       outputs, _, _ = tf.nn.dynamic_bidirectional_rnn(
           cell_fw=self.rnn_cell_fw,
           cell_bw=self.rnn_cell_bw,
           dtype=tf.float32,
-          inputs=rows,
-          sequence_len=sequence_lens)
+          inputs=rows)
+
+      raise Exception('Implement me')
     else:
-      outputs, _ = tf.nn.dynamic_rnn(
+      outputs, state = tf.nn.dynamic_rnn(
           cell=self.rnn_cell_fw,
-          dtype=tf.float32,
+          initial_state=initial_state,
           inputs=rows)
 
     def select_last(pair):
@@ -83,8 +103,7 @@ class Model():
       sequence_len = pair[1]
       return output[sequence_len]
 
-    x = tf.map_fn(select_last, (outputs, sequence_lens - 1), name='last_output',
-        dtype=tf.float32)
+    x = outputs[:, -1]
 
     for post in self.post:
       x = post(x)
@@ -92,7 +111,7 @@ class Model():
     x = self.features(x)
     # x = tf.nn.l2_normalize(x, axis=-1)
 
-    return x
+    return x, state
 
   def build_conv(self, codes, deltas):
     series = self.apply_embedding(codes, deltas)

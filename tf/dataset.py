@@ -137,10 +137,10 @@ def expand_sequence(seq, overlap):
 
     padding = np.zeros((pad_size, MAX_CHAR + 1,), dtype='float32')
 
-    rows = np.concatenate([ seq['rows'], padding ])
+    rows = np.concatenate([ padding, seq['rows'] ])
 
     padded_seq = seq.copy()
-    padded_seq.update({ 'rows': rows, 'sequence_len': count })
+    padded_seq.update({ 'rows': rows })
     return [ padded_seq ]
 
   # Expand
@@ -148,7 +148,7 @@ def expand_sequence(seq, overlap):
   for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
     rows = seq['rows'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
-    copy.update({ 'rows': rows, 'sequence_len': MAX_SEQUENCE_LEN })
+    copy.update({ 'rows': rows })
     out.append(copy)
   return out
 
@@ -213,20 +213,16 @@ def gen_regression(sequences, batch_size=256):
 
     categories = []
     rows = []
-    sequence_lens = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
       rows.append(seq['rows'])
-      sequence_lens.append(seq['sequence_len'])
 
     categories = np.array(categories)
     rows = np.array(rows)
-    sequence_lens = np.array(sequence_lens, dtype='int32')
 
     batches.append({
       'categories': categories,
       'rows': rows,
-      'sequence_lens': sequence_lens,
     })
   return batches

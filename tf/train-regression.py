@@ -20,6 +20,8 @@ MAX_EPOCHS = 500000
 # Learning rate
 LR = 0.01
 
+BPTT_DEPTH = 64
+
 #
 # Load dataset
 #
@@ -38,19 +40,22 @@ validate_flat_dataset, validate_weights = \
 # Initialize model
 #
 
-input_shape = (None, dataset.MAX_SEQUENCE_LEN, dataset.MAX_CHAR + 1, )
+input_shape = (None, None, dataset.MAX_CHAR + 1, )
 
 rows = tf.placeholder(tf.float32, shape=input_shape, name='rows')
-sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 
 print('Building model...')
 
-model = Model(training=training)
+model = Model(training=False)
 
-output = model.build(rows, sequence_lens)
+initial_states = model.initial_states(tf.shape(rows)[0])
+states = model.create_states()
+
+output, output_states = model.build(rows, states)
+
 t_metrics, t_summary = model.get_regression_metrics(output, categories, weights)
 
 #
@@ -91,6 +96,23 @@ saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
 print('Starting...')
 
+# TODO(indutny): move it to model
+def run_batch(kind, batch, batch_weights, tensors):
+  feed_dict = {
+    rows: batch['rows'][:, :-BPTT_DEPTH],
+    categories: batch['categories'],
+    weights: batch_weights,
+    training: kind is 'train',
+  }
+  model.assign_states(feed_dict, state, initial_state)
+
+  saved_states = sess.run(output_states, feed_dict=feed_dict)
+
+  feed_dict['rows'] = batch['rows'][:, -BPTT_DEPTH:]
+  model.assign_states(feed_dict, state, saved_states)
+
+  return sess.run(tensors, feed_dict=feed_dict)
+
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
@@ -107,13 +129,8 @@ with tf.Session() as sess:
     print('Validation...')
     mean_metrics = None
     for batch in validate_batches:
-      metrics, summary = sess.run([ t_metrics, t_summary ], feed_dict={
-        rows: batch['rows'],
-        sequence_lens: batch['sequence_lens'],
-        categories: batch['categories'],
-        weights: validate_weights,
-        training: False,
-      })
+      metrics, summary = run_batches('validate', batch, validate_weights,
+          [ t_metrics, t_summary ])
       writer.add_summary(summary, step)
 
       if mean_metrics is None:
@@ -133,13 +150,8 @@ with tf.Session() as sess:
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
-      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        rows: batch['rows'],
-        sequence_lens: batch['sequence_lens'],
-        categories: batch['categories'],
-        weights: train_weights,
-        training: True,
-      })
+      _, metrics, reg_loss, grad_norm = run_batches('train', batch,
+          validate_weights, tensors)
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
       log_summary('train', metrics, step)
