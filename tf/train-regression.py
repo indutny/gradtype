@@ -91,6 +91,7 @@ saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 print('Starting...')
 
 with tf.Session() as sess:
+  print('Initializing vars...')
   sess.run(tf.global_variables_initializer())
 
   if RESTORE_FROM != None:
@@ -99,6 +100,7 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
+    print('Generating batches...')
     train_batches = dataset.gen_regression(train_flat_dataset)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
