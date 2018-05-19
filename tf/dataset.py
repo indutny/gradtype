@@ -28,10 +28,6 @@ def load_labels():
 def load_sequence(f):
   sequence_len = struct.unpack('<i', f.read(4))[0]
 
-  # Stop-gap
-  if sequence_len < 100:
-    continue
-
   rows = []
   for i in range(sequence_len):
     row = struct.unpack('B' * (MAX_CHAR + 1), f.read(MAX_CHAR + 1))
@@ -130,6 +126,10 @@ def expand_sequence(seq, overlap):
     overlap = MAX_SEQUENCE_LEN
 
   count = len(seq['rows'])
+
+  # Stop-gap
+  if count < 100:
+    return []
 
   # Pad
   if count < MAX_SEQUENCE_LEN:
