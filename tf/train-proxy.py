@@ -52,6 +52,7 @@ validate_flat_dataset, validate_weights = \
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
+types = tf.placeholder(tf.float32, shape=input_shape, name='types')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 training = tf.placeholder(tf.bool, shape=(), name='training')
@@ -62,7 +63,7 @@ weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
-output = model.build(codes, deltas)
+output = model.build(types, codes, deltas)
 t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
     category_mask)
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
@@ -116,6 +117,7 @@ with tf.Session() as sess:
     for batch in train_batches:
       tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
       _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+        types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
@@ -133,6 +135,7 @@ with tf.Session() as sess:
     mean_metrics = None
     for batch in validate_batches:
       metrics = sess.run(t_val_metrics, feed_dict={
+        types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         categories: batch['categories'],
