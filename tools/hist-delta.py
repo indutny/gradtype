@@ -7,7 +7,10 @@ with open(sys.argv[1]) as input:
   reader = csv.reader(input, delimiter=',')
   delta = []
   for row in reader:
-    delta.append(float(row[1]) * 1000)
+    ts = float(row[1])
+    if ts > 0.5:
+      continue
+    delta.append(ts * 1000)
   delta = np.array(delta)
 
   # the histogram of the data
