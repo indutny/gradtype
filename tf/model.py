@@ -4,7 +4,6 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 11
 DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
@@ -23,20 +22,6 @@ FEATURE_COUNT = 32
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
-class Embedding():
-  def __init__(self, name, max_code, width, regularizer=None):
-    self.name = name
-    self.width = width
-    with tf.variable_scope(None, default_name=self.name):
-      self.weights = tf.get_variable('weights', shape=(max_code, width),
-                                     regularizer=regularizer)
-      self.weights = tf.nn.l2_normalize(self.weights, axis=-1,
-          name='normalized_weights')
-
-  def apply(self, codes):
-    with tf.name_scope(None, values=[ codes ], default_name=self.name):
-      return tf.gather(self.weights, codes)
-
 class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
@@ -44,8 +29,6 @@ class Model():
     self.training = training
     self.use_pooling = False
     self.random_len = True
-
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
     def create_rnn_cell(name):
       cells = []
@@ -80,10 +63,8 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, types, codes, deltas, return_raw=False):
-    embedding = self.embedding.apply(codes)
+  def apply_embedding(self, rows, deltas): 
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
-    types = tf.expand_dims(types, axis=-1, name='expanded_types')
 
     # Process deltas
     deltas = tf.layers.conv1d(deltas, filters=DELTA_WIDTH, kernel_size=1,
@@ -91,21 +72,18 @@ class Model():
                               kernel_regularizer=self.l2,
                               name='processed_deltas')
 
-    series = tf.concat([ types, deltas, embedding ], axis=-1, name='full_input')
+    series = tf.concat([ deltas, rows ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
         training=self.training)
 
-    if return_raw:
-      return series, embedding
-
     return series
 
-  def build(self, types, codes, deltas):
-    batch_size = tf.shape(codes)[0]
-    sequence_len = int(codes.shape[1])
-
-    series = self.apply_embedding(types, codes, deltas)
+  def build(self, rows, deltas):
+    series = self.apply_embedding(rows, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
+
+    batch_size = tf.shape(series)[0]
+    sequence_len = len(frames)
 
     if RNN_USE_BIDIR:
       outputs, _, _ = tf.nn.static_bidirectional_rnn(
@@ -149,77 +127,6 @@ class Model():
     # x = tf.nn.l2_normalize(x, axis=-1)
 
     return x
-
-  def build_conv(self, types, codes, deltas):
-    series = self.apply_embedding(types, codes, deltas)
-    sequence_len = int(deltas.shape[1])
-
-    def causal_padding(series):
-      current_sequence_len = int(series.shape[1])
-      if sequence_len == current_sequence_len:
-        return series
-      to_pad = sequence_len - current_sequence_len
-
-      return tf.pad(series, [ [ 0, 0 ], [ to_pad, 0 ], [ 0, 0 ] ])
-
-    def residual_block(i, width, dilation, series):
-      with tf.name_scope('residual_block_{}'.format(i), [ series ]):
-        x = series
-
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.selu,
-                             kernel_regularizer=self.cnn_l2)
-        x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.2, training=self.training)
-
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.selu,
-                             kernel_regularizer=self.cnn_l2)
-        x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.2, training=self.training)
-
-        if series.shape[2] != x.shape[2]:
-          series = tf.layers.conv1d(x, filters=x.shape[2], kernel_size=1,
-                                    kernel_regularizer=self.cnn_l2)
-
-        return tf.nn.selu(series + x)
-
-    for i, width in enumerate(CNN_WIDTH):
-      series = residual_block(i, width, 2 ** i, series)
-
-    x = series[:, -1]
-
-    x = self.features(x)
-    # x = tf.nn.l2_normalize(x, axis=-1)
-    return x
-
-  def build_auto(self, codes, deltas):
-    series, embeddings = self.apply_embedding(codes, deltas, return_raw=True)
-
-    frames = tf.unstack(series, axis=1, name='unstacked_output')
-
-    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell_fw, dtype=tf.float32,
-        inputs=frames)
-
-    decoder = tf.contrib.rnn.LSTMBlockCell(name='decoder',
-        num_units=RNN_WIDTH[-1])
-    decoder = tf.contrib.rnn.DropoutWrapper(decoder,
-        state_keep_prob=tf.where(self.training, 1.0 - 0.0, 1.0))
-
-    batch_size = tf.shape(codes)[0]
-    decoder_state = decoder.zero_state(batch_size, dtype=tf.float32)
-    decoder_state = tf.contrib.rnn.LSTMStateTuple(outputs[-1], decoder_state.h)
-
-    unstacked_embeddings = tf.unstack(embeddings, axis=1, \
-        name='unstacked_embeddings')
-    outputs, _ = tf.nn.static_rnn(cell=decoder, inputs=unstacked_embeddings,
-        initial_state=decoder_state)
-
-    mux = tf.layers.Dense(name='mux', units=1, kernel_regularizer=self.l2)
-    outputs = [ mux(output) for output in outputs ]
-
-    outputs = tf.stack(outputs, axis=1, name='stacked_decoder_output')
-    return outputs, deltas
 
   def get_regression_metrics(self, output, categories, weights):
     with tf.name_scope('regression_loss', [ output, categories, weights ]):
@@ -353,24 +260,3 @@ class Model():
           category_count, category_mask)
 
       return metrics
-
-  def get_auto_metrics(self, output, deltas, categories, weights):
-    with tf.name_scope('auto_metrics', [ output, deltas, categories, \
-        weights ]):
-      batch_weights = tf.gather(weights, categories, axis=0, \
-          name='per_category_weight')
-
-      output = tf.squeeze(output, axis=2)
-      loss = batch_weights * tf.reduce_mean((deltas - output) ** 2, axis=-1)
-      loss = tf.reduce_mean(loss, axis=0, name='mean_loss')
-
-      metrics = {}
-      metrics['loss'] = loss
-
-      # Add batch dimension
-      embedding = tf.expand_dims(self.embedding.weights, axis=0)
-      # Add color dimension
-      embedding = tf.expand_dims(embedding, axis=-1)
-      embedding = tf.summary.image('embedding', embedding)
-
-      return metrics, tf.summary.merge([ embedding ])

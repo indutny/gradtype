@@ -28,28 +28,29 @@ def load_labels():
 def load_sequence(f, category, label):
   sequence_len = struct.unpack('<i', f.read(4))[0]
 
-  types = []
-  codes = []
+  row = [ 0.0 ] * (MAX_CHAR + 1)
+
+  rows = []
   deltas = []
   for k in range(0, sequence_len):
     code = struct.unpack('<i', f.read(4))[0]
     type = struct.unpack('<i', f.read(4))[0]
     delta = struct.unpack('f', f.read(4))[0]
 
-    if code < -1 or code > MAX_CHAR:
+    if code < 0 or code > MAX_CHAR:
       raise Exception('Invalid code: "{}"'.format(code))
 
-    types.append(type * 0.5)
-    codes.append(code + 1)
+    row[code] = 1.0 if type is 1 else 0.0
+    rows.append(row[:])
     deltas.append(delta)
-  codes = np.array(codes, dtype='int32')
+
+  rows = np.array(rows, dtype='float32')
   deltas = np.array(deltas, dtype='float32')
 
   return {
     'category': category,
     'label': label,
-    'types': types,
-    'codes': codes,
+    'rows': rows,
     'deltas': deltas
   }
 
@@ -137,31 +138,29 @@ def expand_sequence(seq, overlap):
   if overlap is None:
     overlap = MAX_SEQUENCE_LEN
 
-  count = len(seq['codes'])
+  count = len(seq['deltas'])
 
   # Pad
   if count < MAX_SEQUENCE_LEN:
-    pad_size = MAX_SEQUENCE_LEN - len(seq['codes'])
-    types = seq['types']
-    codes = seq['codes']
+    pad_size = MAX_SEQUENCE_LEN - count
+    rows = seq['rows']
     deltas = seq['deltas']
 
-    types = np.concatenate([ np.zeros(pad_size, dtype='float32'), types ])
-    codes = np.concatenate([ np.zeros(pad_size, dtype='int32'), codes ])
+    rows = np.concatenate([ np.zeros([ pad_size, MAX_CHAR + 1],
+      dtype='float32'), rows ])
     deltas = np.concatenate([ np.zeros(pad_size, dtype='float32'), deltas ])
 
     padded_seq = seq.copy()
-    padded_seq.update({ 'types': types, 'codes': codes, 'deltas': deltas })
+    padded_seq.update({ 'rows': rows, 'deltas': deltas })
     return [ padded_seq ]
 
   # Expand
   out = []
   for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
-    types = seq['types'][i:i + MAX_SEQUENCE_LEN]
-    codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
+    rows = seq['rows'][i:i + MAX_SEQUENCE_LEN]
     deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
-    copy.update({ 'types': types, 'codes': codes, 'deltas': deltas })
+    copy.update({ 'rows': rows, 'deltas': deltas })
     out.append(copy)
   return out
 
@@ -208,29 +207,6 @@ def trim_dataset(dataset, batch_size=1, random_state=None):
     out.append(out_cat)
   return out, min_len
 
-# TODO(indutny): use tf.data.Dataset
-def gen_hard_batches(dataset, batch_size=32, k=None):
-  if k is None:
-    k = len(dataset)
-
-  # Leave the same number of sequences in each batch
-  dataset, sequence_count = trim_dataset(dataset, batch_size)
-
-  perm = np.random.permutation(len(dataset))
-  dataset = [ dataset[i] for i in perm[:k] ]
-
-  batches = []
-  for off in range(0, sequence_count, batch_size):
-    batch = { 'codes': [], 'deltas': [] }
-    for category in dataset:
-      for seq in category[off:off + batch_size]:
-        batch['codes'].append(seq['codes'])
-        batch['deltas'].append(seq['deltas'])
-    batch['codes'] = np.array(batch['codes'])
-    batch['deltas'] = np.array(batch['deltas'])
-    batches.append(batch)
-  return batches
-
 def flatten_dataset(dataset, k=None):
   if k is None:
     k = len(dataset)
@@ -257,10 +233,9 @@ def flatten_dataset(dataset, k=None):
 
 def gen_adversarial(count):
   shape = [ count, MAX_SEQUENCE_LEN ]
-  types = np.random.choice([ -0.5, 0.5 ], shape)
-  codes = np.random.random_integers(1, MAX_CHAR + 1, shape)
+  rows = np.random.choice([ 0.0, 1.0 ], shape + [ MAX_CHAR + 1 ])
   deltas = np.random.exponential(1.0, shape)
-  return { 'types': types, 'codes': codes, 'deltas': deltas }
+  return { 'rows': rows, 'deltas': deltas }
 
 def gen_regression(sequences, batch_size=256, adversarial_count=None):
   perm = np.random.permutation(len(sequences))
@@ -270,32 +245,27 @@ def gen_regression(sequences, batch_size=256, adversarial_count=None):
     batch_perm = perm[i:i + batch_size]
 
     categories = []
-    types = []
-    codes = []
+    rows = []
     deltas = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
-      types.append(seq['types'])
-      codes.append(seq['codes'])
+      rows.append(seq['rows'])
       deltas.append(seq['deltas'])
 
     categories = np.array(categories)
-    types = np.array(types)
-    codes = np.array(codes)
+    rows = np.array(rows)
     deltas = np.array(deltas)
 
     if adversarial_count != None:
       adversarial = gen_adversarial(adversarial_count)
 
-      types = np.concatenate([ types, adversarial['types'] ], axis=0)
-      codes = np.concatenate([ codes, adversarial['codes'] ], axis=0)
+      rows = np.concatenate([ rows, adversarial['rows'] ], axis=0)
       deltas = np.concatenate([ deltas, adversarial['deltas'] ], axis=0)
 
     batches.append({
       'categories': categories,
-      'types': types,
-      'codes': codes,
-      'deltas': deltas
+      'rows': rows,
+      'deltas': deltas,
     })
   return batches
