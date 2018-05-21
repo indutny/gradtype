@@ -16,6 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
+ADVERSARIAL_COUNT = 16
+
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
 
@@ -65,7 +67,7 @@ model = Model(training=training)
 
 output = model.build(types, codes, deltas)
 t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
-    category_mask)
+    category_mask, ADVERSARIAL_COUNT)
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
     category_count, category_mask)
 
@@ -108,7 +110,8 @@ with tf.Session() as sess:
 
   step = 0
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_regression(train_flat_dataset)
+    train_batches = dataset.gen_regression(train_flat_dataset,
+        adversarial_count=ADVERSARIAL_COUNT)
     validate_batches = dataset.gen_regression(validate_flat_dataset, \
         batch_size=len(validate_flat_dataset))
 

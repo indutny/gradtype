@@ -251,7 +251,17 @@ def flatten_dataset(dataset, k=None):
 
   return sequences, weights
 
-def gen_regression(sequences, batch_size=256):
+def gen_adversarial(count):
+  shape = [ count, MAX_SEQUENCE_LEN ]
+  types = np.random.choice([ -0.5, 0.5 ], shape)
+  codes = np.random.random_integers(1, MAX_CHAR + 1, shape)
+  deltas = np.random.exponential(1.0, shape)
+  return { 'types': types, 'codes': codes, 'deltas': deltas }
+
+def gen_regression(sequences, batch_size=256, adversarial_count=None):
+  if adversarial_count != None:
+    adversarial = gen_adversarial(adversarial_count)
+
   perm = np.random.permutation(len(sequences))
   batches = []
   for i in range(0, len(perm), batch_size):
@@ -270,8 +280,14 @@ def gen_regression(sequences, batch_size=256):
       deltas.append(seq['deltas'])
 
     categories = np.array(categories)
+    types = np.array(types)
     codes = np.array(codes)
     deltas = np.array(deltas)
+
+    if adversarial_count != None:
+      types = np.concatenate([ types, adversarial['types'] ], axis=0)
+      codes = np.concatenate([ codes, adversarial['codes'] ], axis=0)
+      deltas = np.concatenate([ deltas, adversarial['deltas'] ], axis=0)
 
     batches.append({
       'categories': categories,

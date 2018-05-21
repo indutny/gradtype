@@ -260,7 +260,11 @@ class Model():
 
   # TODO(indutny): use `weights`?
   def get_proxy_common(self, proxies, output, categories, category_count, \
-      category_mask):
+      category_mask, adversarial_count=None):
+    if adversarial_count != None:
+      adversarial = output[-adversarial_count:]
+      output = output[:-adversarial_count]
+
     positives = tf.gather(proxies, categories, axis=0,
         name='positive_proxies')
 
@@ -270,7 +274,14 @@ class Model():
         tf.expand_dims(category_mask, axis=0))
 
     def apply_mask(mask):
-      return tf.boolean_mask(proxies, mask, axis=0, name='batch_negatives')
+      negatives = tf.boolean_mask(proxies, mask, axis=0, \
+          name='batch_negatives')
+
+      # TODO(indutny): optimize?
+      if adversarial_count != None:
+        negatives = tf.concat([ negatives, adversarial ], axis=0,
+            name='batch_negatives_and_adversaries')
+      return negatives
 
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
@@ -295,7 +306,7 @@ class Model():
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
   def get_proxy_loss(self, output, categories, weights, category_count, \
-      category_mask):
+      category_mask, adversarial_count=0):
     with tf.name_scope('proxy_loss', [ output, categories, weights, \
         category_mask ]):
       proxies = tf.get_variable('points',
@@ -306,7 +317,8 @@ class Model():
           name='per_category_weight')
 
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
-          proxies, output, categories, category_count, category_mask)
+          proxies, output, categories, category_count, category_mask,
+          adversarial_count)
 
       exp_pos = tf.exp(-positive_distances, name='exp_pos')
       exp_neg = tf.exp(-negative_distances, name='exp_neg')
