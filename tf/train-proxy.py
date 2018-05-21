@@ -16,7 +16,7 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-ADVERSARIAL_COUNT = 16
+ADVERSARIAL_COUNT = 1
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000

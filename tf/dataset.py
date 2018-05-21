@@ -259,9 +259,6 @@ def gen_adversarial(count):
   return { 'types': types, 'codes': codes, 'deltas': deltas }
 
 def gen_regression(sequences, batch_size=256, adversarial_count=None):
-  if adversarial_count != None:
-    adversarial = gen_adversarial(adversarial_count)
-
   perm = np.random.permutation(len(sequences))
   batches = []
   for i in range(0, len(perm), batch_size):
@@ -285,6 +282,8 @@ def gen_regression(sequences, batch_size=256, adversarial_count=None):
     deltas = np.array(deltas)
 
     if adversarial_count != None:
+      adversarial = gen_adversarial(adversarial_count)
+
       types = np.concatenate([ types, adversarial['types'] ], axis=0)
       codes = np.concatenate([ codes, adversarial['codes'] ], axis=0)
       deltas = np.concatenate([ deltas, adversarial['deltas'] ], axis=0)
