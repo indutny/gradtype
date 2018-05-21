@@ -25,6 +25,34 @@ def load_labels():
   with open(index_json, 'r') as f:
     return json.load(f)
 
+def load_sequence(f, category, label):
+  sequence_len = struct.unpack('<i', f.read(4))[0]
+
+  types = []
+  codes = []
+  deltas = []
+  for k in range(0, sequence_len):
+    code = struct.unpack('<i', f.read(4))[0]
+    type = struct.unpack('<i', f.read(4))[0]
+    delta = struct.unpack('f', f.read(4))[0]
+
+    if code < -1 or code > MAX_CHAR:
+      raise Exception('Invalid code: "{}"'.format(code))
+
+    types.append(type * 0.5)
+    codes.append(code + 1)
+    deltas.append(delta)
+  codes = np.array(codes, dtype='int32')
+  deltas = np.array(deltas, dtype='float32')
+
+  return {
+    'category': category,
+    'label': label,
+    'types': types,
+    'codes': codes,
+    'deltas': deltas
+  }
+
 def load(mode='triplet', overlap=None, train_overlap=None,
          validate_overlap = None):
   if overlap != None:
@@ -38,35 +66,11 @@ def load(mode='triplet', overlap=None, train_overlap=None,
     if category_count != len(labels):
       raise Exception("Invalid category count")
 
-    for i in range(0, category_count):
+    for category in range(0, category_count):
       sequence_count = struct.unpack('<i', f.read(4))[0]
       sequences = []
       for j in range(0, sequence_count):
-        sequence_len = struct.unpack('<i', f.read(4))[0]
-
-        types = []
-        codes = []
-        deltas = []
-        for k in range(0, sequence_len):
-          code = struct.unpack('<i', f.read(4))[0]
-          type = struct.unpack('<f', f.read(4))[0]
-          delta = struct.unpack('f', f.read(4))[0]
-
-          if code < -1 or code > MAX_CHAR:
-            raise Exception('Invalid code: "{}"'.format(code))
-
-          types.append(type)
-          codes.append(code + 1)
-          deltas.append(delta)
-        codes = np.array(codes, dtype='int32')
-        deltas = np.array(deltas, dtype='float32')
-        sequences.append({
-          'category': i,
-          'label': labels[i],
-          'types': types,
-          'codes': codes,
-          'deltas': deltas
-        })
+        sequences.append(load_sequence(f, category, labels[category]))
       categories.append(sequences)
   return split(categories, mode, train_overlap, validate_overlap)
 

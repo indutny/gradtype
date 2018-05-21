@@ -86,7 +86,7 @@ export class Dataset {
       }
 
       yield {
-        type: event.e === 'd' ? 0.5 : -0.5,
+        type: event.e === 'd' ? 1 : -1,
         delta,
         code,
       };
