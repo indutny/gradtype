@@ -28,7 +28,7 @@ VALIDATE_EVERY = 1
 BATCH_SIZE = 16
 
 # Learning rate
-LR = 0.2
+LR = 0.01
 
 # Number of categories in each epoch
 K = 64
