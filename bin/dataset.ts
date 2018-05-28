@@ -8,6 +8,7 @@ import * as path from 'path';
 import { Dataset, Output } from '../src/dataset';
 
 let totalSequences = 0;
+let totalSequenceLen = 0;
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -22,6 +23,7 @@ fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
 
 function encodeSequence(sequence) {
   totalSequences++;
+  totalSequenceLen += sequence.length;
 
   const enc = Buffer.alloc(4 + sequence.length * 12);
   enc.writeUInt32LE(sequence.length, 0);
@@ -83,3 +85,4 @@ datasets.forEach((ds) => {
 fs.closeSync(fd);
 
 console.log('Total sequence count: %d', totalSequences);
+console.log('Mean length: %s', (totalSequenceLen / totalSequences).toFixed(2));
