@@ -10,7 +10,7 @@ const { run, send, json } = require('micro');
 
 const Joi = require('joi');
 
-const MIN_SEQUENCE_LEN = 5000;
+const MIN_SEQUENCE_LEN = 2000;
 const OUT_DIR = path.join(__dirname, 'datasets');
 const KEY_FILE = process.env.KEY_FILE;
 const CERT_FILE = process.env.CERT_FILE;
