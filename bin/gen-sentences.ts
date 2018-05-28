@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const SENTENCE_COUNT = 89;
+const SENTENCE_COUNT = 20;
 
 const wilde = fs.readFileSync(path.join(__dirname, '..', 'data', 'wilde.txt'));
 
@@ -11,7 +11,7 @@ const text: string = wilde.toString().replace(/\s+/g, ' ');
 const sentences = text.split(/\.+/g)
   .filter((line) => !/["?!]/.test(line))
   .map((line) => line.trim())
-  .filter((line) => line.length > 32 && line.length < 64);
+  .filter((line) => line.length > 60 && line.length < 64);
 
 const res = [];
 for (let i = 0; i < SENTENCE_COUNT; i++) {
