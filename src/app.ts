@@ -43,11 +43,15 @@ class Application {
     this.displaySentence();
 
     window.addEventListener('keydown', (e) => {
+      e.preventDefault();
       this.onKeyDown(e.key);
+      return false;
     }, true);
 
     window.addEventListener('keyup', (e) => {
+      e.preventDefault();
       this.onKeyUp(e.key);
+      return false;
     }, true);
   }
 
