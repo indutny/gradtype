@@ -1,10 +1,10 @@
 const sentences = [
-  "I should not be sorry to see you disgraced, publicly disgraced",
   "He turned round and, walking to the window, drew up the blind",
   "The true mystery of the world is the visible, not the invisible",
   "The common people who acted with me seemed to me to be godlike",
   "Having locked the door behind him, he crept quietly downstairs",
   "Success was given to the strong, failure thrust upon the weak",
+  "I should not be sorry to see you disgraced, publicly disgraced",
   "England is bad enough I know, and English society is all wrong",
   "And I don't think it really matters about your not being there",
   "It was the imagination that set remorse to dog the feet of sin",
