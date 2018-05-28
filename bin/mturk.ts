@@ -13,6 +13,8 @@ const OUT_DIR = path.join(__dirname, '..', 'out');
 const hashes = fs.readFileSync(process.argv[2]).toString().toLowerCase()
   .split(/[\n,"]/g).filter((word) => /^[a-z0-9]{64,64}$/.test(word));
 
+const prefix = process.argv[3] || 'sv-';
+
 const d = new Dataset();
 
 hashes.forEach((hash) => {
@@ -35,7 +37,7 @@ hashes.forEach((hash) => {
     return false;
   }
 
-  const target = path.join(DATASETS_DIR, 'sv-' + hash.slice(0, 8) + '.json');
+  const target = path.join(DATASETS_DIR, prefix + hash.slice(0, 8) + '.json');
   if (fs.existsSync(target)) {
     console.error('Duplicate (previous run): %j', hash);
     return false;
