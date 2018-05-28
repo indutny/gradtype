@@ -8,7 +8,7 @@ import numpy as np
 MAX_CHAR = 28
 
 # Sequence length
-MAX_SEQUENCE_LEN = 64
+MAX_SEQUENCE_LEN = 128
 
 # Percent of sequences in validation data
 VALIDATE_PERCENT = 0.33
