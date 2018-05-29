@@ -8,7 +8,11 @@ import * as path from 'path';
 import { Dataset, Output } from '../src/dataset';
 
 let totalSequences = 0;
-let totalSequenceLen = 0;
+const totalSequenceLen = {
+  mean: 0,
+  min: Infinity,
+  max: -Infinity,
+};
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
 const OUT_DIR = path.join(__dirname, '..', 'out');
@@ -23,7 +27,10 @@ fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
 
 function encodeSequence(sequence) {
   totalSequences++;
-  totalSequenceLen += sequence.length;
+
+  totalSequenceLen.mean += sequence.length;
+  totalSequenceLen.min = Math.min(totalSequenceLen.min, sequence.length);
+  totalSequenceLen.max = Math.max(totalSequenceLen.max, sequence.length);
 
   const enc = Buffer.alloc(4 + sequence.length * 12);
   enc.writeUInt32LE(sequence.length, 0);
@@ -85,4 +92,7 @@ datasets.forEach((ds) => {
 fs.closeSync(fd);
 
 console.log('Total sequence count: %d', totalSequences);
-console.log('Mean length: %s', (totalSequenceLen / totalSequences).toFixed(2));
+console.log('Mean length: %s',
+  (totalSequenceLen.mean / totalSequences).toFixed(2));
+console.log('Min length: %s', totalSequenceLen.min.toFixed(2));
+console.log('Max length: %s', totalSequenceLen.max.toFixed(2));
