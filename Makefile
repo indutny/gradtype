@@ -31,13 +31,13 @@ clean:
 	rm -rf images/
 
 MODEL_WEIGHTS=$(wildcard saves/$(GRADTYPE_RUN)/*.index)
-PCA_IMAGES_PRE=$(subst saves/$(GRADTYPE_RUN)/,images/pca/$(GRADTYPE_RUN), \
+PCA_IMAGES_PRE=$(subst saves/$(GRADTYPE_RUN)/,images/pca/$(GRADTYPE_RUN)-, \
 							 $(MODEL_WEIGHTS))
 PCA_IMAGES=$(subst .index,.png, $(PCA_IMAGES_PRE))
 
 images/pca.mp4: visualize
 	ffmpeg -v quiet -y -r 10 -pattern_type glob \
-		-i "images/pca/$(GRADTYPE_RUN)*.png" \
+		-i "images/pca/$(GRADTYPE_RUN)-*.png" \
 		-vcodec libx264 -preset veryslow -pix_fmt yuv420p $@
 
 visualize: images/pca $(PCA_IMAGES)
