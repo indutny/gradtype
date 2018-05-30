@@ -17,9 +17,9 @@ RNN_USE_BIDIR = False
 DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
-RNN_WIDTH = [ 64 ]
-DENSE_POST_WIDTH = [ 32 ]
-FEATURE_COUNT = 32
+RNN_WIDTH = [ 128 ]
+DENSE_POST_WIDTH = [ 128 ]
+FEATURE_COUNT = 128
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
@@ -310,6 +310,7 @@ class Model():
     with tf.name_scope('proxy_loss', [ output, categories, weights, \
         category_mask ]):
       proxies = tf.get_variable('points',
+          initializer=tf.initializers.orthogonal(),
           shape=(category_count, FEATURE_COUNT,))
       proxies = tf.nn.l2_normalize(proxies, axis=-1)
 
