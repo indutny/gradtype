@@ -75,6 +75,8 @@ t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
     category_count, category_mask)
 
+global_step_t = tf.Variable(0, trainable=False, name='global_step')
+
 #
 # Initialize optimizer
 #
@@ -112,13 +114,13 @@ with tf.Session() as sess:
     print('Restoring from "{}"'.format(RESTORE_FROM))
     saver.restore(sess, RESTORE_FROM)
 
-  step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_flat_dataset,
         adversarial_count=ADVERSARIAL_COUNT, batch_size=BATCH_SIZE)
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
+      step = tf.train.global_step(sess, global_step_t)
       saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
 
     print('Epoch {}'.format(epoch))
@@ -135,9 +137,10 @@ with tf.Session() as sess:
       })
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
-      log_summary('train', metrics, step)
+      sess.run(global_step_t.assign_add(1))
 
-      step += 1
+      step = tf.train.global_step(sess, global_step_t)
+      log_summary('train', metrics, step)
 
     print('Validation...')
     mean_metrics = None
