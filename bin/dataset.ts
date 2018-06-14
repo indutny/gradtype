@@ -15,10 +15,15 @@ const totalSequenceLen = {
 };
 
 const DATASETS_DIR = path.join(__dirname, '..', 'datasets');
+const SENTENCES_FILE = path.join(DATASETS_DIR, 'sentences.json');
 const OUT_DIR = path.join(__dirname, '..', 'out');
+
+let sentences = JSON.parse(fs.readFileSync(SENTENCES_FILE).toString());
+sentences = sentences.map((line) => line.toLowerCase());
 
 const labels: string[] = fs.readdirSync(DATASETS_DIR)
   .filter((file) => /\.json$/.test(file))
+  .filter((file) => file !== 'sentences.json')
   .map((file) => file.replace(/\.json$/, ''))
   .filter((file) => file !== 'index');
 
@@ -56,7 +61,7 @@ let datasets = labels.map((name) => {
     name,
   };
 }).map((entry) => {
-  const d = new Dataset();
+  const d = new Dataset(sentences);
 
   return {
     name: entry.name,

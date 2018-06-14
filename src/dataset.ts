@@ -29,6 +29,9 @@ export type Output = ReadonlyArray<Sequence>;
 type IntermediateEntry = 'reset' | ISequenceElem;
 
 export class Dataset {
+  constructor(private readonly sentences: string[]) {
+  }
+
   public generate(events: Input): Output {
     const out: ISequenceElem[][] = [];
 
@@ -54,8 +57,19 @@ export class Dataset {
   public *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
     let deltaHistory: number[] = [];
+    const sentences = this.sentences.slice();
+    let sentence: string = sentences.shift()!;
+    let nextChar: number = 0;
+    const pressed: Set<string> = new Set();
 
     const reset = (): IntermediateEntry => {
+      sentence = sentences.shift()!;
+      assert(sentences !== undefined, 'Not enough sentences');
+
+      // Sentence state
+      nextChar = 0;
+      pressed.clear();
+
       lastTS = undefined;
       deltaHistory = [];
       return 'reset';
@@ -68,6 +82,23 @@ export class Dataset {
       }
 
       let k: string = event.k;
+
+      if (event.e === 'u') {
+        if (pressed.has(k)) {
+          pressed.delete(k);
+        } else {
+          // Skip keyups for keys that wasn't pressed
+          continue;
+        }
+      } else if (event.e === 'd') {
+        if (sentence[nextChar] === k) {
+          pressed.add(k);
+          nextChar++;
+        } else {
+          // Skip invalid chars
+          continue;
+        }
+      }
 
       let code: number = 0;
       try {
