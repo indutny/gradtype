@@ -26,7 +26,7 @@ export type Sequence = ReadonlyArray<ISequenceElem>;
 export type Input = ReadonlyArray<InputEntry>;
 export type Output = ReadonlyArray<Sequence>;
 
-type IntermediateEntry = 'reset' | ISequenceElem;
+type IntermediateEntry = 'reset' | 'invalid' | ISequenceElem;
 
 export class Dataset {
   constructor(private readonly sentences: string[]) {
@@ -43,12 +43,12 @@ export class Dataset {
         }
         sequence = [];
         continue;
+      } else if (event === 'invalid') {
+        sequence = [];
+        continue;
       }
 
       sequence.push(event);
-    }
-    if (sequence.length > MIN_SEQUENCE) {
-      out.push(sequence);
     }
 
     return out;
@@ -56,11 +56,11 @@ export class Dataset {
 
   public *preprocess(events: Input): Iterator<IntermediateEntry> {
     let lastTS: number | undefined;
-    let deltaHistory: number[] = [];
     const sentences = this.sentences.slice();
     let sentence: string = sentences.shift()!;
     let nextChar: number = 0;
     const pressed: Set<string> = new Set();
+    let invalid = false;
 
     const reset = (): IntermediateEntry => {
       sentence = sentences.shift()!;
@@ -71,8 +71,10 @@ export class Dataset {
       pressed.clear();
 
       lastTS = undefined;
-      deltaHistory = [];
-      return 'reset';
+
+      const res = invalid ? 'invalid' : 'reset';
+      invalid = false;
+      return res;
     };
 
     for (const event of events) {
@@ -91,7 +93,11 @@ export class Dataset {
           continue;
         }
       } else if (event.e === 'd') {
-        if (sentence[nextChar] === k) {
+        if (pressed.has(k)) {
+          // Key can't be pressed twice
+          invalid = true;
+          continue;
+        } else if (sentence[nextChar] === k) {
           pressed.add(k);
           nextChar++;
         } else {
