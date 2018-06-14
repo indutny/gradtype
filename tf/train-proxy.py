@@ -16,7 +16,10 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-ADVERSARIAL_COUNT = 1
+ADVERSARIAL_COUNT = None
+
+# Number of sequences per batch
+BATCH_SIZE = 2048
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -25,9 +28,6 @@ MAX_EPOCHS = 500000
 VALIDATE_EVERY = 1
 
 SAVE_EVERY = 10
-
-# Number of sequences per category in batch
-BATCH_SIZE = 16
 
 # Learning rate
 LR = 0.01
@@ -49,6 +49,8 @@ category_count = loaded['category_count']
 train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
 validate_flat_dataset, validate_weights = \
     dataset.flatten_dataset(validate_dataset)
+validate_batches = dataset.gen_regression(validate_flat_dataset, \
+    batch_size=len(validate_flat_dataset))
 
 #
 # Initialize model
@@ -113,9 +115,7 @@ with tf.Session() as sess:
   step = 0
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_flat_dataset,
-        adversarial_count=ADVERSARIAL_COUNT)
-    validate_batches = dataset.gen_regression(validate_flat_dataset, \
-        batch_size=len(validate_flat_dataset))
+        adversarial_count=ADVERSARIAL_COUNT, batch_size=BATCH_SIZE)
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
