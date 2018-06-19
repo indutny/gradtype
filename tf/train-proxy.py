@@ -114,19 +114,21 @@ with tf.Session() as sess:
     print('Restoring from "{}"'.format(RESTORE_FROM))
     saver.restore(sess, RESTORE_FROM)
 
+  step = tf.train.global_step(sess, global_step_t)
+
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_flat_dataset,
         adversarial_count=ADVERSARIAL_COUNT, batch_size=BATCH_SIZE)
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
-      step = tf.train.global_step(sess, global_step_t)
       saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
 
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
-      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+      tensors = [ train, global_step_t.assign_add(1), t_metrics, t_reg_loss,
+          t_grad_norm ]
+      _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
         types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
@@ -137,9 +139,8 @@ with tf.Session() as sess:
       })
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
-      sess.run(global_step_t.assign_add(1))
 
-      step = tf.train.global_step(sess, global_step_t)
+      step += 1
       log_summary('train', metrics, step)
 
     print('Validation...')
