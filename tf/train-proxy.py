@@ -76,6 +76,7 @@ t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
     category_count, category_mask)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
+update_global_step_t = global_step_t.assign_add(1)
 
 #
 # Initialize optimizer
@@ -126,7 +127,7 @@ with tf.Session() as sess:
 
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, global_step_t.assign_add(1), t_metrics, t_reg_loss,
+      tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
           t_grad_norm ]
       _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
         types: batch['types'],
