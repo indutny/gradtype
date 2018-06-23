@@ -161,7 +161,7 @@ class Model():
       x = post(x)
 
     x = self.features(x)
-    # x = tf.nn.l2_normalize(x, axis=-1)
+    x = tf.nn.l2_normalize(x, axis=-1)
 
     return x
 

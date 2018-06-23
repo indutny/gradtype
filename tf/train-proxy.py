@@ -30,7 +30,7 @@ VALIDATE_EVERY = 1
 SAVE_EVERY = 10
 
 # Learning rate
-LR = 0.01
+LR = 0.001
 
 # Number of categories in each epoch
 K = 64
