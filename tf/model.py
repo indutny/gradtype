@@ -100,9 +100,13 @@ class Model():
 
     return series
 
-  def build(self, types, codes, deltas):
+  def build(self, types, codes, deltas, sequence_len = None):
     batch_size = tf.shape(codes)[0]
-    sequence_len = int(codes.shape[1])
+    max_sequence_len = int(codes.shape[1])
+    if sequence_len is None:
+      sequence_len = tf.constant(max_sequence_len, dtype=tf.int32,
+          shape=(1,))
+      sequence_len = tf.tile(sequence_len, [ batch_size ])
 
     series = self.apply_embedding(types, codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
@@ -125,22 +129,33 @@ class Model():
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
     elif self.random_len:
       random_len = tf.random_uniform(shape=(batch_size,),
-          minval=int(sequence_len / 2),
-          maxval=sequence_len,
+          minval=int(max_sequence_len / 2),
+          maxval=max_sequence_len,
           dtype=tf.int32,
           name='random_len')
 
       def select_random(pair):
         outputs = pair[0]
         random_len = pair[1]
+        seq_len = pair[2]
+
+        random_len = tf.minimum(random_len, seq_len, name='selected_len')
+
         return tf.gather(outputs, random_len, axis=0, name='select_random')
 
-      random_output = tf.map_fn(select_random, (stacked_output, random_len),
+      random_output = tf.map_fn(select_random,
+          (stacked_output, random_len, sequence_len, ),
           dtype=tf.float32)
 
       x = tf.where(self.training, random_output, outputs[-1])
     else:
-      x = outputs[-1]
+      def select_last(pair):
+        outputs = pair[0]
+        seq_len = pair[1]
+        return tf.gather(outputs, seq_len, axis=0, name='select_last')
+
+      x = tf.map_fn(select_last, (stacked_output, sequence_len,),
+          dtype=tf.float32)
 
     for post in self.post:
       x = post(x)

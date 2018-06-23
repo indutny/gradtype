@@ -146,12 +146,17 @@ def expand_sequence(seq, overlap):
     codes = seq['codes']
     deltas = seq['deltas']
 
-    types = np.concatenate([ np.zeros(pad_size, dtype='float32'), types ])
-    codes = np.concatenate([ np.zeros(pad_size, dtype='int32'), codes ])
-    deltas = np.concatenate([ np.zeros(pad_size, dtype='float32'), deltas ])
+    types = np.concatenate([ types, np.zeros(pad_size, dtype='float32') ])
+    codes = np.concatenate([ codes, np.zeros(pad_size, dtype='int32') ])
+    deltas = np.concatenate([ deltas, np.zeros(pad_size, dtype='float32') ])
 
     padded_seq = seq.copy()
-    padded_seq.update({ 'types': types, 'codes': codes, 'deltas': deltas })
+    padded_seq.update({
+      'types': types,
+      'codes': codes,
+      'deltas': deltas,
+      'sequence_len': count,
+    })
     return [ padded_seq ]
 
   # Expand
@@ -161,7 +166,12 @@ def expand_sequence(seq, overlap):
     codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
     deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
-    copy.update({ 'types': types, 'codes': codes, 'deltas': deltas })
+    copy.update({
+      'types': types,
+      'codes': codes,
+      'deltas': deltas,
+      'sequence_len': MAX_SEQUENCE_LEN,
+    })
     out.append(copy)
   return out
 
@@ -260,7 +270,12 @@ def gen_adversarial(count):
   types = np.random.choice([ -0.5, 0.5 ], shape)
   codes = np.random.random_integers(1, MAX_CHAR + 1, shape)
   deltas = np.random.exponential(1.0, shape)
-  return { 'types': types, 'codes': codes, 'deltas': deltas }
+  return {
+    'types': types,
+    'codes': codes,
+    'deltas': deltas,
+    'sequence_len': MAX_SEQUENCE_LEN,
+  }
 
 def gen_regression(sequences, batch_size=256, adversarial_count=None):
   perm = np.random.permutation(len(sequences))
@@ -273,12 +288,14 @@ def gen_regression(sequences, batch_size=256, adversarial_count=None):
     types = []
     codes = []
     deltas = []
+    sequence_lens = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
       types.append(seq['types'])
       codes.append(seq['codes'])
       deltas.append(seq['deltas'])
+      sequence_lens.append(seq['sequence_len'])
 
     categories = np.array(categories)
     types = np.array(types)
@@ -291,11 +308,14 @@ def gen_regression(sequences, batch_size=256, adversarial_count=None):
       types = np.concatenate([ types, adversarial['types'] ], axis=0)
       codes = np.concatenate([ codes, adversarial['codes'] ], axis=0)
       deltas = np.concatenate([ deltas, adversarial['deltas'] ], axis=0)
+      sequence_lens = np.concatenate(
+          [ sequence_lens, adversarial['sequence_len'] ], axis=0)
 
     batches.append({
       'categories': categories,
       'types': types,
       'codes': codes,
-      'deltas': deltas
+      'deltas': deltas,
+      'sequence_lens': sequence_lens,
     })
   return batches

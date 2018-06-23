@@ -61,6 +61,7 @@ input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 types = tf.placeholder(tf.float32, shape=input_shape, name='types')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
+sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 training = tf.placeholder(tf.bool, shape=(), name='training')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 category_mask = tf.placeholder(tf.bool, shape=(category_count,),
@@ -69,7 +70,7 @@ weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
-output = model.build(types, codes, deltas)
+output = model.build(types, codes, deltas, sequence_lens)
 t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
     category_mask, ADVERSARIAL_COUNT)
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
@@ -133,6 +134,7 @@ with tf.Session() as sess:
         types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
+        sequence_lens: batch['sequence_lens'],
         categories: batch['categories'],
         category_mask: train_mask,
         weights: train_weights,
@@ -151,6 +153,7 @@ with tf.Session() as sess:
         types: batch['types'],
         codes: batch['codes'],
         deltas: batch['deltas'],
+        sequence_lens: batch['sequence_lens'],
         categories: batch['categories'],
         category_mask: validate_mask,
         weights: validate_weights,
