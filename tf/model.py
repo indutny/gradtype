@@ -128,33 +128,35 @@ class Model():
     if self.use_pooling:
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
     elif self.random_len:
+      max_index = sequence_len - 1
       random_len = tf.random_uniform(shape=(batch_size,),
           minval=int(max_sequence_len / 2),
           maxval=max_sequence_len,
           dtype=tf.int32,
           name='random_len')
+      selected_len = tf.where(self.training, random_len, max_index,
+          name='selected_len')
 
       def select_random(pair):
         outputs = pair[0]
-        random_len = pair[1]
-        seq_len = pair[2]
+        index = pair[1]
+        max_index = pair[2]
 
-        random_len = tf.minimum(random_len, seq_len, name='selected_len')
+        index = tf.minimum(index, max_index, name='clamped_index')
+        index = tf.Print(index, [ index ])
 
-        return tf.gather(outputs, random_len, axis=0, name='select_random')
+        return tf.gather(outputs, index, axis=0, name='select_random')
 
-      random_output = tf.map_fn(select_random,
-          (stacked_output, random_len, sequence_len, ),
+      x = tf.map_fn(select_random,
+          (stacked_output, selected_len, max_index, ),
           dtype=tf.float32)
-
-      x = tf.where(self.training, random_output, outputs[-1])
     else:
       def select_last(pair):
         outputs = pair[0]
         seq_len = pair[1]
         return tf.gather(outputs, seq_len, axis=0, name='select_last')
 
-      x = tf.map_fn(select_last, (stacked_output, sequence_len,),
+      x = tf.map_fn(select_last, (stacked_output, sequence_len - 1,),
           dtype=tf.float32)
 
     for post in self.post:
