@@ -1,4 +1,3 @@
-import re
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,8 +16,6 @@ with open(sys.argv[1]) as input:
     for value, subdata in zip(row[2:], data):
       subdata['values'].append(float(value))
 
-  cat_reg_ex = re.compile('^(train|validate)/')
-
   for subdata in data:
     label = subdata['label']
     if not category in label:
@@ -26,20 +23,24 @@ with open(sys.argv[1]) as input:
 
     values = np.array(subdata['values'])
 
-    if 'negative' in label:
-      color = '#0061ff' if '_50' in label else \
-          '#68a2ff' if '_25' in label or '_75' in label else \
-          '#89b6ff' if '_10' in label or '_90' in label else \
-          '#adccff'
+    if 'positive' in label:
+      color = '#0061ffff' if '_50' in label else \
+          '#0061ffc0' if '_25' in label or '_75' in label else \
+          '#0061ff81' if '_10' in label or '_90' in label else \
+          '#0061ff42'
     else:
-      color = '#fc0036' if '_50' in label else \
-          '#ff7290' if '_25' in label or '_75' in label else \
-          '#ff9eb3' if '_10' in label or '_90' in label else \
-          '#ffc6d3'
+      color = '#fc0036ff' if '_50' in label else \
+          '#fc0036c0' if '_25' in label or '_75' in label else \
+          '#fc003681' if '_10' in label or '_90' in label else \
+          '#fc003642'
 
-    label = cat_reg_ex.sub('', label)
-    label = label.replace('positive_', 'p')
-    label = label.replace('negative_', 'n')
+    if '_50' in label:
+      if 'positive' in label:
+        label = 'positive'
+      else:
+        label = 'negative'
+    else:
+      label = None
     plt.plot(steps, values, color=color, label=label)
 
   plt.title(category)
