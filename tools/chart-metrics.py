@@ -1,3 +1,4 @@
+import re
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,6 +16,8 @@ with open(sys.argv[1]) as input:
     steps.append(int(row[1]))
     for value, subdata in zip(row[2:], data):
       subdata['values'].append(float(value))
+
+  cat_reg_ex = re.compile('^(train|validate)/')
 
   for subdata in data:
     label = subdata['label']
@@ -34,6 +37,9 @@ with open(sys.argv[1]) as input:
           '#ff9eb3' if '_10' in label or '_90' in label else \
           '#ffc6d3'
 
+    label = cat_reg_ex.sub('', label)
+    label = label.replace('positive_', 'p')
+    label = label.replace('negative_', 'n')
     plt.plot(steps, values, color=color, label=label)
 
   plt.title(category)
