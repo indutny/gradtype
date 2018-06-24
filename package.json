@@ -44,8 +44,10 @@
   "dependencies": {
     "@types/assert": "0.0.31",
     "@types/debug": "0.0.30",
+    "@types/node-fetch": "^2.1.1",
     "debug": "^3.1.0",
     "joi": "^13.1.2",
-    "micro": "^9.1.4"
+    "micro": "^9.1.4",
+    "node-fetch": "^2.1.2"
   }
 }
