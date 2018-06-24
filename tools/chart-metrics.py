@@ -21,6 +21,8 @@ with open(sys.argv[1]) as input:
     if not category in label:
       continue
 
+    values = np.array(subdata['values'])
+
     if 'negative' in label:
       color = '#0061ff' if '_50' in label else \
           '#68a2ff' if '_25' in label or '_75' in label else \
@@ -32,9 +34,9 @@ with open(sys.argv[1]) as input:
           '#ff9eb3' if '_10' in label or '_90' in label else \
           '#ffc6d3'
 
-    values = np.array(subdata['values'])
-    plt.plot(steps, subdata['values'], color=color)
+    plt.plot(steps, values, color=color, label=label)
 
   plt.title(category)
+  plt.legend(loc='upper left')
   plt.grid(True)
   plt.show()
