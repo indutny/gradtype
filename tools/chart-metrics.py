@@ -5,6 +5,9 @@ import sys
 
 category = 'train' if len(sys.argv) < 3 else sys.argv[2]
 
+NEGATIVE_COLOR = (1.0, 0.098039215686275, 0.223529411764706,)
+POSITIVE_COLOR = (0.219607843137255, 0.698039215686275, 0.317647058823529,)
+
 with open(sys.argv[1]) as input:
   reader = csv.reader(input, delimiter=',')
   labels = next(reader)
@@ -23,16 +26,15 @@ with open(sys.argv[1]) as input:
 
     values = np.array(subdata['values'])
 
+    alpha = 1.0 if '_50' in label else \
+        0.75 if '_25' in label or '_75' in label else \
+        0.5 if '_10' in label or '_90' in label else \
+        0.25
+
     if 'positive' in label:
-      color = '#0061ffff' if '_50' in label else \
-          '#0061ffc0' if '_25' in label or '_75' in label else \
-          '#0061ff81' if '_10' in label or '_90' in label else \
-          '#0061ff42'
+      color = POSITIVE_COLOR + (alpha,)
     else:
-      color = '#fc0036ff' if '_50' in label else \
-          '#fc0036c0' if '_25' in label or '_75' in label else \
-          '#fc003681' if '_10' in label or '_90' in label else \
-          '#fc003642'
+      color = NEGATIVE_COLOR + (alpha,)
 
     if '_50' in label:
       if 'positive' in label:
