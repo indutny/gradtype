@@ -18,7 +18,7 @@ export type InputEntry = {
 export interface ISequenceElem {
   readonly type: number;
   readonly code: number;
-  readonly delta: number;
+  readonly duration: number;
 }
 
 export type Sequence = ReadonlyArray<ISequenceElem>;
@@ -33,123 +33,79 @@ export class Dataset {
   }
 
   public generate(events: Input): Output {
-    const out: ISequenceElem[][] = [];
+    const filtered: InputEntry[] = [];
 
+    // Filter events
+    const index = { sentence: 0, letter: 0 };
+    const pressed = new Set();
+    for (const event of events) {
+      // TODO(indutny): do we care?
+      if (event === 'r') {
+        index.letter = 0;
+        index.sentence++;
+        pressed.clear();
+        filtered.push('r');
+        continue;
+      }
+
+      const key = event.k;
+      const kind = event.e;
+
+      const sentence = this.sentences[index.sentence] || '';
+      const letter = sentence[index.letter] || null;
+
+      if (kind === 'd' && key === letter) {
+        if (/^[a-zA-Z ,\.]$/.test(key)) {
+          pressed.add(key);
+          filtered.push(event);
+        }
+
+        index.letter++;
+      } else if (kind === 'u' && pressed.has(key)) {
+        pressed.delete(key);
+        filtered.push(event);
+      }
+    }
+
+    // Just a safe-guard
+    if (filtered[filtered.length - 1] !== 'r') {
+      filtered.push('r');
+    }
+
+    const out: ISequenceElem[][] = [];
     let sequence: ISequenceElem[] = [];
-    for (const event of this.preprocess(events)) {
-      if (event === 'reset') {
-        if (sequence.length > MIN_SEQUENCE) {
+    for (const [ i, event ] of filtered.entries()) {
+      if (event === 'r') {
+        if (sequence.length !== 0) {
           out.push(sequence);
         }
         sequence = [];
         continue;
-      } else if (event === 'invalid') {
-        sequence = [];
-        continue;
       }
 
-      sequence.push(event);
+      let next = filtered[i + 1];
+      if (next === 'r') {
+        next = filtered[i + 2] || event;
+      }
+
+      if (next === 'r') {
+        throw new Error('Unexpected double `r`');
+      }
+
+      const duration = next.ts - event.ts;
+
+      sequence.push({
+        type: event.e === 'd' ? 1 : -1,
+        code: this.compress(event.k.charCodeAt(0)),
+        duration,
+      });
+    }
+    if (sequence.length !== 0) {
+      out.push(sequence);
+      sequence = [];
     }
 
     return out;
-  }
-
-  public *preprocess(events: Input): Iterator<IntermediateEntry> {
-    let lastTS: number | undefined;
-    const sentences = this.sentences.slice();
-    let sentence: string = sentences.shift()!;
-    let nextChar: number = 0;
-    const pressed: Set<string> = new Set();
-    let invalid = false;
-
-    const reset = (): IntermediateEntry => {
-      sentence = sentences.shift()!;
-      assert(sentences !== undefined, 'Not enough sentences');
-
-      // Sentence state
-      nextChar = 0;
-      pressed.clear();
-
-      lastTS = undefined;
-
-      const res = invalid ? 'invalid' : 'reset';
-      invalid = false;
-      return res;
-    };
-
-    for (const event of events) {
-      if (event === 'r') {
-        yield reset();
-        continue;
-      }
-
-      let k: string = event.k;
-
-      if (event.e === 'u') {
-        if (pressed.has(k)) {
-          pressed.delete(k);
-        } else {
-          // Skip keyups for keys that wasn't pressed
-          continue;
-        }
-      } else if (event.e === 'd') {
-        if (pressed.has(k)) {
-          // Key can't be pressed twice
-          invalid = true;
-          continue;
-        } else if (sentence[nextChar] === k) {
-          pressed.add(k);
-          nextChar++;
-        } else {
-          // Skip invalid chars
-          continue;
-        }
-      }
-
-      let code: number = 0;
-      try {
-        code = this.compress(event.k.charCodeAt(0));
-      } catch (e) {
-        continue;
-      }
-      assert(0 <= code && code <= MAX_CHAR);
-
-      let delta = event.ts - (lastTS === undefined ? event.ts : lastTS);
-      lastTS = event.ts;
-
-      // Skip first keystroke
-      if (delta === 0) {
-        continue;
-      }
-
-      yield {
-        type: event.e === 'd' ? 1 : -1,
-        delta,
-        code,
-      };
-    }
-  }
-
-  public *port(events: Input): Iterator<Input> {
-    for (const event of events) {
-      if (event.k === '.') {
-        yield 'r';
-        continue;
-      }
-
-      let k: string = event.k;
-      if (k === 'Spacebar') {
-        k = ' ';
-      }
-
-      try {
-        this.compress(k.charCodeAt(0));
-      } catch (e) {
-        continue;
-      }
-
-      yield { k, ts: event.ts };
-    }
   }
 
   private compress(code: number): number {
@@ -174,7 +130,7 @@ export class Dataset {
     } else if (code === 0x2e) {
       return 28;
     } else {
-      throw new Error('Unexpected code: ' + code);
+      throw new Error('Unexpected code: ' + code.toString(16));
     }
   }
 }

@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Dataset, Output } from '../src/dataset';
+import { Dataset, Output, Sequence } from '../src/dataset';
 
 let totalSequences = 0;
 const totalSequenceLen = {
@@ -19,7 +19,7 @@ const SENTENCES_FILE = path.join(DATASETS_DIR, 'sentences.json');
 const OUT_DIR = path.join(__dirname, '..', 'out');
 
 let sentences = JSON.parse(fs.readFileSync(SENTENCES_FILE).toString());
-sentences = sentences.map((line) => line.toLowerCase());
+sentences = sentences.map((line: string) => line.toLowerCase());
 
 const labels: string[] = fs.readdirSync(DATASETS_DIR)
   .filter((file) => /\.json$/.test(file))
@@ -29,7 +29,7 @@ const labels: string[] = fs.readdirSync(DATASETS_DIR)
 fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
   labels, null, 2));
 
-function encodeSequence(sequence) {
+function encodeSequence(sequence: Sequence) {
   totalSequences++;
 
   totalSequenceLen.mean += sequence.length;
@@ -47,7 +47,7 @@ function encodeSequence(sequence) {
     }
     enc.writeInt32LE(code, 4 + i * 12);
     enc.writeInt32LE(sequence[i].type, 4 + i * 12 + 4);
-    enc.writeFloatLE(sequence[i].delta, 4 + i * 12 + 8);
+    enc.writeFloatLE(sequence[i].duration, 4 + i * 12 + 8);
   }
   assert(nonEmpty);
   return enc;
