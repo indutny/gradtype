@@ -10,7 +10,7 @@ from model import Model
 
 RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
-  RUN_NAME = time.asctime()
+  RUN_NAME = 'gradtype'
 RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)

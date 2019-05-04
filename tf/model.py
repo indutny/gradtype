@@ -8,7 +8,7 @@ EMBED_WIDTH = 11
 DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
-RNN_INPUT_DROPOUT = 0.05
+RNN_INPUT_DROPOUT = 0.0
 RNN_STATE_DROPOUT = 0.5
 RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
@@ -143,7 +143,6 @@ class Model():
         max_index = pair[2]
 
         index = tf.minimum(index, max_index, name='clamped_index')
-        index = tf.Print(index, [ index ])
 
         return tf.gather(outputs, index, axis=0, name='select_random')
 
