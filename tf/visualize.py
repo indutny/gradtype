@@ -25,18 +25,18 @@ def to_color(index):
 
 def pca(train, validate, fname=None):
   fig = plt.figure(1, figsize=(8, 6))
-  pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
+  # pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
 
   axes = plt.gca()
   axes.set_xlim([ -1.5, 1.5 ])
   axes.set_ylim([ -1.5, 1.5 ])
 
-  # pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
-  # tsne = TSNE(n_components=2, verbose=2, random_state=0x7ed1ae6f)
+  pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
+  tsne = TSNE(n_components=2, verbose=2, random_state=0x7ed1ae6f)
 
   # Fit coordinates
   coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
-  # coords = tsne.fit_transform(coords)
+  coords = tsne.fit_transform(coords)
 
   train_coords = coords[:len(train)]
   validate_coords = coords[len(train_coords):]
@@ -64,7 +64,7 @@ def pca(train, validate, fname=None):
       marker = 'o' if kind is 'train' else '^'
       size = 6 if kind is 'train' else 10
       alpha = 0.45 if kind is 'train' else 0.8
-      plt.scatter(x, y, c=color, marker=marker,
+      plt.scatter(x, y, c=[ color ], marker=marker,
                   edgecolor='k', s=size, alpha=alpha, linewidths=0.0,
                   edgecolors='none')
 
