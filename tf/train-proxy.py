@@ -58,7 +58,7 @@ validate_batches = dataset.gen_regression(validate_flat_dataset, \
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
-types = tf.placeholder(tf.float32, shape=input_shape, name='types')
+holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
@@ -70,7 +70,7 @@ weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
-output = model.build(types, codes, deltas, sequence_lens)
+output = model.build(holds, codes, deltas, sequence_lens)
 t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
     category_mask, ADVERSARIAL_COUNT)
 t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
@@ -131,7 +131,7 @@ with tf.Session() as sess:
       tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
           t_grad_norm ]
       _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        types: batch['types'],
+        holds: batch['holds'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         sequence_lens: batch['sequence_lens'],
@@ -150,7 +150,7 @@ with tf.Session() as sess:
     mean_metrics = None
     for batch in validate_batches:
       metrics = sess.run(t_val_metrics, feed_dict={
-        types: batch['types'],
+        holds: batch['holds'],
         codes: batch['codes'],
         deltas: batch['deltas'],
         sequence_lens: batch['sequence_lens'],

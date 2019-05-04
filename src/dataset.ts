@@ -16,8 +16,8 @@ export type InputEntry = {
 } | 'r';
 
 export interface ISequenceElem {
-  readonly type: number;
   readonly code: number;
+  readonly hold: number;
   readonly duration: number;
 }
 
@@ -72,10 +72,13 @@ export class Dataset {
       filtered.push('r');
     }
 
+    const start: Map<string, number> = new Map();
+
     const out: ISequenceElem[][] = [];
     let sequence: ISequenceElem[] = [];
     for (const [ i, event ] of filtered.entries()) {
       if (event === 'r') {
+        start.clear();
         if (sequence.length !== 0) {
           out.push(sequence);
         }
@@ -94,9 +97,18 @@ export class Dataset {
 
       const duration = next.ts - event.ts;
 
+      if (event.e === 'd') {
+        start.set(event.k, event.ts);
+        continue;
+      }
+
+      const prev = start.get(event.k)!;
+      const hold = event.ts - prev;
+      start.delete(event.k);
+
       sequence.push({
-        type: event.e === 'd' ? 1 : -1,
         code: this.compress(event.k.charCodeAt(0)),
+        hold,
         duration,
       });
     }

@@ -80,18 +80,20 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, types, codes, deltas, return_raw=False):
+  def apply_embedding(self, holds, codes, deltas, return_raw=False):
     embedding = self.embedding.apply(codes)
+    holds = tf.expand_dims(holds, axis=-1, name='expanded_holds')
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
-    types = tf.expand_dims(types, axis=-1, name='expanded_types')
 
-    # Process deltas
-    deltas = tf.layers.conv1d(deltas, filters=DELTA_WIDTH, kernel_size=1,
-                              activation=tf.nn.selu,
-                              kernel_regularizer=self.l2,
-                              name='processed_deltas')
+    times = tf.concat([ holds, deltas ], axis=-1, name='times')
 
-    series = tf.concat([ types, deltas, embedding ], axis=-1, name='full_input')
+    # Process holds+deltas
+    times = tf.layers.conv1d(times, filters=DELTA_WIDTH, kernel_size=1,
+                             activation=tf.nn.selu,
+                             kernel_regularizer=self.l2,
+                             name='processed_times')
+
+    series = tf.concat([ times, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
         training=self.training)
 
@@ -100,7 +102,7 @@ class Model():
 
     return series
 
-  def build(self, types, codes, deltas, sequence_len = None):
+  def build(self, holds, codes, deltas, sequence_len = None):
     batch_size = tf.shape(codes)[0]
     max_sequence_len = int(codes.shape[1])
     if sequence_len is None:
@@ -108,7 +110,7 @@ class Model():
           shape=(1,))
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
-    series = self.apply_embedding(types, codes, deltas)
+    series = self.apply_embedding(holds, codes, deltas)
     frames = tf.unstack(series, axis=1, name='unstacked_output')
 
     if RNN_USE_BIDIR:
@@ -166,8 +168,8 @@ class Model():
 
     return x
 
-  def build_conv(self, types, codes, deltas):
-    series = self.apply_embedding(types, codes, deltas)
+  def build_conv(self, holds, codes, deltas):
+    series = self.apply_embedding(holds, codes, deltas)
     sequence_len = int(deltas.shape[1])
 
     def causal_padding(series):

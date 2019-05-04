@@ -28,28 +28,29 @@ def load_labels():
 def load_sequence(f, category, label):
   sequence_len = struct.unpack('<i', f.read(4))[0]
 
-  types = []
   codes = []
+  holds = []
   deltas = []
   for k in range(0, sequence_len):
     code = struct.unpack('<i', f.read(4))[0]
-    type = struct.unpack('<i', f.read(4))[0]
+    hold = struct.unpack('f', f.read(4))[0]
     delta = struct.unpack('f', f.read(4))[0]
 
     if code < -1 or code > MAX_CHAR:
       raise Exception('Invalid code: "{}"'.format(code))
 
-    types.append(type * 0.5)
     codes.append(code + 1)
+    holds.append(hold)
     deltas.append(delta)
   codes = np.array(codes, dtype='int32')
+  holds = np.array(holds, dtype='float32')
   deltas = np.array(deltas, dtype='float32')
 
   return {
     'category': category,
     'label': label,
-    'types': types,
     'codes': codes,
+    'holds': holds,
     'deltas': deltas
   }
 
@@ -142,18 +143,18 @@ def expand_sequence(seq, overlap):
   # Pad
   if count < MAX_SEQUENCE_LEN:
     pad_size = MAX_SEQUENCE_LEN - len(seq['codes'])
-    types = seq['types']
     codes = seq['codes']
+    holds = seq['holds']
     deltas = seq['deltas']
 
-    types = np.concatenate([ types, np.zeros(pad_size, dtype='float32') ])
     codes = np.concatenate([ codes, np.zeros(pad_size, dtype='int32') ])
+    holds = np.concatenate([ holds, np.zeros(pad_size, dtype='float32') ])
     deltas = np.concatenate([ deltas, np.zeros(pad_size, dtype='float32') ])
 
     padded_seq = seq.copy()
     padded_seq.update({
-      'types': types,
       'codes': codes,
+      'holds': holds,
       'deltas': deltas,
       'sequence_len': count,
     })
@@ -162,13 +163,13 @@ def expand_sequence(seq, overlap):
   # Expand
   out = []
   for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
-    types = seq['types'][i:i + MAX_SEQUENCE_LEN]
     codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
+    holds = seq['holds'][i:i + MAX_SEQUENCE_LEN]
     deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
     copy = seq.copy()
     copy.update({
-      'types': types,
       'codes': codes,
+      'holds': holds,
       'deltas': deltas,
       'sequence_len': MAX_SEQUENCE_LEN,
     })
@@ -267,12 +268,12 @@ def flatten_dataset(dataset, k=None):
 
 def gen_adversarial(count):
   shape = [ count, MAX_SEQUENCE_LEN ]
-  types = np.random.choice([ -0.5, 0.5 ], shape)
   codes = np.random.random_integers(1, MAX_CHAR + 1, shape)
+  holds = np.random.exponential(1.0, shape)
   deltas = np.random.exponential(1.0, shape)
   return {
-    'types': types,
     'codes': codes,
+    'holds': holds,
     'deltas': deltas,
     'sequence_len': MAX_SEQUENCE_LEN,
   }
@@ -285,36 +286,36 @@ def gen_regression(sequences, batch_size=256, adversarial_count=None):
     batch_perm = perm[i:i + batch_size]
 
     categories = []
-    types = []
     codes = []
+    holds = []
     deltas = []
     sequence_lens = []
     for j in batch_perm:
       seq = sequences[j]
       categories.append(seq['category'])
-      types.append(seq['types'])
       codes.append(seq['codes'])
+      holds.append(seq['holds'])
       deltas.append(seq['deltas'])
       sequence_lens.append(seq['sequence_len'])
 
     categories = np.array(categories)
-    types = np.array(types)
     codes = np.array(codes)
+    holds = np.array(holds)
     deltas = np.array(deltas)
 
     if adversarial_count != None:
       adversarial = gen_adversarial(adversarial_count)
 
-      types = np.concatenate([ types, adversarial['types'] ], axis=0)
       codes = np.concatenate([ codes, adversarial['codes'] ], axis=0)
+      holds = np.concatenate([ holds, adversarial['holds'] ], axis=0)
       deltas = np.concatenate([ deltas, adversarial['deltas'] ], axis=0)
       sequence_lens = np.concatenate(
           [ sequence_lens, adversarial['sequence_len'] ], axis=0)
 
     batches.append({
       'categories': categories,
-      'types': types,
       'codes': codes,
+      'holds': holds,
       'deltas': deltas,
       'sequence_lens': sequence_lens,
     })

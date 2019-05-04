@@ -46,7 +46,7 @@ function encodeSequence(sequence: Sequence) {
       nonEmpty = true;
     }
     enc.writeInt32LE(code, 4 + i * 12);
-    enc.writeInt32LE(sequence[i].type, 4 + i * 12 + 4);
+    enc.writeFloatLE(sequence[i].hold, 4 + i * 12 + 4);
     enc.writeFloatLE(sequence[i].duration, 4 + i * 12 + 8);
   }
   assert(nonEmpty);
