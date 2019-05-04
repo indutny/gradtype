@@ -72,13 +72,13 @@ export class Dataset {
       filtered.push('r');
     }
 
-    const start: Map<string, number> = new Map();
+    const info: Map<string, { duration: number, start: number }> = new Map();
 
     const out: ISequenceElem[][] = [];
     let sequence: ISequenceElem[] = [];
     for (const [ i, event ] of filtered.entries()) {
       if (event === 'r') {
-        start.clear();
+        info.clear();
         if (sequence.length !== 0) {
           out.push(sequence);
         }
@@ -86,30 +86,33 @@ export class Dataset {
         continue;
       }
 
-      let next = filtered[i + 1];
-      if (next === 'r') {
-        next = filtered[i + 2] || event;
-      }
-
-      if (next === 'r') {
-        throw new Error('Unexpected double `r`');
-      }
-
-      const duration = next.ts - event.ts;
-
       if (event.e === 'd') {
-        start.set(event.k, event.ts);
+        let j = i + 1;
+        let next = event;
+        for (let j = i + 1; j < filtered.length; j++) {
+          const entry = filtered[j];
+          if (entry !== 'r' && entry.e === 'd') {
+            next = entry;
+            break;
+          }
+        }
+
+        // Time delta between two presses
+        assert.strictEqual(next.e, 'd');
+        const duration = next.ts - event.ts;
+
+        info.set(event.k, { duration, start: event.ts });
         continue;
       }
 
-      const prev = start.get(event.k)!;
-      const hold = event.ts - prev;
-      start.delete(event.k);
+      const prev = info.get(event.k)!;
+      const hold = event.ts - prev.start;
+      info.delete(event.k);
 
       sequence.push({
         code: this.compress(event.k.charCodeAt(0)),
         hold,
-        duration,
+        duration: prev.duration,
       });
     }
     if (sequence.length !== 0) {
