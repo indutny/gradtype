@@ -9,7 +9,7 @@ const PORT = 6006;
 const BASE_URI =
   `http://${HOST}:${PORT}/data/plugin/scalars/scalars?run=${RUN}&format=json`;
 
-async function downloadSingle(tag) {
+async function downloadSingle(tag: string) {
   const uri = `${BASE_URI}&tag=${encodeURIComponent(tag)}`;
 
   const res = await fetch(uri);
