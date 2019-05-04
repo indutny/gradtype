@@ -23,25 +23,25 @@ LABELS = dataset.load_labels()
 def to_color(index):
   return index / (len(LABELS) - 1)
 
-TSNE = True
+USE_TSNE = True
 
 def pca(train, validate, fname=None):
   fig = plt.figure(1, figsize=(8, 6))
-  if not TSNE:
+  if not USE_TSNE:
     pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
 
   axes = plt.gca()
-  if not TSNE:
+  if not USE_TSNE:
     axes.set_xlim([ -1.5, 1.5 ])
     axes.set_ylim([ -1.5, 1.5 ])
 
-  if TSNE:
+  if USE_TSNE:
     pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
     tsne = TSNE(n_components=2, verbose=2, random_state=0x7ed1ae6f)
 
   # Fit coordinates
   coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
-  if TSNE:
+  if USE_TSNE:
     coords = tsne.fit_transform(coords)
 
   train_coords = coords[:len(train)]
