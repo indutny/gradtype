@@ -19,6 +19,7 @@ from model import Model
 
 COLOR_MAP = plt.cm.gist_rainbow
 LABELS = dataset.load_labels()
+SEED = 0x37255c25
 
 def to_color(index):
   return index / (len(LABELS) - 1)
@@ -28,7 +29,7 @@ USE_TSNE = True
 def pca(train, validate, fname=None):
   fig = plt.figure(1, figsize=(8, 6))
   if not USE_TSNE:
-    pca = sklearn.decomposition.PCA(n_components=2, random_state=0x7ed1ae6e)
+    pca = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
 
   axes = plt.gca()
   if not USE_TSNE:
@@ -36,8 +37,8 @@ def pca(train, validate, fname=None):
     axes.set_ylim([ -1.5, 1.5 ])
 
   if USE_TSNE:
-    pca = sklearn.decomposition.PCA(n_components=50, random_state=0x7ed1ae6e)
-    tsne = TSNE(n_components=2, verbose=2, random_state=0x7ed1ae6f)
+    pca = sklearn.decomposition.PCA(n_components=50, random_state=SEED)
+    tsne = TSNE(n_components=2, verbose=2, random_state=SEED)
 
   # Fit coordinates
   coords = pca.fit_transform([ seq['features'] for seq in (train + validate) ])
@@ -104,12 +105,14 @@ with tf.Session() as sess:
   validate_dataset = loaded['validate']
 
   train_dataset, _ = dataset.trim_dataset(train_dataset,
-      random_state=0x37255c25)
+      random_state=SEED)
   validate_dataset, _ = dataset.trim_dataset(validate_dataset,
-      random_state=0x37255c25)
+      random_state=SEED)
 
-  train_dataset, _ = dataset.flatten_dataset(train_dataset)
-  validate_dataset, _ = dataset.flatten_dataset(validate_dataset)
+  train_dataset, _ = dataset.flatten_dataset(train_dataset,
+      random_state=SEED)
+  validate_dataset, _ = dataset.flatten_dataset(validate_dataset,
+      random_state=SEED)
 
   holds = []
   codes = []

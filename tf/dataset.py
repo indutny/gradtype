@@ -242,11 +242,13 @@ def gen_hard_batches(dataset, batch_size=32, k=None):
     batches.append(batch)
   return batches
 
-def flatten_dataset(dataset, k=None):
+def flatten_dataset(dataset, k=None, random_state=None):
   if k is None:
     k = len(dataset)
 
-  perm = np.random.permutation(len(dataset))
+  rand_state = np.random.RandomState(seed=random_state)
+
+  perm = rand_state.permutation(len(dataset))
   categories = [ dataset[i] for i in perm[:k] ]
 
   max_category = 0
