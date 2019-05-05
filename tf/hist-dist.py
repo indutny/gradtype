@@ -9,7 +9,7 @@ from model import Model
 
 SEED = 0x37255c25
 
-def hist_dist(dataset, fname=None):
+def hist_dist(dataset):
   positives = []
   negatives = []
   total = len(dataset) * (len(dataset) - 1) / 2
@@ -127,4 +127,10 @@ with tf.Session() as sess:
   print('Computing percentiles...')
 
   out_name = sys.argv[2] if len(sys.argv) >= 3 else None
-  hist_dist(train_features + validate_features, fname=out_name)
+
+  print('Train:')
+  hist_dist(train_features)
+
+  print('')
+  print('Val:')
+  hist_dist(validate_features)
