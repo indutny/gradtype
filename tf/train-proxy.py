@@ -146,30 +146,32 @@ with tf.Session() as sess:
       step += 1
       log_summary('train', metrics, step)
 
-    print('Validation...')
-    mean_metrics = None
-    for batch in validate_batches:
-      metrics = sess.run(t_val_metrics, feed_dict={
-        holds: batch['holds'],
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        sequence_lens: batch['sequence_lens'],
-        categories: batch['categories'],
-        category_mask: validate_mask,
-        weights: validate_weights,
-        training: False,
-      })
+    if step % VALIDATE_EVERY == 0:
+      print('Validation...')
+      mean_metrics = None
+      for batch in validate_batches:
+        metrics = sess.run(t_val_metrics, feed_dict={
+          holds: batch['holds'],
+          codes: batch['codes'],
+          deltas: batch['deltas'],
+          sequence_lens: batch['sequence_lens'],
+          categories: batch['categories'],
+          category_mask: validate_mask,
+          weights: validate_weights,
+          training: False,
+        })
 
-      if mean_metrics is None:
-        mean_metrics = {}
+        if mean_metrics is None:
+          mean_metrics = {}
+          for key in metrics:
+            mean_metrics[key] = []
+
         for key in metrics:
-          mean_metrics[key] = []
+          mean_metrics[key].append(metrics[key])
 
-      for key in metrics:
-        mean_metrics[key].append(metrics[key])
+      for key in mean_metrics:
+        mean_metrics[key] = np.mean(mean_metrics[key])
 
-    for key in mean_metrics:
-      mean_metrics[key] = np.mean(mean_metrics[key])
+      log_summary('validate', mean_metrics, step)
 
-    log_summary('validate', mean_metrics, step)
     writer.flush()
