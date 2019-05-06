@@ -11,6 +11,7 @@ from model import Model
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 SEED = 0x37255c25
+PERCENTILES = [ 5, 10, 25, 50, 75, 90, 95 ]
 
 def hist_dist(dataset):
   positives = []
@@ -42,13 +43,11 @@ def hist_dist(dataset):
   positives = np.array(positives)
   negatives = np.array(negatives)
 
-  percentiles = [ 5, 10, 25, 50, 75, 90, 95 ]
-
-  for (name, values) in [ ('positive', positives), ('negative', negatives) ]:
-    print('##### {} #####'.format(name))
-    for q in percentiles:
-      result = np.nanpercentile(values, q)
-      print(' {}p: {}'.format(q, result))
+  results = []
+  for values in [ positives, negatives ]:
+    for q in PERCENTILES:
+      results.append(np.nanpercentile(values, q))
+  return results
 
 model = Model(training=False)
 
@@ -59,6 +58,8 @@ p_holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 p_deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 
 output = model.build(p_holds, p_codes, p_deltas)
+
+global_step_t = tf.Variable(0, trainable=False, name='global_step')
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
@@ -105,11 +106,13 @@ with tf.Session() as sess:
 
   logging.debug('Gathering features...')
 
-  features = sess.run(output, feed_dict={
+  step, features = sess.run([ global_step_t, output ], feed_dict={
     p_holds: holds,
     p_codes: codes,
     p_deltas: deltas,
   })
+
+  logging.debug('Global step: {}'.format(step))
 
   train_features = []
   for seq in train_dataset:
@@ -129,9 +132,8 @@ with tf.Session() as sess:
 
   out_name = sys.argv[2] if len(sys.argv) >= 3 else None
 
-  print('Train:')
-  hist_dist(train_features)
+  train_p = hist_dist(train_features)
+  val_p = hist_dist(validate_features)
 
-  print('')
-  print('Val:')
-  hist_dist(validate_features)
+  result = [ 0, step ] + train_p + val_p
+  print(','.join(str(p) for p in result))
