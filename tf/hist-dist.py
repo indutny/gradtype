@@ -1,4 +1,5 @@
 import sys
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -6,6 +7,8 @@ import tensorflow as tf
 # Internal
 import dataset
 from model import Model
+
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 SEED = 0x37255c25
 
@@ -34,7 +37,7 @@ def hist_dist(dataset):
       done += 1
       if (done / total) >= last_report + 0.05:
         last_report = done / total
-        print('Cross distance progress: {}'.format(last_report))
+        logging.debug('Cross distance progress: {}'.format(last_report))
 
   positives = np.array(positives)
   negatives = np.array(negatives)
@@ -60,7 +63,7 @@ output = model.build(p_holds, p_codes, p_deltas)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
 
-  print('Loading model...')
+  logging.debug('Loading model...')
 
   saver = tf.train.Saver(max_to_keep=0, name='hist-dist')
   restore = sys.argv[1]
@@ -68,13 +71,13 @@ with tf.Session() as sess:
     restore = restore[:-6]
   saver.restore(sess, restore)
 
-  print('Loading dataset...')
+  logging.debug('Loading dataset...')
 
   loaded = dataset.load(overlap=8)
   train_dataset = loaded['train']
   validate_dataset = loaded['validate']
 
-  print('Trimming dataset...')
+  logging.debug('Trimming dataset...')
 
   train_dataset, _ = dataset.trim_dataset(train_dataset,
       random_state=SEED)
@@ -85,8 +88,6 @@ with tf.Session() as sess:
       random_state=SEED)
   validate_dataset, _ = dataset.flatten_dataset(validate_dataset,
       random_state=SEED)
-
-  train_dataset = []
 
   holds = []
   codes = []
@@ -102,7 +103,7 @@ with tf.Session() as sess:
     codes.append(seq['codes'])
     deltas.append(seq['deltas'])
 
-  print('Gathering features...')
+  logging.debug('Gathering features...')
 
   features = sess.run(output, feed_dict={
     p_holds: holds,
@@ -124,7 +125,7 @@ with tf.Session() as sess:
     validate_features.append(seq)
     features = features[1:]
 
-  print('Computing percentiles...')
+  logging.debug('Computing percentiles...')
 
   out_name = sys.argv[2] if len(sys.argv) >= 3 else None
 
