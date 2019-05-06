@@ -25,9 +25,9 @@ BATCH_SIZE = 2048
 MAX_EPOCHS = 500000
 
 # Validate every epoch:
-VALIDATE_EVERY = 1
+VALIDATE_EVERY = 10
 
-SAVE_EVERY = 10
+SAVE_EVERY = 100
 
 # Learning rate
 LR = 0.001
