@@ -44,7 +44,7 @@ def hist_dist(dataset):
   negatives = np.array(negatives)
 
   results = []
-  for values in [ positives, negatives ]:
+  for values in [ negatives, positives ]:
     for q in PERCENTILES:
       results.append(np.nanpercentile(values, q))
   return results
