@@ -89,7 +89,7 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
   grads = tf.gradients(t_loss, variables)
-  grads, t_grad_norm = tf.clip_by_global_norm(grads, 2.0)
+  grads, t_grad_norm = tf.clip_by_global_norm(grads, 12.0)
   grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
