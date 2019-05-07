@@ -17,9 +17,9 @@ RNN_USE_BIDIR = False
 DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
-RNN_WIDTH = [ 128 ]
-DENSE_POST_WIDTH = [ 128 ]
-FEATURE_COUNT = 128
+RNN_WIDTH = [ 64 ]
+DENSE_POST_WIDTH = [ 64 ]
+FEATURE_COUNT = 64
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
@@ -30,8 +30,6 @@ class Embedding():
     with tf.variable_scope(None, default_name=self.name):
       self.weights = tf.get_variable('weights', shape=(max_code, width),
                                      regularizer=regularizer)
-      self.weights = tf.nn.l2_normalize(self.weights, axis=-1,
-          name='normalized_weights')
 
   def apply(self, codes):
     with tf.name_scope(None, values=[ codes ], default_name=self.name):
@@ -164,7 +162,6 @@ class Model():
       x = post(x)
 
     x = self.features(x)
-    x = tf.nn.l2_normalize(x, axis=-1)
 
     return x
 
@@ -208,7 +205,6 @@ class Model():
     x = series[:, -1]
 
     x = self.features(x)
-    # x = tf.nn.l2_normalize(x, axis=-1)
     return x
 
   def build_auto(self, codes, deltas):
@@ -330,7 +326,6 @@ class Model():
       proxies = tf.get_variable('points',
           initializer=tf.initializers.orthogonal(),
           shape=(category_count, FEATURE_COUNT,))
-      proxies = tf.nn.l2_normalize(proxies, axis=-1)
 
       weights = tf.gather(weights, categories, axis=0, \
           name='per_category_weight')
@@ -363,7 +358,7 @@ class Model():
       def compute_mean_proxy(category):
         points = tf.boolean_mask(output, tf.equal(categories, category),
             'category_points')
-        return tf.nn.l2_normalize(tf.reduce_mean(points, axis=0), axis=-1)
+        return f.reduce_mean(points, axis=0)
 
       proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
           dtype=tf.float32)

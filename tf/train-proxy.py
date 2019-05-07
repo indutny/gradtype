@@ -19,7 +19,7 @@ SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 ADVERSARIAL_COUNT = None
 
 # Number of sequences per batch
-BATCH_SIZE = 2048
+BATCH_SIZE = 4096
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -30,7 +30,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.001
+LR = 0.004
 
 # Number of categories in each epoch
 K = 64
