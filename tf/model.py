@@ -9,7 +9,7 @@ DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
-RNN_STATE_DROPOUT = 0.5
+RNN_STATE_DROPOUT = 0.0
 RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
 RNN_USE_BIDIR = False
@@ -41,7 +41,7 @@ class Model():
     self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
     self.training = training
     self.use_pooling = False
-    self.random_len = True
+    self.random_len = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
