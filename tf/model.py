@@ -358,7 +358,7 @@ class Model():
       def compute_mean_proxy(category):
         points = tf.boolean_mask(output, tf.equal(categories, category),
             'category_points')
-        return f.reduce_mean(points, axis=0)
+        return tf.reduce_mean(points, axis=0)
 
       proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
           dtype=tf.float32)
