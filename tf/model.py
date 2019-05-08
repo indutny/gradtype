@@ -45,8 +45,7 @@ class Model():
     self.use_pooling = False
     self.random_len = False
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
-        regularizer=self.l2)
+    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
     def create_rnn_cell(name):
       cells = []
