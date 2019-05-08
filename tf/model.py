@@ -89,8 +89,9 @@ class Model():
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
 
     # Add random noise for training
-    # TODO(indutny): this should be exponential, not poisson
-    noise = tf.random.poisson(TIME_LAMBDA, tf.shape(times), name='times_noise')
+    # TODO(indutny): this should be exponential, not normal
+    noise = tf.random.normal(tf.shape(times), stddev=TIME_LAMBDA,
+        name='times_noise') 
     times = tf.where(self.training, times + noise, times)
 
     # Process holds+deltas
