@@ -324,11 +324,11 @@ class Model():
       metrics['positive_{}'.format(percentile)] = pos_p
 
     epsilon = 1e-12
-    metrics['ratio_25',] = metrics['negative_25'] / \
+    metrics['ratio_25'] = metrics['negative_25'] / \
         (metrics['positive_75'] + epsilon)
-    metrics['ratio_10',] = metrics['negative_10'] / \
+    metrics['ratio_10'] = metrics['negative_10'] / \
         (metrics['positive_90'] + epsilon)
-    metrics['ratio_5',] = metrics['negative_5'] / \
+    metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
 
     return positive_distances, negative_distances, metrics
