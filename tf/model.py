@@ -23,6 +23,8 @@ FEATURE_COUNT = 64
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
+TIME_LAMBDA = 0.0
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -84,6 +86,11 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
+
+    # Add random noise for training
+    # TODO(indutny): this should be exponential, not poisson
+    noise = tf.random.poisson(TIME_LAMBDA, tf.shape(times), name='times_noise')
+    times = tf.where(self.training, times + noise, times)
 
     # Process holds+deltas
     times = tf.layers.conv1d(times, filters=DELTA_WIDTH, kernel_size=1,
