@@ -9,12 +9,12 @@ DELTA_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
-RNN_STATE_DROPOUT = 0.0
+RNN_STATE_DROPOUT = 0.5
 RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
 RNN_USE_BIDIR = False
 
-DENSE_L2 = 0.0
+DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
 RNN_WIDTH = [ 64 ]
@@ -23,7 +23,7 @@ FEATURE_COUNT = 64
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
-TIME_LAMBDA = 0.0
+TIME_LAMBDA = 0.001
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -45,7 +45,8 @@ class Model():
     self.use_pooling = False
     self.random_len = False
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH,
+        regularizer=self.l2)
 
     def create_rnn_cell(name):
       cells = []
