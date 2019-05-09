@@ -183,16 +183,25 @@ function sameGivenLess(score, sameProb) {
   return score.lessGivenSame * sameProb / less;
 }
 
+function trials(target, prob) {
+  return Math.log(1 - target) / Math.log(1 - prob);
+}
+
 const trainSL = sameGivenLess(trainScore, PRIOR);
 const valSL = sameGivenLess(valScore, PRIOR);
 
 console.log('prior=%d target=%d', PRIOR, TARGET);
 console.log('train same given less', trainSL);
-console.log('train trials', Math.log(1 - TARGET) / Math.log(1 - trainSL));
+console.log('train trials', trials(TARGET, trainSL));
 console.log('validate same given less', valSL);
-console.log('val trials', Math.log(1 - TARGET) / Math.log(1 - valSL));
+console.log('val trials', trials(TARGET, valSL));
 
-console.log('train score by cat',
-  scoreByCat(trainPos, featuresByCategory.train));
-console.log('val score by cat',
-  scoreByCat(trainPos, featuresByCategory.validate));
+const trainCatScore = scoreByCat(trainPos, featuresByCategory.train);
+const valCatScore = scoreByCat(trainPos, featuresByCategory.validate);
+
+console.log('train score by cat', trainCatScore);
+console.log('train multiply',
+  trials(TARGET, Math.min(trainCatScore.same, trainCatScore.diff)));
+console.log('val score by cat', valCatScore);
+console.log('val multiply',
+  trials(TARGET, Math.min(valCatScore.same, valCatScore.diff)));
