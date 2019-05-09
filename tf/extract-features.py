@@ -78,11 +78,18 @@ with tf.Session() as sess:
 
   logging.debug('Global step: {}'.format(step))
 
+  def nd_to_list(arr):
+    return [ float(x) for x in arr ]
+
   train_out = []
   for seq in train_dataset:
     train_out.append({
       'category': seq['category'],
-      'features': [ float(x) for x in features[0] ],
+      'label': seq['label'],
+      'codes': nd_to_list(seq['codes']),
+      'deltas': nd_to_list(seq['deltas']),
+      'holds': nd_to_list(seq['holds']),
+      'features': nd_to_list(features[0]),
     })
     features = features[1:]
 
@@ -90,7 +97,11 @@ with tf.Session() as sess:
   for seq in validate_dataset:
     validate_out.append({
       'category': seq['category'],
-      'features': [ float(x) for x in features[0] ],
+      'label': seq['label'],
+      'codes': nd_to_list(seq['codes']),
+      'deltas': nd_to_list(seq['deltas']),
+      'holds': nd_to_list(seq['holds']),
+      'features': nd_to_list(features[0]),
     })
     features = features[1:]
 

@@ -95,6 +95,8 @@ datasets.forEach((ds) => {
 });
 fs.closeSync(fd);
 
+fs.writeFileSync(path.join(OUT_DIR, 'lstm.json'), JSON.stringify(datasets));
+
 console.log('Total sequence count: %d', totalSequences);
 console.log('Mean length: %s',
   (totalSequenceLen.mean / totalSequences).toFixed(2));
