@@ -42,6 +42,20 @@ function crossDistance(data) {
   return { positives, negatives };
 }
 
+function byCategory(data) {
+  const res = new Map();
+
+  for (const elem of data) {
+    if (!res.has(elem.category)) {
+      res.set(elem.category, []);
+    }
+
+    res.get(elem.category).push(elem.features);
+  }
+
+  return res;
+}
+
 function score(pos, distances) {
   let negHit = 0;
   for (const d of distances.negatives) {
@@ -60,6 +74,46 @@ function score(pos, distances) {
     lessGivenSame: posHit / posCount,
     greaterGivenDiff: negHit / negCount,
   };
+}
+
+function isSame(pos, known, unknown) {
+  let same = 0;
+  for (const features of known) {
+    if (distance(features, unknown) < pos) {
+      same++;
+    }
+  }
+
+  same /= known.length;
+  return same >= 0.5;
+}
+
+function scoreByCat(pos, map) {
+  let diffHit = 0;
+  let diffTotal = 0;
+
+  let sameHit = 0;
+  let sameTotal = 0;
+  for (const [ key, list ] of map.entries()) {
+    for (const [ otherKey, otherList ] of map.entries()) {
+      if (otherKey === key) {
+        continue;
+      }
+
+      for (const otherFeatures of otherList) {
+        diffTotal++;
+        diffHit += isSame(pos, list, otherFeatures) ? 0 : 1;
+      }
+    }
+
+    for (let i = 0; i < list.length; i++) {
+      sameTotal++;
+      sameHit += isSame(pos, list.slice(0, i).concat(list.slice(i + 1)),
+        list[i]);
+    }
+  }
+
+  return { diff: diffHit / diffTotal, same: sameHit / sameTotal };
 }
 
 function generalScore(distances) {
@@ -109,6 +163,11 @@ const distances = {
   validate: crossDistance(DATA.validate),
 };
 
+const featuresByCategory = {
+  train: byCategory(DATA.train),
+  validate: byCategory(DATA.validate),
+};
+
 const trainPos = search(distances.train);
 const trainScore = score(trainPos, distances.train);
 const valScore = score(trainPos, distances.validate);
@@ -117,7 +176,7 @@ console.log('train pos=%d', trainPos);
 console.log('train score=%j', trainScore);
 console.log('val score=%j', valScore);
 
-// See: http://mathb.in/33460
+// Bayes in all its beauty
 function sameGivenLess(score, sameProb) {
   const less = score.lessGivenSame * sameProb +
     (1 - score.greaterGivenDiff) * (1 - sameProb);
@@ -132,3 +191,8 @@ console.log('train same given less', trainSL);
 console.log('train trials', Math.log(1 - TARGET) / Math.log(1 - trainSL));
 console.log('validate same given less', valSL);
 console.log('val trials', Math.log(1 - TARGET) / Math.log(1 - valSL));
+
+console.log('train score by cat',
+  scoreByCat(trainPos, featuresByCategory.train));
+console.log('val score by cat',
+  scoreByCat(trainPos, featuresByCategory.validate));
