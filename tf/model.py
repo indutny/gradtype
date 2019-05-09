@@ -17,9 +17,9 @@ RNN_USE_BIDIR = False
 DENSE_L2 = 0.001
 CNN_L2 = 0.0
 
-RNN_WIDTH = [ 64 ]
-DENSE_POST_WIDTH = [ 64 ]
-FEATURE_COUNT = 64
+RNN_WIDTH = [ 32 ]
+DENSE_POST_WIDTH = [ 32 ]
+FEATURE_COUNT = 32
 
 CNN_WIDTH = [ 64, 64, 64 ]
 
@@ -95,7 +95,7 @@ class Model():
 
     # Process holds+deltas
     times = tf.layers.conv1d(times, filters=DELTA_WIDTH, kernel_size=1,
-                             activation=tf.nn.selu,
+                             activation=None,
                              kernel_regularizer=self.l2,
                              name='processed_times')
 

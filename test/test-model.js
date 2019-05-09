@@ -6,20 +6,22 @@ const Model = require('../src/model');
 
 const m = new Model(weights);
 
-const seq = [];
+function seq(entry, early = true) {
+  const seq = [];
 
-const entry = features.train[0];
-for (let i = 0; ; i++) {
-  const code = entry.codes[i];
-  const duration = entry.deltas[i];
-  const hold = entry.holds[i];
+  for (let i = 0; i < entry.codes.length; i++) {
+    const code = entry.codes[i];
+    const duration = entry.deltas[i];
+    const hold = entry.holds[i];
 
-  if (code === 0) {
-    break;
+    if (early && code === 0) {
+      break;
+    }
+
+    seq.push({ code: code - 1, hold, duration });
   }
-
-  seq.push({ code: code - 1, hold, duration });
+  return seq;
 }
 
-const vec1 = m.call(seq);
-console.log(vec1, entry.features);
+const vec1 = m.call(seq(features.train[0]));
+console.log(vec1, features.train[0].features);

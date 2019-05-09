@@ -68,6 +68,10 @@ function sigmoid(x) {
   return res;
 }
 
+function nop(x) {
+  return x;
+}
+
 function selu(x) {
   const alpha = 1.6732632423543772848170429916717;
   const scale = 1.0507009873554804934193349852946;
@@ -111,13 +115,6 @@ class LSTM {
 
     return { result: newH, state: { c: newC, h: newH } };
   }
-
-  zeroState(context) {
-    return {
-      c: new Array(this.units).fill(0),
-      h: new Array(this.units).fill(0),
-    };
-  }
 }
 
 class Dense {
@@ -136,7 +133,8 @@ class Model {
   constructor(weights) {
     this.embedding = weights['embedding/weights:0'];
     this.times = new Dense(weights['processed_times/kernel:0'][0],
-                           weights['processed_times/bias:0']);
+                           weights['processed_times/bias:0'],
+                           nop);
     this.lstm = new LSTM(
       weights['rnn/multi_rnn_cell/cell_0/lstm_fw_0/kernel:0'],
       weights['rnn/multi_rnn_cell/cell_0/lstm_fw_0/bias:0']);
@@ -144,7 +142,8 @@ class Model {
     this.post = new Dense(weights['dense_post_0/kernel:0'],
                           weights['dense_post_0/bias:0']);
     this.features = new Dense(weights['features/kernel:0'],
-                              weights['features/bias:0']);
+                              weights['features/bias:0'],
+                              nop);
   }
 
   applyEmbedding(event) {
@@ -157,13 +156,13 @@ class Model {
   }
 
   call(events) {
-    let state = this.lstm.zeroState();
+    let state = this.lstm.initialState;
     let lastResult = null;
 
     for (const event of events) {
       const embedding = this.applyEmbedding(event);
 
-      const { result, newState } = this.lstm.call(embedding, state);
+      const { result, state: newState } = this.lstm.call(embedding, state);
       lastResult = result;
       state = newState;
     }

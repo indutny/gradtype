@@ -20,8 +20,9 @@ input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 p_codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 p_holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 p_deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
+p_sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 
-output = model.build(p_holds, p_codes, p_deltas)
+output = model.build(p_holds, p_codes, p_deltas, p_sequence_lens)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 
@@ -57,16 +58,19 @@ with tf.Session() as sess:
   holds = []
   codes = []
   deltas = []
+  sequence_lens = []
 
   for seq in train_dataset:
     holds.append(seq['holds'])
     codes.append(seq['codes'])
     deltas.append(seq['deltas'])
+    sequence_lens.append(seq['sequence_len'])
 
   for seq in validate_dataset:
     holds.append(seq['holds'])
     codes.append(seq['codes'])
     deltas.append(seq['deltas'])
+    sequence_lens.append(seq['sequence_len'])
 
   logging.debug('Gathering features...')
 
@@ -74,6 +78,7 @@ with tf.Session() as sess:
     p_holds: holds,
     p_codes: codes,
     p_deltas: deltas,
+    p_sequence_lens: sequence_lens,
   })
 
   logging.debug('Global step: {}'.format(step))
