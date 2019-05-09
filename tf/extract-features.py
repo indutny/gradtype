@@ -94,6 +94,7 @@ with tf.Session() as sess:
       'codes': nd_to_list(seq['codes']),
       'deltas': nd_to_list(seq['deltas']),
       'holds': nd_to_list(seq['holds']),
+      'sequence_len': seq['sequence_len'],
       'features': nd_to_list(features[0]),
     })
     features = features[1:]
@@ -106,6 +107,7 @@ with tf.Session() as sess:
       'codes': nd_to_list(seq['codes']),
       'deltas': nd_to_list(seq['deltas']),
       'holds': nd_to_list(seq['holds']),
+      'sequence_len': seq['sequence_len'],
       'features': nd_to_list(features[0]),
     })
     features = features[1:]
