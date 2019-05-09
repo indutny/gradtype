@@ -5,7 +5,7 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 11
-DELTA_WIDTH = 5
+TIMES_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
 RNN_INPUT_DROPOUT = 0.0
@@ -15,15 +15,10 @@ RNN_USE_RESIDUAL = False
 RNN_USE_BIDIR = False
 
 DENSE_L2 = 0.001
-CNN_L2 = 0.0
 
 RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ 32 ]
 FEATURE_COUNT = 32
-
-CNN_WIDTH = [ 64, 64, 64 ]
-
-TIME_LAMBDA = 0.001
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -40,7 +35,6 @@ class Embedding():
 class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
-    self.cnn_l2 = tf.contrib.layers.l2_regularizer(CNN_L2)
     self.training = training
     self.use_pooling = False
     self.random_len = False
@@ -69,6 +63,10 @@ class Model():
     if RNN_USE_BIDIR:
       self.rnn_cell_bw = create_rnn_cell('bw')
 
+    self.process_times = tf.layers.Dense(name='process_times',
+                                         units=TIMES_WIDTH,
+                                         kernel_regularizer=self.l2)
+
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
@@ -87,17 +85,8 @@ class Model():
 
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
 
-    # Add random noise for training
-    # TODO(indutny): this should be exponential, not normal
-    noise = tf.random.normal(tf.shape(times), stddev=TIME_LAMBDA,
-        name='times_noise') 
-    times = tf.where(self.training, times + noise, times)
-
     # Process holds+deltas
-    times = tf.layers.conv1d(times, filters=DELTA_WIDTH, kernel_size=1,
-                             activation=None,
-                             kernel_regularizer=self.l2,
-                             name='processed_times')
+    times = self.process_times(times)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
@@ -172,113 +161,6 @@ class Model():
     x = self.features(x)
 
     return x
-
-  def build_conv(self, holds, codes, deltas):
-    series = self.apply_embedding(holds, codes, deltas)
-    sequence_len = int(deltas.shape[1])
-
-    def causal_padding(series):
-      current_sequence_len = int(series.shape[1])
-      if sequence_len == current_sequence_len:
-        return series
-      to_pad = sequence_len - current_sequence_len
-
-      return tf.pad(series, [ [ 0, 0 ], [ to_pad, 0 ], [ 0, 0 ] ])
-
-    def residual_block(i, width, dilation, series):
-      with tf.name_scope('residual_block_{}'.format(i), [ series ]):
-        x = series
-
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.selu,
-                             kernel_regularizer=self.cnn_l2)
-        x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.2, training=self.training)
-
-        x = tf.layers.conv1d(x, filters=width, kernel_size=3,
-                             dilation_rate=dilation, activation=tf.nn.selu,
-                             kernel_regularizer=self.cnn_l2)
-        x = causal_padding(x)
-        x = tf.layers.dropout(x, rate=0.2, training=self.training)
-
-        if series.shape[2] != x.shape[2]:
-          series = tf.layers.conv1d(x, filters=x.shape[2], kernel_size=1,
-                                    kernel_regularizer=self.cnn_l2)
-
-        return tf.nn.selu(series + x)
-
-    for i, width in enumerate(CNN_WIDTH):
-      series = residual_block(i, width, 2 ** i, series)
-
-    x = series[:, -1]
-
-    x = self.features(x)
-    return x
-
-  def build_auto(self, codes, deltas):
-    series, embeddings = self.apply_embedding(codes, deltas, return_raw=True)
-
-    frames = tf.unstack(series, axis=1, name='unstacked_output')
-
-    outputs, _ = tf.nn.static_rnn(cell=self.rnn_cell_fw, dtype=tf.float32,
-        inputs=frames)
-
-    decoder = tf.contrib.rnn.LSTMBlockCell(name='decoder',
-        num_units=RNN_WIDTH[-1])
-    decoder = tf.contrib.rnn.DropoutWrapper(decoder,
-        state_keep_prob=tf.where(self.training, 1.0 - 0.0, 1.0))
-
-    batch_size = tf.shape(codes)[0]
-    decoder_state = decoder.zero_state(batch_size, dtype=tf.float32)
-    decoder_state = tf.contrib.rnn.LSTMStateTuple(outputs[-1], decoder_state.h)
-
-    unstacked_embeddings = tf.unstack(embeddings, axis=1, \
-        name='unstacked_embeddings')
-    outputs, _ = tf.nn.static_rnn(cell=decoder, inputs=unstacked_embeddings,
-        initial_state=decoder_state)
-
-    mux = tf.layers.Dense(name='mux', units=1, kernel_regularizer=self.l2)
-    outputs = [ mux(output) for output in outputs ]
-
-    outputs = tf.stack(outputs, axis=1, name='stacked_decoder_output')
-    return outputs, deltas
-
-  def get_regression_metrics(self, output, categories, weights):
-    with tf.name_scope('regression_loss', [ output, categories, weights ]):
-      categories_one_hot = tf.one_hot(categories, output.shape[1], axis=-1)
-
-      batch_weights = tf.gather(weights, categories, axis=0, \
-          name='per_category_weight')
-
-      loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, \
-          labels=categories_one_hot)
-      loss *= batch_weights
-      loss = tf.reduce_mean(loss)
-
-      predictions = tf.cast(tf.argmax(output, axis=-1), tf.int32)
-
-      accuracy = tf.equal(predictions, tf.cast(categories, tf.int32))
-      accuracy = tf.cast(accuracy, tf.float32) * batch_weights
-      accuracy /= tf.reduce_sum(batch_weights)
-      accuracy = tf.reduce_sum(accuracy)
-
-      confusion = tf.confusion_matrix(categories, predictions,
-                                      num_classes=tf.shape(weights)[0],
-                                      dtype=tf.float32)
-      confusion *= weights
-
-      # Add batch dimension
-      confusion = tf.expand_dims(confusion, axis=0)
-      # Add color dimension
-      confusion = tf.expand_dims(confusion, axis=-1)
-
-      confusion = tf.summary.image('confusion', confusion)
-
-      metrics = {}
-      metrics['loss'] = loss
-      metrics['accuracy'] = accuracy
-
-      return metrics, tf.summary.merge([ confusion ])
 
   # TODO(indutny): use `weights`?
   def get_proxy_common(self, proxies, output, categories, category_count, \
@@ -383,24 +265,3 @@ class Model():
           category_count, category_mask)
 
       return metrics
-
-  def get_auto_metrics(self, output, deltas, categories, weights):
-    with tf.name_scope('auto_metrics', [ output, deltas, categories, \
-        weights ]):
-      batch_weights = tf.gather(weights, categories, axis=0, \
-          name='per_category_weight')
-
-      output = tf.squeeze(output, axis=2)
-      loss = batch_weights * tf.reduce_mean((deltas - output) ** 2, axis=-1)
-      loss = tf.reduce_mean(loss, axis=0, name='mean_loss')
-
-      metrics = {}
-      metrics['loss'] = loss
-
-      # Add batch dimension
-      embedding = tf.expand_dims(self.embedding.weights, axis=0)
-      # Add color dimension
-      embedding = tf.expand_dims(embedding, axis=-1)
-      embedding = tf.summary.image('embedding', embedding)
-
-      return metrics, tf.summary.merge([ embedding ])

@@ -10,22 +10,27 @@ from model import Model
 
 RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
-  RUN_NAME = time.asctime()
+  RUN_NAME = 'gradtype'
 RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
+SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
+
+ADVERSARIAL_COUNT = None
+
+# Number of sequences per batch
+BATCH_SIZE = 4096
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
 
 # Validate every epoch:
-VALIDATE_EVERY = 1
+VALIDATE_EVERY = 10
 
-# Number of sequences per category in batch
-BATCH_SIZE = 16
+SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.01
+LR = 0.004
 
 # Number of categories in each epoch
 K = 64
@@ -34,9 +39,18 @@ K = 64
 # Load dataset
 #
 
-loaded = dataset.load(train_overlap=4)
+loaded = dataset.load(overlap=4)
 train_dataset = loaded['train']
+train_mask = loaded['train_mask']
 validate_dataset = loaded['validate']
+validate_mask = loaded['validate_mask']
+category_count = loaded['category_count']
+
+train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
+validate_flat_dataset, validate_weights = \
+    dataset.flatten_dataset(validate_dataset)
+validate_batches = dataset.gen_regression(validate_flat_dataset, \
+    batch_size=len(validate_flat_dataset))
 
 #
 # Initialize model
@@ -44,15 +58,26 @@ validate_dataset = loaded['validate']
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
+holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
-category_count = tf.placeholder(tf.int32, shape=(), name='category_count')
+sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 training = tf.placeholder(tf.bool, shape=(), name='training')
+categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
+category_mask = tf.placeholder(tf.bool, shape=(category_count,),
+    name='category_mask')
+weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
-output = model.build(codes, deltas)
-t_metrics = model.get_metrics(output, category_count, BATCH_SIZE)
+output = model.build(holds, codes, deltas, sequence_lens)
+t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
+    category_mask, ADVERSARIAL_COUNT)
+t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
+    category_count, category_mask)
+
+global_step_t = tf.Variable(0, trainable=False, name='global_step')
+update_global_step_t = global_step_t.assign_add(1)
 
 #
 # Initialize optimizer
@@ -64,7 +89,7 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
   grads = tf.gradients(t_loss, variables)
-  grads, t_grad_norm = tf.clip_by_global_norm(grads, 7.0)
+  grads, t_grad_norm = tf.clip_by_global_norm(grads, 12.0)
   grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
@@ -91,56 +116,62 @@ with tf.Session() as sess:
     print('Restoring from "{}"'.format(RESTORE_FROM))
     saver.restore(sess, RESTORE_FROM)
 
-  step = 0
-  for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_hard_batches(train_dataset, \
-        k=K,
-        batch_size=BATCH_SIZE)
+  step = tf.train.global_step(sess, global_step_t)
 
-    saver.save(sess, LOG_DIR, global_step=step)
+  for epoch in range(0, MAX_EPOCHS):
+    train_batches = dataset.gen_regression(train_flat_dataset,
+        adversarial_count=ADVERSARIAL_COUNT, batch_size=BATCH_SIZE)
+
+    if epoch % SAVE_EVERY == 0:
+      print('Saving...')
+      saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
+
     print('Epoch {}'.format(epoch))
     for batch in train_batches:
-      tensors = [ train, t_metrics, t_reg_loss, t_grad_norm ]
-      _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+      tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
+          t_grad_norm ]
+      _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+        holds: batch['holds'],
         codes: batch['codes'],
         deltas: batch['deltas'],
-        category_count: K,
+        sequence_lens: batch['sequence_lens'],
+        categories: batch['categories'],
+        category_mask: train_mask,
+        weights: train_weights,
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
 
-      log_summary('train', metrics, step)
       step += 1
-    writer.flush()
+      log_summary('train', metrics, step)
 
-    if epoch % VALIDATE_EVERY != 0:
-      continue
+    if step % VALIDATE_EVERY == 0:
+      print('Validation...')
+      mean_metrics = None
+      for batch in validate_batches:
+        metrics = sess.run(t_val_metrics, feed_dict={
+          holds: batch['holds'],
+          codes: batch['codes'],
+          deltas: batch['deltas'],
+          sequence_lens: batch['sequence_lens'],
+          categories: batch['categories'],
+          category_mask: validate_mask,
+          weights: validate_weights,
+          training: False,
+        })
 
-    validate_batches = dataset.gen_hard_batches(validate_dataset, \
-        k=K,
-        batch_size=BATCH_SIZE)
+        if mean_metrics is None:
+          mean_metrics = {}
+          for key in metrics:
+            mean_metrics[key] = []
 
-    print('Validation...')
-    mean_metrics = None
-    for batch in validate_batches:
-      v_metrics = sess.run(t_metrics, feed_dict={
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        category_count: K,
-        training: False,
-      })
+        for key in metrics:
+          mean_metrics[key].append(metrics[key])
 
-      if mean_metrics is None:
-        mean_metrics = {}
-        for key in v_metrics:
-          mean_metrics[key] = []
+      for key in mean_metrics:
+        mean_metrics[key] = np.mean(mean_metrics[key])
 
-      for key in v_metrics:
-        mean_metrics[key].append(v_metrics[key])
+      log_summary('validate', mean_metrics, step)
 
-    for key in mean_metrics:
-      mean_metrics[key] = np.mean(mean_metrics[key])
-
-    log_summary('validate', mean_metrics, step)
     writer.flush()
