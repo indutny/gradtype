@@ -8,7 +8,7 @@ const PRIOR = 0.05;
 const TARGET = 0.999;
 
 // Totally arbitrary, depends on PRIOR
-const TWEAK = Math.exp(1);
+const TWEAK = Math.exp(1.1);
 
 function distance(a, b) {
   let sum = 0;
@@ -77,15 +77,20 @@ function score(pos, distances) {
 }
 
 function isSame(pos, known, unknown) {
-  let same = 0;
+  const distances = [];
   for (const features of known) {
-    if (distance(features, unknown) < pos) {
-      same++;
-    }
+    distances.push(distance(features, unknown));
   }
 
-  same /= known.length;
-  return same >= 0.5;
+  distances.sort();
+  let mean = 0;
+  let count = Math.min(15, distances.length);
+  for (let i = 0; i < count; i++) {
+    mean += distances[i];
+  }
+  mean /= count;
+
+  return mean < pos;
 }
 
 function scoreByCat(pos, map) {
