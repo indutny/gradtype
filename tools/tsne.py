@@ -22,8 +22,11 @@ def visualize(entries):
 
   axes = plt.gca()
 
-  tsne = TSNE(n_components=2, verbose=2, random_state=SEED)
-  coords = tsne.fit_transform([ e['features'] for e in entries ])
+  if False:
+    decomp = TSNE(n_components=2, verbose=2, random_state=SEED)
+  else:
+    decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
+  coords = decomp.fit_transform([ e['features'] for e in entries ])
 
   for e, coords in zip(entries, coords):
     e['coords'] = coords
