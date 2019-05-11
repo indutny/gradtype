@@ -28,6 +28,21 @@ export type Output = ReadonlyArray<Sequence>;
 
 type IntermediateEntry = 'reset' | 'invalid' | ISequenceElem;
 
+function normalize(sequence: Sequence): ISequenceElem[] {
+  let mean = 0;
+  for (const elem of sequence) {
+    mean += elem.duration;
+  }
+  mean /= sequence.length;
+  return sequence.map((elem) => {
+    return {
+      code: elem.code,
+      hold: elem.hold / mean,
+      duration: elem.duration / mean,
+    };
+  });
+}
+
 export class Dataset {
   constructor(private readonly sentences: string[]) {
   }
@@ -80,7 +95,7 @@ export class Dataset {
       if (event === 'r') {
         info.clear();
         if (sequence.length !== 0) {
-          out.push(sequence);
+          out.push(normalize(sequence));
         }
         sequence = [];
         continue;
@@ -116,7 +131,7 @@ export class Dataset {
       });
     }
     if (sequence.length !== 0) {
-      out.push(sequence);
+      out.push(normalize(sequence));
       sequence = [];
     }
 
