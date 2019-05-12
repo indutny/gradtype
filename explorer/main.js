@@ -17,6 +17,7 @@ class App {
     this.data = [];
     this.lastTS = 0;
     this.index = 0;
+    this.subIndex = 0;
     this.timer = null;
     this.active = new Map();
   }
@@ -53,6 +54,16 @@ class App {
     }
 
     const data = await this.load(uri);
+    if (data.version === 2) {
+      this.index = 0;
+      this.subIndex = 0;
+      this.data = data.sequences;
+      this.text.textContent = '';
+
+      clearTimeout(this.timer);
+      this.animateV2();
+      return;
+    }
 
     const index = { sentence: 0, letter: 0 };
 
@@ -132,6 +143,61 @@ class App {
 
       this.active.set(key, span);
     }
+  }
+
+  animateV2() {
+    if (this.index === this.data.length) {
+      this.text.appendChild(document.createElement('br'));
+      return;
+    }
+
+    const seq = this.data[this.index];
+    if (this.subIndex === seq.length) {
+      this.index++;
+      this.subIndex = 0;
+      this.text.appendChild(document.createElement('br'));
+
+      return this.animateV2();
+    }
+
+    const event = seq[this.subIndex];
+    this.subIndex++;
+
+    const key = this.decompress(event.code);
+
+    const span = document.createElement('span');
+    span.style['font-size'] =
+      `${Math.log(event.duration * 1000 + Math.E) * 3}px`;
+    span.style.color = 'green';
+    span.textContent = key;
+    this.text.appendChild(span);
+    setTimeout(() => span.style.color = 'black', event.hold * 1000);
+
+    this.timer = setTimeout(() => this.animateV2(), event.duration * 1000);
+  }
+
+  decompress(code) {
+    // 'abcdefghijklmnopqrstuvwxyz ,.'
+    // a - z
+    if (0 <= code && code < 26) {
+      code += 0x61;
+
+    // ' '
+    } else if (code === 26) {
+      code = 0x20;
+
+    // ','
+    } else if (code === 27) {
+      code = 0x2c;
+
+    // '.'
+    } else if (code === 28) {
+      code = 0x2e;
+    } else {
+      throw new Error('Unexpected code: ' + code);
+    }
+
+    return String.fromCharCode(code);
   }
 }
 
