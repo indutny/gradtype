@@ -41,11 +41,7 @@ validate_dataset = loaded['validate']
 validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
-train_flat_dataset = dataset.flatten_dataset(train_dataset)
-validate_flat_dataset = \
-    dataset.flatten_dataset(validate_dataset)
-validate_batches = dataset.gen_regression(validate_flat_dataset, \
-    batch_size=len(validate_flat_dataset))
+validate_batches = dataset.gen_regression(validate_dataset, batch_size=None)
 
 #
 # Initialize model
@@ -113,7 +109,7 @@ with tf.Session() as sess:
   step = tf.train.global_step(sess, global_step_t)
 
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_regression(train_flat_dataset,
+    train_batches = dataset.gen_regression(train_dataset,
         batch_size=BATCH_SIZE)
 
     if epoch % SAVE_EVERY == 0:

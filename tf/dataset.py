@@ -238,20 +238,50 @@ def flatten_dataset(dataset, k=None, random_state=None):
 
   return sequences
 
-def gen_regression(sequences, batch_size=256):
-  perm = np.random.permutation(len(sequences))
-  batches = []
-  for i in range(0, len(perm), batch_size):
-    batch = []
-    batch_perm = perm[i:i + batch_size]
+def shuffle_uniform(dataset):
+  # Permutations within each category
+  category_perm = [ [] for cat in dataset ]
 
+  # If `True` - all elements from the category were emitted at least once
+  complete = [ len(cat) == 0 for cat in dataset ]
+
+  categories = []
+  codes = []
+  holds = []
+  deltas = []
+  sequence_lens = []
+  while sum(complete) != len(dataset):
+    # Permute category and iterate through each
+    for category_i in np.random.permutation(len(dataset)):
+      category = dataset[category_i]
+
+      # In each category do random permutation
+      perm = category_perm[category_i]
+      if len(perm) == 0:
+        perm = np.random.permutation(len(category))
+        category_perm[category_i] = perm
+
+      yield category[perm[0]]
+      perm = perm[1:]
+      if len(perm) == 0:
+        complete[category_i] = True
+
+      category_perm[category_i] = perm
+
+def gen_regression(dataset, batch_size):
+  flat = list(shuffle_uniform(dataset))
+  if batch_size is None:
+    batch_size = len(flat)
+
+  batches = []
+  for i in range(0, len(flat), batch_size):
     categories = []
     codes = []
     holds = []
     deltas = []
     sequence_lens = []
-    for j in batch_perm:
-      seq = sequences[j]
+
+    for seq in flat[i:i + batch_size]:
       categories.append(seq['category'])
       codes.append(seq['codes'])
       holds.append(seq['holds'])

@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import { Dataset, Output, Sequence } from '../src/dataset';
 
-const MAX_SEQUENCE_COUNT = 20;
+const MAX_SEQUENCE_COUNT = 90;
 const MIN_SEQUENCE_COUNT = 20;
 
 let totalSequences = 0;
