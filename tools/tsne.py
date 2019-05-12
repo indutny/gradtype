@@ -24,7 +24,7 @@ def visualize(entries):
 
   if True:
     decomp = TSNE(n_components=2, verbose=2, random_state=SEED,
-        perplexity=30, n_iter=100000)
+        perplexity=30)
   else:
     decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
   coords = decomp.fit_transform([ e['features'] for e in entries ])
