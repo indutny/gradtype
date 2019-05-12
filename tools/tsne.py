@@ -22,8 +22,9 @@ def visualize(entries):
 
   axes = plt.gca()
 
-  if False:
-    decomp = TSNE(n_components=2, verbose=2, random_state=SEED)
+  if True:
+    decomp = TSNE(n_components=2, verbose=2, random_state=SEED,
+        perplexity=30, n_iter=100000)
   else:
     decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
   coords = decomp.fit_transform([ e['features'] for e in entries ])
@@ -42,7 +43,7 @@ def visualize(entries):
   for label, index in CATEGORIES.items():
     color = COLOR_MAP(to_color(index))
     legend.append(mpatches.Patch(color=color, label=label))
-  axes.legend(handles=legend, fontsize=8)
+  # axes.legend(handles=legend, fontsize=8)
 
   for e in entries:
     label = e['category']
@@ -54,8 +55,8 @@ def visualize(entries):
     color = COLOR_MAP(to_color(index))
 
     marker = 'o'
-    size = 10
-    alpha = 0.8
+    size = 16
+    alpha = 0.6
     plt.scatter(x, y, c=[ color ], marker=marker,
                 edgecolor='k', s=size, alpha=alpha, linewidths=0.0,
                 edgecolors='none')

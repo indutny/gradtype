@@ -99,7 +99,13 @@ function scoreByCat(pos, map) {
 
   let sameHit = 0;
   let sameTotal = 0;
+  let perKey = 0;
+  let perKeyCount = 0;
   for (const [ key, list ] of map.entries()) {
+    let keyTotal = 0;
+    let keySame = 0;
+    let keyDiff = 0;
+
     for (const [ otherKey, otherList ] of map.entries()) {
       if (otherKey === key) {
         continue;
@@ -107,18 +113,27 @@ function scoreByCat(pos, map) {
 
       for (const otherFeatures of otherList) {
         diffTotal++;
-        diffHit += isSame(pos, list, otherFeatures) ? 0 : 1;
+        keyTotal++;
+        keyDiff += isSame(pos, list, otherFeatures) ? 0 : 1;
       }
     }
 
     for (let i = 0; i < list.length; i++) {
       sameTotal++;
-      sameHit += isSame(pos, list.slice(0, i).concat(list.slice(i + 1)),
+      keyTotal++;
+      keySame += isSame(pos, list.slice(0, i).concat(list.slice(i + 1)),
         list[i]);
     }
-  }
 
-  return { diff: diffHit / diffTotal, same: sameHit / sameTotal };
+    sameHit += keySame;
+    diffHit += keyDiff;
+
+    perKey += (keySame + keyDiff) / keyTotal;
+    perKeyCount++;
+  }
+  perKey /= perKeyCount;
+
+  return { diff: diffHit / diffTotal, same: sameHit / sameTotal, perKey };
 }
 
 function generalScore(distances) {
