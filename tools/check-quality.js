@@ -101,6 +101,7 @@ function scoreByCat(pos, map) {
   let sameTotal = 0;
   let perKey = 0;
   let perKeyCount = 0;
+  let keyMap = new Map();
   for (const [ key, list ] of map.entries()) {
     let keyTotal = 0;
     let keySame = 0;
@@ -128,8 +129,11 @@ function scoreByCat(pos, map) {
     sameHit += keySame;
     diffHit += keyDiff;
 
-    perKey += (keySame + keyDiff) / keyTotal;
+    const keyMean = (keySame + keyDiff) / keyTotal
+    perKey += keyMean;
     perKeyCount++;
+
+    keyMap.set(key, keyMean);
   }
   perKey /= perKeyCount;
 
