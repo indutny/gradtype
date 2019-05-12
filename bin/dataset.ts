@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import { Dataset, Output, Sequence } from '../src/dataset';
 
-const MIN_SEQUENCE_COUNT = 10;
+const MIN_SEQUENCE_COUNT = 20;
 
 let totalSequences = 0;
 const totalSequenceLen = {
@@ -77,7 +77,7 @@ let datasets = labels.map((name) => {
     sequences: d.generate(entry.data),
   };
 }).filter((entry) => {
-  return entry.sequences.length > MIN_SEQUENCE_COUNT;
+  return entry.sequences.length >= MIN_SEQUENCE_COUNT;
 });
 
 fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
