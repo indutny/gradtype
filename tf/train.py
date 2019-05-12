@@ -146,7 +146,7 @@ with tf.Session() as sess:
       step += 1
       log_summary('train', metrics, step)
 
-    if step % VALIDATE_EVERY == 0:
+    if epoch % VALIDATE_EVERY == 0:
       print('Validation...')
       mean_metrics = None
       for batch in validate_batches:
