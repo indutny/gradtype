@@ -7,6 +7,8 @@ import * as path from 'path';
 
 import { Dataset, Output, Sequence } from '../src/dataset';
 
+const MIN_SEQUENCE_COUNT = 10;
+
 let totalSequences = 0;
 const totalSequenceLen = {
   mean: 0,
@@ -53,6 +55,8 @@ function encodeSequence(sequence: Sequence) {
   return enc;
 }
 
+let errors = 0;
+
 let datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
   return {
@@ -62,10 +66,21 @@ let datasets = labels.map((name) => {
 }).map((entry) => {
   const d = new Dataset(sentences);
 
+  if (entry.data.version === 2) {
+    const sequences = d.check(entry.name, entry.data.sequences);
+    errors += entry.data.sequences.length - sequences.length;
+    return {
+      name: entry.name,
+      sequences,
+    };
+  }
+
   return {
     name: entry.name,
     sequences: d.generate(entry.data),
   };
+}).filter((entry) => {
+  return entry.sequences.length > MIN_SEQUENCE_COUNT;
 });
 
 datasets.slice()
@@ -102,3 +117,4 @@ console.log('Mean length: %s',
   (totalSequenceLen.mean / totalSequences).toFixed(2));
 console.log('Min length: %s', totalSequenceLen.min.toFixed(2));
 console.log('Max length: %s', totalSequenceLen.max.toFixed(2));
+console.log('Errors: %d', errors);

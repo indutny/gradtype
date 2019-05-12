@@ -29,7 +29,50 @@ export type Output = ReadonlyArray<Sequence>;
 type IntermediateEntry = 'reset' | 'invalid' | ISequenceElem;
 
 export class Dataset {
+  private readonly lowSentences: ReadonlyArray<string>;
+  private readonly lowSentenceSet: ReadonlySet<string>;
+
   constructor(private readonly sentences: string[]) {
+    this.lowSentences = this.sentences.map((s) => {
+      return s.toLowerCase().replace(/[^a-z., ]+/g, '');
+    });
+    this.lowSentenceSet = new Set(this.lowSentences);
+  }
+
+  public check(name: string, sequences: Output) {
+    const out: Sequence[] = [];
+
+    for (const seq of sequences) {
+      let sentence;
+
+      try {
+        sentence = seq
+          .map((event) => this.decompress(event.code))
+          .join('');
+      } catch (e) {
+        e.message += '\nat ' + name;
+        throw e;
+      }
+
+      let found = false;
+      if (this.lowSentenceSet.has(sentence)) {
+        found = true;
+      } else {
+        for (const expected of this.lowSentences) {
+          if (expected.startsWith(sentence)) {
+            found = true;
+            break;
+          }
+        }
+      }
+
+      if (found) {
+        out.push(seq);
+      } else {
+        console.error(name, sentence);
+      }
+    }
+    return out;
   }
 
   public generate(events: Input): Output {
@@ -147,5 +190,29 @@ export class Dataset {
     } else {
       throw new Error('Unexpected code: ' + code.toString(16));
     }
+  }
+
+  private decompress(code: number): string {
+    // 'abcdefghijklmnopqrstuvwxyz ,.'
+    // a - z
+    if (0 <= code && code < 26) {
+      code += 0x61;
+
+    // ' '
+    } else if (code === 26) {
+      code = 0x20;
+
+    // ','
+    } else if (code === 27) {
+      code = 0x2c;
+
+    // '.'
+    } else if (code === 28) {
+      code = 0x2e;
+    } else {
+      throw new Error('Unexpected code: ' + code);
+    }
+
+    return String.fromCharCode(code);
   }
 }
