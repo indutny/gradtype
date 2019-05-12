@@ -28,9 +28,6 @@ const labels: string[] = fs.readdirSync(DATASETS_DIR)
   .map((file) => file.replace(/\.json$/, ''))
   .filter((file) => file !== 'index' && file !== 'sentences');
 
-fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
-  labels, null, 2));
-
 function encodeSequence(sequence: Sequence) {
   totalSequences++;
 
@@ -82,6 +79,10 @@ let datasets = labels.map((name) => {
 }).filter((entry) => {
   return entry.sequences.length > MIN_SEQUENCE_COUNT;
 });
+
+fs.writeFileSync(path.join(DATASETS_DIR, 'index.json'), JSON.stringify(
+  datasets.map((d) => d.name), null, 2));
+
 
 datasets.slice()
   .sort((a, b) => b.sequences.length - a.sequences.length)

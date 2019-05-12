@@ -8,7 +8,7 @@ const PRIOR = 0.05;
 const TARGET = 0.999;
 
 // Totally arbitrary, depends on PRIOR
-const TWEAK = Math.exp(1.1);
+const TWEAK = Math.exp(1.2);
 
 function distance(a, b) {
   let sum = 0;
