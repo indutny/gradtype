@@ -41,7 +41,7 @@ validate_dataset = loaded['validate']
 validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
-train_batches_gen = dataset.gen_regression(validate_dataset,
+train_batches_gen = dataset.gen_regression(train_dataset,
     batch_size=BATCH_SIZE)
 validate_batches = next(
     dataset.gen_regression(validate_dataset, batch_size=None))
