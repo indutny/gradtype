@@ -270,8 +270,13 @@ def shuffle_uniform(dataset):
 
 def gen_regression(dataset, batch_size):
   flat = list(shuffle_uniform(dataset))
+
   if batch_size is None:
     batch_size = len(flat)
+
+  pad = shuffle_uniform(dataset)
+  while len(flat) % batch_size != 0:
+    flat += [ next(pad) ]
 
   batches = []
   for i in range(0, len(flat), batch_size):
