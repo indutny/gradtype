@@ -41,7 +41,10 @@ validate_dataset = loaded['validate']
 validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
-validate_batches = dataset.gen_regression(validate_dataset, batch_size=None)
+train_batches_gen = dataset.gen_regression(validate_dataset,
+    batch_size=BATCH_SIZE)
+validate_batches = next(
+    dataset.gen_regression(validate_dataset, batch_size=None))
 
 #
 # Initialize model
@@ -109,14 +112,13 @@ with tf.Session() as sess:
   step = tf.train.global_step(sess, global_step_t)
 
   for epoch in range(0, MAX_EPOCHS):
-    train_batches = dataset.gen_regression(train_dataset,
-        batch_size=BATCH_SIZE)
+    train_batches = next(train_batches_gen)
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
       saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
 
-    print('Epoch {}'.format(epoch))
+    print('Epoch {}, step {}'.format(epoch, step))
     for batch in train_batches:
       tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
           t_grad_norm ]

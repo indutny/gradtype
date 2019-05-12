@@ -269,40 +269,45 @@ def shuffle_uniform(dataset):
       category_perm[category_i] = perm
 
 def gen_regression(dataset, batch_size):
-  flat = list(shuffle_uniform(dataset))
-
+  total = sum([ len(cat) for cat in dataset ])
   if batch_size is None:
-    batch_size = len(flat)
+    batch_size = total
+  elif total % batch_size != 0:
+    pad = batch_size - (total % batch_size)
 
-  pad = shuffle_uniform(dataset)
-  while len(flat) % batch_size != 0:
-    flat += [ next(pad) ]
+  shuffle = shuffle_uniform(dataset)
+  while True:
+    batches = []
+    for _ in range(0, total, batch_size):
+      categories = []
+      codes = []
+      holds = []
+      deltas = []
+      sequence_lens = []
 
-  batches = []
-  for i in range(0, len(flat), batch_size):
-    categories = []
-    codes = []
-    holds = []
-    deltas = []
-    sequence_lens = []
+      for _ in range(0, batch_size):
+        seq = next(shuffle)
+        if seq is None:
+          shuffle = shuffle_uniform(dataset)
+          seq = next(shuffle)
 
-    for seq in flat[i:i + batch_size]:
-      categories.append(seq['category'])
-      codes.append(seq['codes'])
-      holds.append(seq['holds'])
-      deltas.append(seq['deltas'])
-      sequence_lens.append(seq['sequence_len'])
+        categories.append(seq['category'])
+        codes.append(seq['codes'])
+        holds.append(seq['holds'])
+        deltas.append(seq['deltas'])
+        sequence_lens.append(seq['sequence_len'])
 
-    categories = np.array(categories)
-    codes = np.array(codes)
-    holds = np.array(holds)
-    deltas = np.array(deltas)
+      categories = np.array(categories)
+      codes = np.array(codes)
+      holds = np.array(holds)
+      deltas = np.array(deltas)
 
-    batches.append({
-      'categories': categories,
-      'codes': codes,
-      'holds': holds,
-      'deltas': deltas,
-      'sequence_lens': sequence_lens,
-    })
-  return batches
+      batches.append({
+        'categories': categories,
+        'codes': codes,
+        'holds': holds,
+        'deltas': deltas,
+        'sequence_lens': sequence_lens,
+      })
+
+    yield batches
