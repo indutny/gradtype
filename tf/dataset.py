@@ -219,29 +219,6 @@ def trim_dataset(dataset, batch_size=1, random_state=None):
     out.append(out_cat)
   return out, min_len
 
-# TODO(indutny): use tf.data.Dataset
-def gen_hard_batches(dataset, batch_size=32, k=None):
-  if k is None:
-    k = len(dataset)
-
-  # Leave the same number of sequences in each batch
-  dataset, sequence_count = trim_dataset(dataset, batch_size)
-
-  perm = np.random.permutation(len(dataset))
-  dataset = [ dataset[i] for i in perm[:k] ]
-
-  batches = []
-  for off in range(0, sequence_count, batch_size):
-    batch = { 'codes': [], 'deltas': [] }
-    for category in dataset:
-      for seq in category[off:off + batch_size]:
-        batch['codes'].append(seq['codes'])
-        batch['deltas'].append(seq['deltas'])
-    batch['codes'] = np.array(batch['codes'])
-    batch['deltas'] = np.array(batch['deltas'])
-    batches.append(batch)
-  return batches
-
 def flatten_dataset(dataset, k=None, random_state=None):
   if k is None:
     k = len(dataset)
@@ -259,14 +236,7 @@ def flatten_dataset(dataset, k=None, random_state=None):
       max_category = max(max_category, seq['category'])
       sequences.append(seq)
 
-  weights = np.zeros(max_category + 1, dtype='float32')
-  for seq in sequences:
-    weights[seq['category']] += 1.0
-
-  min_count = np.min(np.where(weights > 0.0, weights, float('inf')))
-  weights = np.where(weights > 0.0, min_count / (weights + 1e-12), 0.0)
-
-  return sequences, weights
+  return sequences
 
 def gen_adversarial(count):
   shape = [ count, MAX_SEQUENCE_LEN ]

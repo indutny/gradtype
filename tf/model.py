@@ -162,7 +162,6 @@ class Model():
 
     return x
 
-  # TODO(indutny): use `weights`?
   def get_proxy_common(self, proxies, output, categories, category_count, \
       category_mask, adversarial_count=None):
     if adversarial_count != None:
@@ -217,16 +216,12 @@ class Model():
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
-  def get_proxy_loss(self, output, categories, weights, category_count, \
+  def get_proxy_loss(self, output, categories, category_count, \
       category_mask, adversarial_count=None):
-    with tf.name_scope('proxy_loss', [ output, categories, weights, \
-        category_mask ]):
+    with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies = tf.get_variable('points',
           initializer=tf.initializers.orthogonal(),
           shape=(category_count, FEATURE_COUNT,))
-
-      weights = tf.gather(weights, categories, axis=0, \
-          name='per_category_weight')
 
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask,
@@ -241,14 +236,13 @@ class Model():
       ratio = exp_pos / (total_exp_neg + epsilon)
 
       loss = -tf.log(ratio + epsilon, name='loss_vector')
-      loss *= weights
       loss = tf.reduce_mean(loss, name='loss')
 
       metrics['loss'] = loss
 
       return metrics
 
-  def get_proxy_val_metrics(self, output, categories, weights, category_count, \
+  def get_proxy_val_metrics(self, output, categories, category_count, \
       category_mask):
     with tf.name_scope('proxy_val_metrics', [ output, categories, \
         category_mask ]):

@@ -46,8 +46,8 @@ validate_dataset = loaded['validate']
 validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
-train_flat_dataset, train_weights = dataset.flatten_dataset(train_dataset)
-validate_flat_dataset, validate_weights = \
+train_flat_dataset = dataset.flatten_dataset(train_dataset)
+validate_flat_dataset = \
     dataset.flatten_dataset(validate_dataset)
 validate_batches = dataset.gen_regression(validate_flat_dataset, \
     batch_size=len(validate_flat_dataset))
@@ -66,14 +66,13 @@ training = tf.placeholder(tf.bool, shape=(), name='training')
 categories = tf.placeholder(tf.int32, shape=(None,), name='categories')
 category_mask = tf.placeholder(tf.bool, shape=(category_count,),
     name='category_mask')
-weights = tf.placeholder(tf.float32, shape=(None,), name='weights')
 
 model = Model(training=training)
 
 output = model.build(holds, codes, deltas, sequence_lens)
-t_metrics = model.get_proxy_loss(output, categories, weights, category_count,
+t_metrics = model.get_proxy_loss(output, categories, category_count,
     category_mask, ADVERSARIAL_COUNT)
-t_val_metrics = model.get_proxy_val_metrics(output, categories, weights,
+t_val_metrics = model.get_proxy_val_metrics(output, categories,
     category_count, category_mask)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
@@ -137,7 +136,6 @@ with tf.Session() as sess:
         sequence_lens: batch['sequence_lens'],
         categories: batch['categories'],
         category_mask: train_mask,
-        weights: train_weights,
         training: True,
       })
       metrics['regularization_loss'] = reg_loss
@@ -157,7 +155,6 @@ with tf.Session() as sess:
           sequence_lens: batch['sequence_lens'],
           categories: batch['categories'],
           category_mask: validate_mask,
-          weights: validate_weights,
           training: False,
         })
 
