@@ -7,6 +7,7 @@ import * as path from 'path';
 
 import { Dataset, Output, Sequence } from '../src/dataset';
 
+const MAX_SEQUENCE_COUNT = 20;
 const MIN_SEQUENCE_COUNT = 20;
 
 let totalSequences = 0;
@@ -68,7 +69,7 @@ let datasets = labels.map((name) => {
     errors += entry.data.sequences.length - sequences.length;
     return {
       name: entry.name,
-      sequences,
+      sequences: sequences.slice(0, MAX_SEQUENCE_COUNT),
     };
   }
 
