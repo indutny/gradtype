@@ -286,8 +286,9 @@ def gen_regression(dataset, batch_size):
       sequence_lens = []
 
       for _ in range(0, batch_size):
-        seq = next(shuffle)
-        if seq is None:
+        try:
+          seq = next(shuffle)
+        except StopIteration:
           shuffle = shuffle_uniform(dataset)
           seq = next(shuffle)
 
