@@ -1,6 +1,6 @@
 # gradtype
 
-See [website][https://gradtype.darksi.de/] for details.
+See [website](https://gradtype.darksi.de/) for details.
 
 #### LICENSE
 
