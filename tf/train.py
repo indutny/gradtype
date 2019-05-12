@@ -16,8 +16,6 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-ADVERSARIAL_COUNT = None
-
 # Number of sequences per batch
 BATCH_SIZE = 4096
 
@@ -31,9 +29,6 @@ SAVE_EVERY = 100
 
 # Learning rate
 LR = 0.004
-
-# Number of categories in each epoch
-K = 64
 
 #
 # Load dataset
@@ -71,7 +66,7 @@ model = Model(training=training)
 
 output = model.build(holds, codes, deltas, sequence_lens)
 t_metrics = model.get_proxy_loss(output, categories, category_count,
-    category_mask, ADVERSARIAL_COUNT)
+    category_mask)
 t_val_metrics = model.get_proxy_val_metrics(output, categories,
     category_count, category_mask)
 
@@ -119,7 +114,7 @@ with tf.Session() as sess:
 
   for epoch in range(0, MAX_EPOCHS):
     train_batches = dataset.gen_regression(train_flat_dataset,
-        adversarial_count=ADVERSARIAL_COUNT, batch_size=BATCH_SIZE)
+        batch_size=BATCH_SIZE)
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
