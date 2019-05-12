@@ -274,6 +274,7 @@ def gen_regression(dataset, batch_size):
     batch_size = total
   elif total % batch_size != 0:
     pad = batch_size - (total % batch_size)
+    total += pad
 
   shuffle = shuffle_uniform(dataset)
   while True:
