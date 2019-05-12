@@ -112,7 +112,10 @@ with tf.Session() as sess:
   step = tf.train.global_step(sess, global_step_t)
 
   for epoch in range(0, MAX_EPOCHS):
+    start_time = time.time()
     train_batches = next(train_batches_gen)
+    end_time = time.time()
+    print('Generated batches in: {}'.format(end_time - start_time))
 
     if epoch % SAVE_EVERY == 0:
       print('Saving...')
