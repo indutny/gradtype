@@ -50,9 +50,9 @@ with tf.Session() as sess:
   validate_dataset, _ = dataset.trim_dataset(validate_dataset,
       random_state=SEED)
 
-  train_dataset, _ = dataset.flatten_dataset(train_dataset,
+  train_dataset = dataset.flatten_dataset(train_dataset,
       random_state=SEED)
-  validate_dataset, _ = dataset.flatten_dataset(validate_dataset,
+  validate_dataset = dataset.flatten_dataset(validate_dataset,
       random_state=SEED)
 
   holds = []
