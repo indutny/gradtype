@@ -77,7 +77,7 @@ class Model():
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def apply_embedding(self, holds, codes, deltas, return_raw=False):
+  def apply_embedding(self, holds, codes, deltas):
     embedding = self.embedding.apply(codes)
     holds = tf.expand_dims(holds, axis=-1, name='expanded_holds')
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
@@ -90,9 +90,6 @@ class Model():
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
         training=self.training)
-
-    if return_raw:
-      return series, embedding
 
     return series
 
