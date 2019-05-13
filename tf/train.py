@@ -85,7 +85,7 @@ with tf.variable_scope('optimizer'):
   grads, t_grad_norm = tf.clip_by_global_norm(grads, 12.0)
   grads = list(zip(grads, variables))
   for (grad, var) in grads:
-    t_metrics['grad_' + var.name] = tf.reduce_mean(grad)
+    t_metrics['grad_' + var.name] = tf.reduce_sum(grad)
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
 #
