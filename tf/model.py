@@ -26,6 +26,7 @@ class Embedding():
     self.width = width
     with tf.variable_scope(None, default_name=self.name):
       self.weights = tf.get_variable('weights', shape=(max_code, width),
+                                     trainable=True,
                                      regularizer=regularizer)
 
   def apply(self, codes):
@@ -185,6 +186,7 @@ class Model():
       category_mask):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies = tf.get_variable('points',
+          trainable=True,
           initializer=tf.initializers.orthogonal(),
           shape=(category_count, FEATURE_COUNT,))
 
