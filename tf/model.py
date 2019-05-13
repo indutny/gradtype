@@ -126,8 +126,10 @@ class Model():
     else:
       last_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
           dtype=tf.float32)
+      # [ batch, sequence_len, output ]
       last_mask = tf.expand_dims(last_mask, axis=-1, name='last_mask')
-      x = tf.reduce_sum(stacked_output * last_mask, axis=-1,
+
+      x = tf.reduce_sum(stacked_output * last_mask, axis=1,
           name='last_output')
 
     for post in self.post:
