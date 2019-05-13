@@ -122,6 +122,7 @@ with tf.Session() as sess:
       saver.save(sess, os.path.join(SAVE_DIR, '{:08d}'.format(step)))
 
     print('Epoch {}, step {}'.format(epoch, step))
+    start_time = time.time()
     for batch in train_batches:
       tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
           t_grad_norm ]
@@ -139,6 +140,9 @@ with tf.Session() as sess:
 
       step += 1
       log_summary('train', metrics, step)
+    end_time = time.time()
+    print('Mean batch time: {}'.format(
+      (end_time - start_time) / len(train_batches)))
 
     if epoch % VALIDATE_EVERY == 0:
       print('Validation...')

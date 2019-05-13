@@ -37,7 +37,6 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_pooling = False
-    self.random_len = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -124,36 +123,12 @@ class Model():
 
     if self.use_pooling:
       x = tf.reduce_mean(stacked_output, axis=1, name='output')
-    elif self.random_len:
-      max_index = sequence_len - 1
-      random_len = tf.random_uniform(shape=(batch_size,),
-          minval=int(max_sequence_len / 2),
-          maxval=max_sequence_len,
-          dtype=tf.int32,
-          name='random_len')
-      selected_len = tf.where(self.training, random_len, max_index,
-          name='selected_len')
-
-      def select_random(pair):
-        outputs = pair[0]
-        index = pair[1]
-        max_index = pair[2]
-
-        index = tf.minimum(index, max_index, name='clamped_index')
-
-        return tf.gather(outputs, index, axis=0, name='select_random')
-
-      x = tf.map_fn(select_random,
-          (stacked_output, selected_len, max_index, ),
-          dtype=tf.float32)
     else:
-      def select_last(pair):
-        outputs = pair[0]
-        seq_len = pair[1]
-        return tf.gather(outputs, seq_len, axis=0, name='select_last')
-
-      x = tf.map_fn(select_last, (stacked_output, sequence_len - 1,),
+      last_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
           dtype=tf.float32)
+      last_mask = tf.expand_dims(last_mask, axis=-1, name='last_mask')
+      x = tf.reduce_sum(stacked_output * last_mask, axis=-1,
+          name='last_output')
 
     for post in self.post:
       x = post(x)
