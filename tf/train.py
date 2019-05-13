@@ -81,11 +81,12 @@ with tf.variable_scope('optimizer'):
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
-  grads = tf.gradients(t_loss, variables)
-  grads, t_grad_norm = tf.clip_by_global_norm(grads, 12.0)
-  grads = list(zip(grads, variables))
-  for (grad, var) in grads:
+  unclipped_grads = tf.gradients(t_loss, variables)
+  grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 12.0)
+  for (grad, var) in zip(unclipped_grads, variables):
     t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
+
+  grads = list(zip(grads, variables))
   train = optimizer.apply_gradients(grads_and_vars=grads)
 
 #
