@@ -187,7 +187,7 @@ class Model():
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies = tf.get_variable('points',
           trainable=True,
-          initializer=tf.initializers.orthogonal(),
+          initializer=tf.initializers.random_uniform(-1.0, 1.0),
           shape=(category_count, FEATURE_COUNT,))
 
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
