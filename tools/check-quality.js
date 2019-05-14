@@ -46,11 +46,12 @@ function byCategory(data) {
   const res = new Map();
 
   for (const elem of data) {
-    if (!res.has(elem.category)) {
-      res.set(elem.category, []);
+    const label = elem.label || elem.category;
+    if (!res.has(label)) {
+      res.set(label, []);
     }
 
-    res.get(elem.category).push(elem.features);
+    res.get(label).push(elem.features);
   }
 
   return res;
