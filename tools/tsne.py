@@ -55,7 +55,7 @@ def visualize(entries):
     color = COLOR_MAP(to_color(index))
 
     marker = 'o'
-    size = 16
+    size = 8
     alpha = 0.6
     plt.scatter(x, y, c=[ color ], marker=marker,
                 edgecolor='k', s=size, alpha=alpha, linewidths=0.0,
