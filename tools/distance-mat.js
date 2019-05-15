@@ -36,22 +36,27 @@ function flatten(cat) {
   return out;
 }
 
-function matrix(data) {
-  const list = flatten(byCategory(data));
-
-  const res = Buffer.alloc(4 + list.length * list.length * 4);
-  res.writeInt32LE(list.length, 0);
-
-  for (let i = 0; i < list.length; i++) {
-    const a = list[i];
-    for (let j = i + 1; j < list.length; j++) {
-      const b = list[j];
-
-      const d = distance(a, b);
-      res.writeFloatLE(d, 4 * (1 + i * list.length + j));
-      res.writeFloatLE(d, 4 * (1 + j * list.length + i));
+function meanDistance(left, right) {
+  let sum = 0;
+  for (const a of left) {
+    for (const b of right) {
+      sum += distance(a, b);
     }
-    res.writeFloatLE(0, 4 * (1 + i * list.length + i));
+  }
+  return sum / (left.length * right.length);
+}
+
+function matrix(data) {
+  const cats = Array.from(byCategory(data).values());
+
+  const res = Buffer.alloc(4 + cats.length * cats.length * 4);
+  res.writeInt32LE(cats.length, 0);
+
+  for (const [ i, a ] of cats.entries()) {
+    for (const [ j, b ] of cats.entries()) {
+      const d = meanDistance(a, b);
+      res.writeFloatLE(d, 4 * (1 + i * cats.length + j));
+    }
   }
 
   return res;

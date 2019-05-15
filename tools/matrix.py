@@ -16,7 +16,7 @@ def show(f):
   max_val = np.max(res)
   res /= max_val
 
-  plt.matshow(res, cmap='binary')
+  plt.matshow(res, cmap='plasma')
   plt.show()
 
 with open(sys.argv[1], 'rb') as f:
