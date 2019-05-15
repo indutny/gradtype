@@ -15,6 +15,7 @@ def show(f):
 
   max_val = np.max(res)
   res /= max_val
+  print(max_val)
 
   plt.matshow(res, cmap='plasma')
   plt.show()

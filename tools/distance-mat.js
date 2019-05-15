@@ -39,11 +39,22 @@ function flatten(cat) {
 function meanDistance(left, right) {
   let sum = 0;
   for (const a of left) {
+    const distances = [];
     for (const b of right) {
-      sum += distance(a, b);
+      distances.push(distance(a, b));
     }
+    distances.sort();
+
+    const count = Math.min(20, distances.length);
+    let mean = 0;
+    for (let i = 0; i < count; i++) {
+      mean += distances[i];
+    }
+    mean /= count;
+
+    sum += mean;
   }
-  return sum / (left.length * right.length);
+  return sum / left.length;
 }
 
 function matrix(data) {

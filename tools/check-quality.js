@@ -58,13 +58,18 @@ function byCategory(data) {
 }
 
 function score(pos, distances) {
+  let negMin = Infinity;
   let negHit = 0;
   for (const d of distances.negatives) {
     negHit += d > pos ? 1 : 0;
+    negMin = Math.min(negMin, d);
   }
+
+  let posMax = 0;
   let posHit = 0;
   for (const d of distances.positives) {
     posHit += d < pos ? 1 : 0;
+    posMax = Math.max(posMax, d);
   }
 
   const negCount = distances.negatives.length;
@@ -74,6 +79,8 @@ function score(pos, distances) {
   return {
     lessGivenSame: posHit / posCount,
     greaterGivenDiff: negHit / negCount,
+    negMin,
+    posMax,
   };
 }
 
@@ -85,7 +92,7 @@ function isSame(pos, known, unknown) {
 
   distances.sort();
   let mean = 0;
-  let count = Math.min(15, distances.length);
+  let count = Math.min(20, distances.length);
   for (let i = 0; i < count; i++) {
     mean += distances[i];
   }
@@ -113,11 +120,15 @@ function scoreByCat(pos, map) {
         continue;
       }
 
+      let catKeyDiff = 0;
       for (const otherFeatures of otherList) {
-        diffTotal++;
-        keyTotal++;
-        keyDiff += isSame(pos, list, otherFeatures) ? 0 : 1;
+        catKeyDiff += isSame(pos, list, otherFeatures) ? 0 : 1;
       }
+      catKeyDiff /= otherList.length;
+
+      keyDiff += catKeyDiff;
+      keyTotal++;
+      diffTotal++;
     }
 
     for (let i = 0; i < list.length; i++) {
@@ -130,7 +141,7 @@ function scoreByCat(pos, map) {
     sameHit += keySame;
     diffHit += keyDiff;
 
-    const keyMean = (keySame + keyDiff) / keyTotal
+    const keyMean = (keySame + keyDiff) / keyTotal;
     perKey += keyMean;
     perKeyCount++;
 
@@ -193,7 +204,7 @@ const featuresByCategory = {
   validate: byCategory(DATA.validate),
 };
 
-const trainPos = search(distances.train);
+const trainPos = 9 || search(distances.train);
 const trainScore = score(trainPos, distances.train);
 const valScore = score(trainPos, distances.validate);
 
