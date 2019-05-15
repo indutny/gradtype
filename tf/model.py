@@ -23,6 +23,8 @@ RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ 32 ]
 FEATURE_COUNT = 32
 
+GRAVITY_FORCE = 1.0
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -229,6 +231,9 @@ class Model():
           trainable=True,
           initializer=proxies_init)
 
+      gravity = tf.reduce_mean(GRAVITY_FORCE / 2.0 * (proxies - 1.0) ** 2,
+          name='gravity')
+
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
 
@@ -244,6 +249,7 @@ class Model():
       loss = tf.reduce_mean(loss, name='loss')
 
       metrics['loss'] = loss
+      metrics['gravity'] = gravity
 
       return metrics
 
