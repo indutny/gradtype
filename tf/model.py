@@ -16,6 +16,9 @@ RNN_USE_BIDIR = False
 
 DENSE_L2 = 0.001
 
+GAUSSIAN_POOLING_VAR = 1.0
+GAUSSIAN_POOLING_LEN_DELTA = 3.0
+
 RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ 32 ]
 FEATURE_COUNT = 32
@@ -37,7 +40,7 @@ class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
-    self.use_pooling = False
+    self.use_gaussian_pooling = True
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -119,16 +122,35 @@ class Model():
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
-    if self.use_pooling:
-      x = tf.reduce_mean(stacked_output, axis=1, name='output')
-    else:
-      last_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
-          dtype=tf.float32)
-      # [ batch, sequence_len, output ]
-      last_mask = tf.expand_dims(last_mask, axis=-1, name='last_mask')
+    if self.use_gaussian_pooling:
+      # [ batch, sequence_len ]
+      indices = tf.expand_dims(tf.range(max_sequence_len), axis=0,
+          name='sequence_indices')
+      mask = tf.cast(indices < sequence_len, dtype=tf.float32,
+          name='pre_mask')
 
-      x = tf.reduce_sum(stacked_output * last_mask, axis=1,
-          name='last_output')
+      len_delta = tf.random.uniform(
+          tf.shape(sequence_len),
+          -GAUSSIAN_POOLING_LEN_DELTA,
+          GAUSSIAN_POOLING_LEN_DELTA,
+          name='len_delta')
+
+      random_len = tf.cast(sequence_len, dtype=tf.float32) - 1.0 - len_delta
+      gauss_x = (tf.cast(indices, dtype=tf.float32) - random_len) ** 2.0
+      gauss_x /= 2.0 * (GAUSSIAN_POOLING_VAR ** 2)
+
+      mask *= tf.exp(-gauss_x, name='gaussian_pre_mask')
+      mask /= tf.reduce_sum(mask, axis=-1, keep_dims=True,
+          name='gaussian_mask_norm')
+    else:
+      # [ batch, sequence_len ]
+      mask = tf.one_hot(sequence_len - 1, max_sequence_len,
+          dtype=tf.float32)
+
+    mask = tf.expand_dims(mask, axis=-1, name='last_mask')
+
+    x = tf.reduce_sum(stacked_output * mask, axis=1,
+        name='last_output')
 
     for post in self.post:
       x = post(x)
