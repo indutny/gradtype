@@ -40,7 +40,7 @@ class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
-    self.use_gaussian_pooling = True
+    self.use_gaussian_pooling = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
