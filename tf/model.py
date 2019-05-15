@@ -122,6 +122,10 @@ class Model():
 
     stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
 
+    # [ batch, sequence_len ]
+    last_output_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
+        dtype=tf.float32)
+
     if self.use_gaussian_pooling:
       # [ 1, sequence_len ]
       indices = tf.expand_dims(tf.range(max_sequence_len), axis=0,
@@ -152,10 +156,10 @@ class Model():
       mask *= tf.exp(-gauss_x, name='gaussian_pre_mask')
       mask /= tf.reduce_sum(mask, axis=-1, keepdims=True,
           name='gaussian_mask_norm')
+
+      mask = tf.where(self.training, mask, last_output_mask)
     else:
-      # [ batch, sequence_len ]
-      mask = tf.one_hot(sequence_len - 1, max_sequence_len,
-          dtype=tf.float32)
+      mask = last_output_mask
 
     mask = tf.expand_dims(mask, axis=-1, name='last_mask')
 
