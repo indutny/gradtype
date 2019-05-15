@@ -46,6 +46,11 @@ def load_sequence(f, category, label):
   holds = np.array(holds, dtype='float32')
   deltas = np.array(deltas, dtype='float32')
 
+  # Normalize hold times and duration
+  mean_delta = np.mean(deltas) + 1e-23
+  holds /= mean_delta
+  deltas /= mean_delta
+
   return {
     'category': category,
     'label': label,

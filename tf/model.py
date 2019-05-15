@@ -4,7 +4,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 11
+EMBED_WIDTH = 14
 TIMES_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
@@ -87,9 +87,6 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
-
-    # Process holds+deltas
-    times = self.process_times(times)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
     series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
