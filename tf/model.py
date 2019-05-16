@@ -178,7 +178,6 @@ class Model():
 
     if USE_FINAL_BN:
       x = self.final_bn(x, training=self.training)
-      x = tf.Print(x, [ x ])
 
     return x
 
