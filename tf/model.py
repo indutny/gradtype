@@ -196,8 +196,10 @@ class Model():
 
     if self.use_cosine:
       def cosine(a, b):
-        cos = tf.matmul(a, b, transpose_b=True) / \
-          (tf.norm(a, axis=-1) * tf.norm(b, axis=-1))
+        dot = tf.matmul(a, b, transpose_b=True)
+        a_norm = tf.norm(a, axis=-1, keepdims=True)
+        b_norm = tf.norm(b, axis=-1, keepdims=True)
+        cos = dot / a_norm / b_norm
         return 1.0 - cos
 
       positive_distances = cosine(positives, output)
