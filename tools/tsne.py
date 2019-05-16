@@ -11,6 +11,7 @@ from sklearn.manifold import TSNE
 
 COLOR_MAP = plt.cm.gist_rainbow
 SEED = 0x37255c25
+USE_TSNE = True
 
 CATEGORIES = {}
 
@@ -22,12 +23,16 @@ def visualize(entries):
 
   axes = plt.gca()
 
-  if True:
+  if USE_TSNE:
     decomp = TSNE(n_components=2, verbose=2, random_state=SEED,
         perplexity=30)
   else:
     decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
   coords = decomp.fit_transform([ e['features'] for e in entries ])
+
+  if not USE_TSNE:
+    print('Explained variance ratio: {}'.format( \
+        decomp.explained_variance_ratio_))
 
   for e, coords in zip(entries, coords):
     e['coords'] = coords

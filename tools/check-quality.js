@@ -215,7 +215,7 @@ const featuresByCategory = {
   validate: byCategory(DATA.validate),
 };
 
-const trainPos = 0.2760 || search(distances.train);
+const trainPos = 0.2309 || search(distances.train);
 const trainScore = score(trainPos, distances.train);
 const valScore = score(trainPos, distances.validate);
 
