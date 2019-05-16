@@ -23,7 +23,7 @@ RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ 32 ]
 FEATURE_COUNT = 32
 
-GRAVITY_FORCE = 0.01
+GRAVITY_FORCE = 0.0
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -43,7 +43,7 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
-    self.use_cosine = False
+    self.use_cosine = True
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 

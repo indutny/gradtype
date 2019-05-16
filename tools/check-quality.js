@@ -6,17 +6,28 @@ const DATA = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 
 const PRIOR = 0.05;
 const TARGET = 0.999;
+const COSINE = true;
 
 // Totally arbitrary, depends on PRIOR
 const TWEAK = Math.exp(1.2);
 
-function distance(a, b) {
+const distance = COSINE ? function cos(a, b) {
+  let dot = 0;
+  let aNorm = 0;
+  let bNorm = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    aNorm += a[i] ** 2;
+    bNorm += b[i] ** 2;
+  }
+  return 1 - dot / Math.sqrt(aNorm) / Math.sqrt(bNorm);
+} : function distance(a, b) {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
     sum += (a[i] - b[i]) ** 2;
   }
   return Math.sqrt(sum);
-}
+};
 
 function crossDistance(data) {
   const positives = [];
@@ -204,7 +215,7 @@ const featuresByCategory = {
   validate: byCategory(DATA.validate),
 };
 
-const trainPos = 9 || search(distances.train);
+const trainPos = 0.2760 || search(distances.train);
 const trainScore = score(trainPos, distances.train);
 const valScore = score(trainPos, distances.validate);
 
