@@ -14,6 +14,8 @@ RNN_OUTPUT_DROPOUT = 0.0
 RNN_USE_RESIDUAL = False
 RNN_USE_BIDIR = False
 
+USE_FINAL_BN = False
+
 DENSE_L2 = 0.001
 
 GAUSSIAN_POOLING_VAR = 1.0
@@ -70,6 +72,8 @@ class Model():
     self.process_times = tf.layers.Dense(name='process_times',
                                          units=TIMES_WIDTH,
                                          kernel_regularizer=self.l2)
+
+    self.final_bn = tf.keras.layers.BatchNormalization(name='final_bn')
 
     self.post = []
     for i, width in enumerate(DENSE_POST_WIDTH):
@@ -171,6 +175,10 @@ class Model():
       x = post(x)
 
     x = self.features(x)
+
+    if USE_FINAL_BN:
+      x = self.final_bn(x, training=self.training)
+      x = tf.Print(x, [ x ])
 
     return x
 
