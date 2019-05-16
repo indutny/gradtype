@@ -3,6 +3,7 @@
 const fs = require('fs');
 
 const DATA = JSON.parse(fs.readFileSync(process.argv[2]).toString());
+const OUT_DISTANCE = process.argv[3];
 
 const PRIOR = 0.05;
 const TARGET = 0.999;
@@ -209,6 +210,10 @@ const distances = {
   train: crossDistance(DATA.train),
   validate: crossDistance(DATA.validate),
 };
+
+if (OUT_DISTANCE) {
+  fs.writeFileSync(OUT_DISTANCE, JSON.stringify(distances));
+}
 
 const featuresByCategory = {
   train: byCategory(DATA.train),
