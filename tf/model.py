@@ -197,8 +197,8 @@ class Model():
     if self.use_cosine:
       def cosine(a, b):
         dot = tf.reduce_sum(a * b, axis=-1)
-        a_norm = tf.norm(a, axis=-1, keepdims=True)
-        b_norm = tf.norm(b, axis=-1, keepdims=True)
+        a_norm = tf.norm(a, axis=-1)
+        b_norm = tf.norm(b, axis=-1)
         cos = dot / a_norm / b_norm
         return 1.0 - cos
 
