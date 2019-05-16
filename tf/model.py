@@ -201,7 +201,7 @@ class Model():
         return 1.0 - cos
 
       positive_distances = cosine(positives, output)
-      negative_distances = cosine(negatives, tf.expand_dims(output, axis=-1))
+      negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
     else:
       positive_distances = tf.norm(positives - output, axis=-1,
           name='positive_distances')
