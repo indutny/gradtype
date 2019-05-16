@@ -231,7 +231,8 @@ class Model():
           trainable=True,
           initializer=proxies_init)
 
-      gravity = tf.reduce_mean(GRAVITY_FORCE * tf.abs(proxies ** 2.0 - 1.0),
+      gravity = tf.reduce_mean( \
+          GRAVITY_FORCE * tf.abs(tf.norm(proxies, axis=-1) - 1.0),
           name='gravity')
 
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
