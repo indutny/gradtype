@@ -196,7 +196,7 @@ class Model():
 
     if self.use_cosine:
       def cosine(a, b):
-        cos = tf.matmul(a, b, transpose_b=True) /
+        cos = tf.matmul(a, b, transpose_b=True) / \
           (tf.norm(a, axis=-1) * tf.norm(b, axis=-1))
         return 1.0 - cos
 
