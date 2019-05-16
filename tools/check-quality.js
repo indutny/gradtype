@@ -12,7 +12,7 @@ const COSINE = true;
 // Totally arbitrary, depends on PRIOR
 const TWEAK = Math.exp(1.2);
 
-const distance = COSINE ? function cos(a, b) {
+function cosine(a, b) {
   let dot = 0;
   let aNorm = 0;
   let bNorm = 0;
@@ -22,13 +22,33 @@ const distance = COSINE ? function cos(a, b) {
     bNorm += b[i] ** 2;
   }
   return 1 - dot / Math.sqrt(aNorm) / Math.sqrt(bNorm);
-} : function distance(a, b) {
+}
+
+function euclidian(a, b) {
   let sum = 0;
   for (let i = 0; i < a.length; i++) {
     sum += (a[i] - b[i]) ** 2;
   }
   return Math.sqrt(sum);
-};
+}
+
+const distance = COSINE ? cosine : euclidian;
+
+function mean(list) {
+  if (list.length === 0) {
+    return 0;
+  }
+
+  const zero = list[0].features.slice().fill(0);
+  for (const { features } of list) {
+    for (const [ i, value ] of features.entries()) {
+      zero[i] += value;
+    }
+  }
+
+  const result = zero.map((val) => val / list.length);
+  return euclidian(result, result.slice().fill(0));
+}
 
 function crossDistance(data) {
   const positives = [];
@@ -206,6 +226,13 @@ function search(distances) {
   return high;
 }
 
+const meanFeatures = {
+  train: mean(DATA.train),
+  validate: mean(DATA.validate),
+};
+
+console.log('means', meanFeatures);
+
 const distances = {
   train: crossDistance(DATA.train),
   validate: crossDistance(DATA.validate),
@@ -220,7 +247,7 @@ const featuresByCategory = {
   validate: byCategory(DATA.validate),
 };
 
-const trainPos = 0.2309 || search(distances.train);
+const trainPos = search(distances.train);
 const trainScore = score(trainPos, distances.train);
 const valScore = score(trainPos, distances.validate);
 

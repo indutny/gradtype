@@ -14,6 +14,7 @@ SEED = 0x37255c25
 USE_TSNE = True
 
 CATEGORIES = {}
+category = 'train' if len(sys.argv) < 3 else sys.argv[2]
 
 def to_color(index):
   return index / len(CATEGORIES)
@@ -70,4 +71,4 @@ def visualize(entries):
 
 with open(sys.argv[1]) as input:
   data = json.load(input)
-  visualize(data['train'] + data['validate'])
+  visualize(data[category])
