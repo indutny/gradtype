@@ -43,6 +43,7 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
+    self.use_cosine = False
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -193,10 +194,18 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    positive_distances = tf.norm(positives - output, axis=-1,
-        name='positive_distances')
-    negative_distances = tf.norm(negatives - tf.expand_dims(output, axis=1),
-        axis=-1, name='negative_distances')
+    if self.use_cosine:
+      def cosine(a, b):
+        cos = tf.dot(a, b, axis=-1) / tf.norm(a, axis=-1) / tf.norm(b, axis=-1)
+        return 1.0 - cos
+
+      positive_distances = cosine(positives, output)
+      negative_distances = cosine(negatives, tf.expand_dims(output, axis=-1))
+    else:
+      positive_distances = tf.norm(positives - output, axis=-1,
+          name='positive_distances')
+      negative_distances = tf.norm(negatives - tf.expand_dims(output, axis=1),
+          axis=-1, name='negative_distances')
 
     metrics = {}
     for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
