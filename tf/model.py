@@ -261,7 +261,7 @@ class Model():
 
       epsilon = 1e-12
 
-      radius = 9.32 * tf.minimum(1.0,
+      radius = 1.0 + (self.radius - 1.0) * tf.minimum(1.0,
           tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
 
       if self.use_lcml:
