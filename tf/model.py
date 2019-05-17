@@ -47,7 +47,7 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.radius = 1.0
+    self.radius = 9.32
     self.margin = 0.1
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
