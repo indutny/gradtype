@@ -237,6 +237,7 @@ class Model():
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
+  # TODO(indutny) Consider: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
