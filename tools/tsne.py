@@ -25,15 +25,20 @@ def visualize(entries):
   axes = plt.gca()
 
   if USE_TSNE:
-    decomp = TSNE(n_components=2, verbose=2, random_state=SEED,
-        perplexity=30)
+    decomps = [
+      sklearn.decomposition.PCA(n_components=50, random_state=SEED),
+      TSNE(n_components=2, verbose=2, random_state=SEED,
+          perplexity=30)
+    ]
   else:
     decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
-  coords = decomp.fit_transform([ e['features'] for e in entries ])
 
-  if not USE_TSNE:
-    print('Explained variance ratio: {}'.format( \
-        decomp.explained_variance_ratio_))
+  coords = [ e['features'] for e in entries ]
+  for decomp in decomps:
+    coords = decomp.fit_transform(coords)
+    if isinstance(decomp, sklearn.decomposition.PCA):
+      print('Explained variance ratio: {}'.format( \
+          decomp.explained_variance_ratio_))
 
   for e, coords in zip(entries, coords):
     e['coords'] = coords
