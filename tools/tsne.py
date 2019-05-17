@@ -32,7 +32,7 @@ def visualize(entries):
           perplexity=30)
     ]
   else:
-    decomp = sklearn.decomposition.PCA(n_components=2, random_state=SEED)
+    decomps = [ sklearn.decomposition.PCA(n_components=2, random_state=SEED) ]
 
   coords = [ e['features'] for e in entries ]
   for decomp in decomps:
