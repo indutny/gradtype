@@ -5,7 +5,7 @@ const fs = require('fs');
 const DATA = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 const OUT_DISTANCE = process.argv[3];
 
-const PRIOR = 0.05;
+const PRIOR = 1 / require('../datasets').length;
 const TARGET = 0.999;
 const COSINE = true;
 

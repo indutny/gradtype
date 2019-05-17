@@ -26,7 +26,8 @@ def visualize(entries):
 
   if USE_TSNE:
     decomps = [
-      sklearn.decomposition.PCA(n_components=50, random_state=SEED),
+      sklearn.decomposition.PCA( \
+          n_components=min(50, len(entries[0]['features'])), random_state=SEED),
       TSNE(n_components=2, verbose=2, random_state=SEED,
           perplexity=30)
     ]
