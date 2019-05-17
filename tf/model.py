@@ -43,7 +43,10 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
+
     self.use_cosine = True
+    self.radius = 9.32;
+    self.margin = 0.1;
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -252,13 +255,23 @@ class Model():
       positive_distances, negative_distances, metrics = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
 
-      exp_pos = tf.exp(-positive_distances, name='exp_pos')
-      exp_neg = tf.exp(-negative_distances, name='exp_neg')
-
-      total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
-
       epsilon = 1e-12
-      ratio = exp_pos / (total_exp_neg + epsilon)
+
+      if self.use_cosine:
+        exp_pos = tf.exp(-self.radius * (positive_distances + self.margin),
+            name='exp_pos')
+        exp_neg = tf.exp(-self.radius * negative_distances, name='exp_neg')
+
+        total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
+
+        ratio = exp_pos / (exp_pos + total_exp_neg + epsilon)
+      else:
+        exp_pos = tf.exp(-positive_distances, name='exp_pos')
+        exp_neg = tf.exp(-negative_distances, name='exp_neg')
+
+        total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
+
+        ratio = exp_pos / (total_exp_neg + epsilon)
 
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
