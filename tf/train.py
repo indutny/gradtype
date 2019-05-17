@@ -63,14 +63,14 @@ category_mask = tf.placeholder(tf.bool, shape=(category_count,),
 
 model = Model(training=training)
 
-output = model.build(holds, codes, deltas, sequence_lens)
-t_metrics = model.get_proxy_loss(output, categories, category_count,
-    category_mask)
-t_val_metrics = model.get_proxy_val_metrics(output, categories,
-    category_count, category_mask)
-
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
+
+output = model.build(holds, codes, deltas, sequence_lens)
+t_metrics = model.get_proxy_loss(output, categories, category_count,
+    category_mask, global_step_t)
+t_val_metrics = model.get_proxy_val_metrics(output, categories,
+    category_count, category_mask)
 
 #
 # Initialize optimizer

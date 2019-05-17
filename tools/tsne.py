@@ -7,11 +7,14 @@ import matplotlib.patches as mpatches
 import matplotlib.axes as axes
 import numpy as np
 import sklearn.decomposition
+import sklearn.preprocessing
 from sklearn.manifold import TSNE
 
 COLOR_MAP = plt.cm.gist_rainbow
 SEED = 0x37255c25
 USE_TSNE = True
+
+NORMALIZE = True
 
 CATEGORIES = {}
 category = 'train' if len(sys.argv) < 3 else sys.argv[2]
@@ -34,7 +37,10 @@ def visualize(entries):
   else:
     decomps = [ sklearn.decomposition.PCA(n_components=2, random_state=SEED) ]
 
-  coords = [ e['features'] for e in entries ]
+  coords = [ np.array(e['features']) for e in entries ]
+  if NORMALIZE:
+    coords = [ x / (np.linalg.norm(x) + 1e-23) for x in coords ]
+
   for decomp in decomps:
     coords = decomp.fit_transform(coords)
     if isinstance(decomp, sklearn.decomposition.PCA):
