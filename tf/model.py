@@ -45,8 +45,10 @@ class Model():
     self.use_gaussian_pooling = False
 
     self.use_cosine = True
-    self.radius = 9.32;
-    self.margin = 0.1;
+
+    self.use_lcml = True
+    self.radius = 1.0
+    self.margin = 0.1
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -257,7 +259,7 @@ class Model():
 
       epsilon = 1e-12
 
-      if self.use_cosine:
+      if self.use_lcml:
         exp_pos = tf.exp(-self.radius * (positive_distances + self.margin),
             name='exp_pos')
         exp_neg = tf.exp(-self.radius * negative_distances, name='exp_neg')
