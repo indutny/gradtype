@@ -6,11 +6,15 @@ const DATA = JSON.parse(fs.readFileSync(process.argv[2]).toString());
 const OUT_FILE = process.argv[3];
 
 function distance(a, b) {
-  let sum = 0;
+  let dot = 0;
+  let aNorm = 0;
+  let bNorm = 0;
   for (let i = 0; i < a.length; i++) {
-    sum += (a[i] - b[i]) ** 2;
+    dot += a[i] * b[i];
+    aNorm += a[i] ** 2;
+    bNorm += b[i] ** 2;
   }
-  return Math.sqrt(sum);
+  return 1 - dot / Math.sqrt(aNorm) / Math.sqrt(bNorm);
 }
 
 function byCategory(data) {
