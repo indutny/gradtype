@@ -8,11 +8,6 @@ EMBED_WIDTH = 11
 TIMES_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
-RNN_INPUT_DROPOUT = 0.0
-RNN_STATE_DROPOUT = 0.5
-RNN_OUTPUT_DROPOUT = 0.0
-RNN_USE_RESIDUAL = False
-RNN_USE_BIDIR = False
 
 USE_FINAL_BN = False
 
@@ -23,7 +18,7 @@ DENSE_L2 = 0.001
 GAUSSIAN_POOLING_VAR = 1.0
 GAUSSIAN_POOLING_LEN_DELTA = 3.0
 
-RNN_WIDTH = [ 32 ]
+RNN_WIDTH = 32
 DENSE_POST_WIDTH = [ 32 ]
 FEATURE_COUNT = 32
 
@@ -54,27 +49,12 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    def create_rnn_cell(name):
-      cells = []
-      for i, width in enumerate(RNN_WIDTH):
-        cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_{}_{}'.format(name, i), \
-            num_units=width)
+    self.lstm = tf.keras.layers.LSTM(name='lstm',
+        units=RNN_WIDTH,
+        return_sequences=True)
 
-        cell = tf.contrib.rnn.DropoutWrapper(cell,
-            input_keep_prob=tf.where(training, 1.0 - RNN_INPUT_DROPOUT, 1.0),
-            state_keep_prob=tf.where(training, 1.0 - RNN_STATE_DROPOUT, 1.0),
-            output_keep_prob=tf.where(training, 1.0 - RNN_OUTPUT_DROPOUT, 1.0))
-
-        if RNN_USE_RESIDUAL and i != 0:
-          cell = tf.contrib.rnn.ResidualWrapper(cell)
-
-        cells.append(cell)
-
-      return tf.contrib.rnn.MultiRNNCell(cells)
-
-    self.rnn_cell_fw = create_rnn_cell('fw')
-    if RNN_USE_BIDIR:
-      self.rnn_cell_bw = create_rnn_cell('bw')
+    self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
+        rate=INPUT_DROPOUT)
 
     self.process_times = tf.layers.Dense(name='process_times',
                                          units=TIMES_WIDTH,
@@ -104,8 +84,7 @@ class Model():
     times = self.process_times(times)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
-    series = tf.layers.dropout(series, rate=INPUT_DROPOUT,
-        training=self.training)
+    series = self.input_dropout(series, training=self.training)
 
     return series
 
@@ -118,21 +97,7 @@ class Model():
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
     series = self.apply_embedding(holds, codes, deltas)
-    frames = tf.unstack(series, axis=1, name='unstacked_output')
-
-    if RNN_USE_BIDIR:
-      outputs, _, _ = tf.nn.static_bidirectional_rnn(
-          cell_fw=self.rnn_cell_fw,
-          cell_bw=self.rnn_cell_bw,
-          dtype=tf.float32,
-          inputs=frames)
-    else:
-      outputs, _ = tf.nn.static_rnn(
-          cell=self.rnn_cell_fw,
-          dtype=tf.float32,
-          inputs=frames)
-
-    stacked_output = tf.stack(outputs, axis=1, name='stacked_output')
+    outputs = self.lstm(series, training=self.training)
 
     # [ batch, sequence_len ]
     last_output_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
@@ -175,7 +140,7 @@ class Model():
 
     mask = tf.expand_dims(mask, axis=-1, name='last_mask')
 
-    x = tf.reduce_sum(stacked_output * mask, axis=1,
+    x = tf.reduce_sum(outputs * mask, axis=1,
         name='last_output')
 
     for post in self.post:
