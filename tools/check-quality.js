@@ -7,7 +7,7 @@ const OUT_DISTANCE = process.argv[3];
 
 const PRIOR = 1 / require('../datasets').length;
 const TARGET = 0.999;
-const COSINE = false;
+const COSINE = true;
 
 // Totally arbitrary, depends on PRIOR
 const TWEAK = Math.exp(1.2);
