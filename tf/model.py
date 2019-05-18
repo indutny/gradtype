@@ -9,8 +9,6 @@ TIMES_WIDTH = 5
 
 INPUT_DROPOUT = 0.0
 
-USE_FINAL_BN = False
-
 RADIUS_MAX_STEP = 20000.0
 
 DENSE_L2 = 0.001
@@ -60,14 +58,15 @@ class Model():
                                          units=TIMES_WIDTH,
                                          kernel_regularizer=self.l2)
 
-    self.final_bn = tf.keras.layers.BatchNormalization(name='final_bn')
-
     self.post = []
+    self.post_bn = []
     for i, width in enumerate(DENSE_POST_WIDTH):
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
                                        units=width,
-                                       activation=tf.nn.selu,
+                                       activation=tf.nn.relu,
                                        kernel_regularizer=self.l2))
+      self.post_bn.append(tf.keras.layers.BatchNormalization(
+          name='bn_post_{}'.format(i)))
 
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
@@ -143,8 +142,9 @@ class Model():
     x = tf.reduce_sum(outputs * mask, axis=1,
         name='last_output')
 
-    for post in self.post:
+    for (post, bn) in zip(self.post, self.post_bn):
       x = post(x)
+      x = bn(x, training=self.training)
 
     x = self.features(x)
 
