@@ -47,9 +47,8 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    self.lstm = tf.keras.layers.LSTM(name='lstm',
-        units=RNN_WIDTH,
-        return_sequences=True)
+    self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
+        num_units=RNN_WIDTH)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
@@ -96,7 +95,13 @@ class Model():
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
     series = self.apply_embedding(holds, codes, deltas)
-    outputs = self.lstm(series, training=self.training)
+    series = tf.unstack(series, axis=1, name='unstacked_series')
+
+    outputs, _ = tf.nn.static_rnn(
+          cell=self.rnn_cell,
+          dtype=tf.float32,
+          inputs=series)
+    outputs = tf.stack(outputs, axis=1, name='stacked_outputs')
 
     # [ batch, sequence_len ]
     last_output_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
