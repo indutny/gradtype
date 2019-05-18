@@ -58,14 +58,11 @@ class Model():
                                          kernel_regularizer=self.l2)
 
     self.post = []
-    self.post_bn = []
     for i, width in enumerate(DENSE_POST_WIDTH):
       self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
                                        units=width,
                                        activation=tf.nn.relu,
                                        kernel_regularizer=self.l2))
-      self.post_bn.append(tf.keras.layers.BatchNormalization(
-          name='bn_post_{}'.format(i)))
 
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
@@ -147,9 +144,8 @@ class Model():
     x = tf.reduce_sum(outputs * mask, axis=1,
         name='last_output')
 
-    for (post, bn) in zip(self.post, self.post_bn):
+    for post in self.post:
       x = post(x)
-      x = bn(x, training=self.training)
 
     x = self.features(x)
 
