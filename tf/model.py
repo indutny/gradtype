@@ -16,6 +16,8 @@ RNN_USE_BIDIR = False
 
 USE_FINAL_BN = False
 
+RADIUS_MAX_STEP = 20000.0
+
 DENSE_L2 = 0.001
 
 GAUSSIAN_POOLING_VAR = 1.0
@@ -47,8 +49,8 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.radius = 9.32
     self.margin = 0.1
+    self.radius = 9.32
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -244,7 +246,7 @@ class Model():
   # As in https://arxiv.org/pdf/1703.07464.pdf
   # TODO(indutny) Consider: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
   def get_proxy_loss(self, output, categories, category_count, \
-      category_mask):
+      category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
           (category_count, FEATURE_COUNT,))
@@ -259,10 +261,13 @@ class Model():
 
       epsilon = 1e-12
 
+      radius = 1.0 + (self.radius - 1.0) * tf.minimum(1.0,
+          tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
+
       if self.use_lcml:
-        exp_pos = tf.exp(-self.radius * (positive_distances + self.margin),
+        exp_pos = tf.exp(-radius * (positive_distances + self.margin),
             name='exp_pos')
-        exp_neg = tf.exp(-self.radius * negative_distances, name='exp_neg')
+        exp_neg = tf.exp(-radius * negative_distances, name='exp_neg')
 
         total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
@@ -279,6 +284,7 @@ class Model():
       loss = tf.reduce_mean(loss, name='loss')
 
       metrics['loss'] = loss
+      metrics['radius'] = radius
 
       return metrics
 
