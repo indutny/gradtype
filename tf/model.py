@@ -148,9 +148,6 @@ class Model():
 
     x = self.features(x)
 
-    if USE_FINAL_BN:
-      x = self.final_bn(x, training=self.training)
-
     return x
 
   def get_proxy_common(self, proxies, output, categories, category_count, \
