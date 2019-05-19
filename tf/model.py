@@ -17,7 +17,7 @@ GAUSSIAN_POOLING_VAR = 1.0
 GAUSSIAN_POOLING_LEN_DELTA = 3.0
 
 RNN_WIDTH = 32
-DENSE_POST_WIDTH = [ 32 ]
+DENSE_POST_WIDTH = [ (128, 0.5) ]
 FEATURE_COUNT = 32
 
 class Embedding():
@@ -58,11 +58,14 @@ class Model():
                                          kernel_regularizer=self.l2)
 
     self.post = []
-    for i, width in enumerate(DENSE_POST_WIDTH):
-      self.post.append(tf.layers.Dense(name='dense_post_{}'.format(i),
-                                       units=width,
-                                       activation=tf.nn.relu,
-                                       kernel_regularizer=self.l2))
+    for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
+      dense = tf.layers.Dense(name='dense_post_{}'.format(i),
+                              units=width,
+                              activation=tf.nn.relu,
+                              kernel_regularizer=self.l2)
+      dropout = tf.keras.layers.Dropout(name='dropout_post_{}'.format(i),
+                              rate=dropout)
+      self.post.append({ 'dense': dense, 'dropout': dropout })
 
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
@@ -144,8 +147,9 @@ class Model():
     x = tf.reduce_sum(outputs * mask, axis=1,
         name='last_output')
 
-    for post in self.post:
-      x = post(x)
+    for entry in self.post:
+      x = entry['dense'](x)
+      x = entry['dropout'](x, training=self.training)
 
     x = self.features(x)
     if self.use_cosine:
