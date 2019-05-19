@@ -8,7 +8,7 @@ import numpy as np
 MAX_CHAR = 28
 
 # Sequence length
-MAX_SEQUENCE_LEN = 64
+MAX_SEQUENCE_LEN = 57
 
 # Percent of sequences in validation data
 VALIDATE_PERCENT = 0.33
@@ -160,20 +160,19 @@ def expand_sequence(seq, overlap):
     })
     return [ padded_seq ]
 
-  # Expand
+  # Trim
   out = []
-  for i in range(0, count - MAX_SEQUENCE_LEN + 1, overlap):
-    codes = seq['codes'][i:i + MAX_SEQUENCE_LEN]
-    holds = seq['holds'][i:i + MAX_SEQUENCE_LEN]
-    deltas = seq['deltas'][i:i + MAX_SEQUENCE_LEN]
-    copy = seq.copy()
-    copy.update({
-      'codes': codes,
-      'holds': holds,
-      'deltas': deltas,
-      'sequence_len': MAX_SEQUENCE_LEN,
-    })
-    out.append(copy)
+  codes = seq['codes'][:MAX_SEQUENCE_LEN]
+  holds = seq['holds'][:MAX_SEQUENCE_LEN]
+  deltas = seq['deltas'][:MAX_SEQUENCE_LEN]
+  copy = seq.copy()
+  copy.update({
+    'codes': codes,
+    'holds': holds,
+    'deltas': deltas,
+    'sequence_len': MAX_SEQUENCE_LEN,
+  })
+  out.append(copy)
   return out
 
 def normalize_dataset(dataset):

@@ -73,9 +73,13 @@ let datasets = labels.map((name) => {
     };
   }
 
+  const rawSequences = d.generate(entry.data);
+  const sequences = d.check(entry.name, rawSequences);
+  errors += rawSequences.length - sequences.length;
+
   return {
     name: entry.name,
-    sequences: d.generate(entry.data),
+    sequences,
   };
 }).filter((entry) => {
   return entry.sequences.length >= MIN_SEQUENCE_COUNT;
