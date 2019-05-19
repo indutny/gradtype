@@ -13,12 +13,12 @@ def show(f):
     for j in range(0, width):
       res[i, j] = struct.unpack('<f', f.read(4))[0]
 
-  max_val = np.max(res)
-  res /= max_val
-  print(max_val)
+  res /= 2.0
 
   plt.matshow(res, cmap='plasma')
+  print('matshow done')
   plt.show()
+  print('done')
 
 with open(sys.argv[1], 'rb') as f:
   show(f)

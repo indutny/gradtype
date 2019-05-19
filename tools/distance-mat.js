@@ -7,14 +7,10 @@ const OUT_FILE = process.argv[3];
 
 function distance(a, b) {
   let dot = 0;
-  let aNorm = 0;
-  let bNorm = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
-    aNorm += a[i] ** 2;
-    bNorm += b[i] ** 2;
   }
-  return 1 - dot / Math.sqrt(aNorm) / Math.sqrt(bNorm);
+  return 1 - dot;
 }
 
 function byCategory(data) {
@@ -62,17 +58,21 @@ function meanDistance(left, right) {
 }
 
 function matrix(data) {
-  const cats = Array.from(byCategory(data).values());
+  const features = flatten(byCategory(data));
 
-  const res = Buffer.alloc(4 + cats.length * cats.length * 4);
-  res.writeInt32LE(cats.length, 0);
+  const res = Buffer.alloc(4 + features.length * features.length * 4);
+  res.writeInt32LE(features.length, 0);
 
-  for (const [ i, a ] of cats.entries()) {
-    for (const [ j, b ] of cats.entries()) {
-      const d = meanDistance(a, b);
-      res.writeFloatLE(d, 4 * (1 + i * cats.length + j));
+  for (const [ i, a ] of features.entries()) {
+    for (let j = i + 1; j < features.length; j++) {
+      const d = distance(a, features[j]);
+      res.writeFloatLE(d, 4 * (1 + i * features.length + j));
+      res.writeFloatLE(d, 4 * (1 + j * features.length + i));
     }
+
+    res.writeFloatLE(0, 4 * (1 + i * features.length + i));
   }
+  console.log(features.length);
 
   return res;
 }
