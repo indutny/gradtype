@@ -19,6 +19,8 @@ VALIDATE_CATEGORY_PERCENT = 0.5
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
+NORMALIZE = False
+
 def load_labels():
   package_directory = os.path.dirname(os.path.abspath(__file__))
   index_json = os.path.join(package_directory, '..', 'datasets', 'index.json')
@@ -45,6 +47,13 @@ def load_sequence(f, category, label):
   codes = np.array(codes, dtype='int32')
   holds = np.array(holds, dtype='float32')
   deltas = np.array(deltas, dtype='float32')
+
+  # Normalize timing per-sample
+  if NORMALIZE:
+    holds -= np.mean(holds)
+    holds /= np.var(holds) + 1e-23
+    deltas -= np.mean(deltas)
+    deltas /= np.var(deltas) + 1e-23
 
   return {
     'category': category,
