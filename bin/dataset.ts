@@ -27,7 +27,8 @@ sentences = sentences.map((line: string) => line.toLowerCase());
 const labels: string[] = fs.readdirSync(DATASETS_DIR)
   .filter((file) => /\.json$/.test(file))
   .map((file) => file.replace(/\.json$/, ''))
-  .filter((file) => file !== 'index' && file !== 'sentences');
+  .filter((file) => file !== 'index' && file !== 'sentences')
+  .filter((file) => /^wb-github-/.test(file));
 
 function encodeSequence(sequence: Sequence) {
   totalSequences++;
