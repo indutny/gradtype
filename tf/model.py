@@ -148,6 +148,8 @@ class Model():
       x = post(x)
 
     x = self.features(x)
+    if self.use_cosine:
+      x = tf.math.l2_normalize(x, axis=-1)
 
     return x
 
@@ -170,11 +172,10 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      def cosine(a, b):
-        dot = tf.reduce_sum(a * b, axis=-1)
+      def cosine(a, normed_b):
+        dot = tf.reduce_sum(a * normed_b, axis=-1)
         a_norm = tf.norm(a, axis=-1)
-        b_norm = tf.norm(b, axis=-1)
-        cos = dot / a_norm / b_norm
+        cos = dot / a_norm
         return 1.0 - cos
 
       positive_distances = cosine(positives, output)
@@ -219,8 +220,14 @@ class Model():
           trainable=True,
           initializer=proxies_init)
 
-      positive_distances, negative_distances, metrics = self.get_proxy_common( \
+      positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
+
+      # NOTE: We use same mean proxies for the metrics as in validation
+
+      mean_proxies = self.mean_proxies(output, categories, category_count)
+      _, _, metrics = self.get_proxy_common( \
+          mean_proxies, output, categories, category_count, category_mask)
 
       epsilon = 1e-12
 
@@ -255,16 +262,18 @@ class Model():
       category_mask):
     with tf.name_scope('proxy_val_metrics', [ output, categories, \
         category_mask ]):
-      # Compute proxies as mean points
-      def compute_mean_proxy(category):
-        points = tf.boolean_mask(output, tf.equal(categories, category),
-            'category_points')
-        return tf.reduce_mean(points, axis=0)
-
-      proxies = tf.map_fn(compute_mean_proxy, tf.range(category_count),
-          dtype=tf.float32)
-
+      proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common(proxies, output, categories, \
           category_count, category_mask)
 
       return metrics
+
+  def mean_proxies(self, output, categories, category_count):
+    # Compute proxies as mean points
+    def compute_mean_proxy(category):
+      points = tf.boolean_mask(output, tf.equal(categories, category),
+          'category_points')
+      return tf.reduce_mean(points, axis=0)
+
+    return tf.map_fn(compute_mean_proxy, tf.range(category_count),
+        dtype=tf.float32)
