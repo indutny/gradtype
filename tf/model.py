@@ -4,8 +4,8 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 11
-TIMES_WIDTH = 5
+EMBED_WIDTH = 16
+TIMES_WIDTH = 16
 
 INPUT_DROPOUT = 0.5
 
@@ -55,6 +55,7 @@ class Model():
 
     self.process_times = tf.layers.Dense(name='process_times',
                                          units=TIMES_WIDTH,
+                                         activation=tf.nn.relu,
                                          kernel_regularizer=self.l2)
 
     self.post = []
