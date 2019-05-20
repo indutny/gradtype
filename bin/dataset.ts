@@ -8,7 +8,11 @@ import * as path from 'path';
 import { Dataset, Output, Sequence } from '../src/dataset';
 
 const MAX_SEQUENCE_COUNT = 90;
-const MIN_SEQUENCE_COUNT = 20;
+const MIN_SEQUENCE_COUNT = 5;
+
+const COMMON_PREFIX = 57;
+
+const prefixMap: Map<string, number> = new Map();
 
 let totalSequences = 0;
 const totalSequenceLen = {
@@ -39,16 +43,25 @@ function encodeSequence(sequence: Sequence) {
   const enc = Buffer.alloc(4 + sequence.length * 12);
   enc.writeUInt32LE(sequence.length, 0);
 
+  const codes: number[] = [];
+
   let nonEmpty = false;
   for (let i = 0; i < sequence.length; i++) {
     const code = sequence[i].code;
     if (code !== -1) {
       nonEmpty = true;
     }
+
+    codes.push(code);
+
     enc.writeInt32LE(code, 4 + i * 12);
     enc.writeFloatLE(sequence[i].hold, 4 + i * 12 + 4);
     enc.writeFloatLE(sequence[i].duration, 4 + i * 12 + 8);
   }
+
+  const prefix = codes.slice(0, COMMON_PREFIX).join('.');
+  prefixMap.set(prefix, (prefixMap.get(prefix) || 0) + 1);
+
   assert(nonEmpty);
   return enc;
 }
@@ -118,6 +131,7 @@ fs.closeSync(fd);
 
 fs.writeFileSync(path.join(OUT_DIR, 'lstm.json'), JSON.stringify(datasets));
 
+console.log(prefixMap);
 console.log('Total sequence count: %d', totalSequences);
 console.log('Mean length: %s',
   (totalSequenceLen.mean / totalSequences).toFixed(2));
