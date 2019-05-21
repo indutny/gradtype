@@ -50,7 +50,7 @@ class Model():
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
         num_units=RNN_WIDTH)
 
-    self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
+    self.input_dropout = tf.keras.layers.SpatialDropout1D(name='input_dropout',
         rate=INPUT_DROPOUT)
 
     self.process_times = tf.layers.Dense(name='process_times',
