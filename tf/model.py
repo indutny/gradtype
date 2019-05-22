@@ -191,6 +191,7 @@ class Model():
           # cos(2x) = 2.0 * cos^2(x) - 1
           double = 2.0 * (dot_norm ** 2.0) - 1.0
           k = tf.floor(tf.acos(dot_norm) * 2.0 / math.pi)
+          k = tf.clip_by_value(k, 0.0, 1.0)
           psi = (-1.0) ** k * double - 2 * k
           psi = 1.0 - psi * b_norm
           return psi, cos
