@@ -14,7 +14,7 @@ COLOR_MAP = plt.cm.gist_rainbow
 SEED = 0x37255c25
 USE_TSNE = True
 
-NORMALIZE = True
+NORMALIZE = False
 
 CATEGORIES = {}
 category = 'train' if len(sys.argv) < 3 else sys.argv[2]
