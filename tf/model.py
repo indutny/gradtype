@@ -177,9 +177,11 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      def cosine(normed_a, b):
-        dot = tf.reduce_sum(normed_a * b, axis=-1)
-        b_norm = tf.norm(b, axis=-1)
+      def cosine(a, b):
+        a_norm = tf.norm(a, axis=-1) + 1e-23
+        b_norm = tf.norm(b, axis=-1) + 1e-23
+        dot = tf.reduce_sum(a * b, axis=-1)
+        dot /= a_norm
         return 1.0 - dot, 1.0 - dot / b_norm
 
       positive_distances, norm_positive_distances = cosine(positives, output)
@@ -227,8 +229,6 @@ class Model():
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
-      proxies = tf.math.l2_normalize(proxies, axis=-1,
-          name='normalized_proxies')
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
