@@ -178,16 +178,17 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      normalize = self.use_sphereface
       def cosine(normed_a, b):
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
+        dot_norm = dot / b_norm
 
-        cos = 1.0 - dot / b_norm
+        cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        if normalize:
-          return cos, cos
+        if self.use_sphereface:
+          double = tf.sign(dot_norm) * (dot_norm ** 2.0 - 1.0) * b_norm
+          return double, cos
         else:
           return unnorm_cos, cos
 
