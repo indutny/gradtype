@@ -45,6 +45,7 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
+    self.use_sphereface = False
     self.margin = 0.0 # Possibly 0.35
     self.radius = 1.0
 
@@ -245,10 +246,11 @@ class Model():
           tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
 
       if self.use_lcml:
-        # From SphereFace
-        # cos(2 * x) = 2 * cos^2(x) - 1
-        positive_distances = tf.sign(positive_distances) * \
-            2.0 * (positive_distances ** 2.0) - 1.0
+        if self.use_sphereface:
+          # From SphereFace
+          # cos(2 * x) = 2 * cos^2(x) - 1
+          positive_distances = tf.sign(positive_distances) * \
+              2.0 * (positive_distances ** 2.0) - 1.0
 
         exp_pos = tf.exp(-radius * (positive_distances + self.margin),
             name='exp_pos')
