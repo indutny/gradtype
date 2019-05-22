@@ -219,11 +219,11 @@ class Model():
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
           (category_count, FEATURE_COUNT,))
-      proxies_init = tf.math.l2_normalize(proxies_init, axis=-1,
-          name='sphere_initial_proxies') * RING_RADIUS
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
+      proxies = tf.math.l2_normalize(proxies, axis=-1,
+          name='normalized_proxies')
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
