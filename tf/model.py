@@ -178,8 +178,7 @@ class Model():
 
     if self.use_cosine:
       def cosine(a, normed_b):
-        dot = tf.reduce_sum(a * normed_b, axis=-1)
-        return 1.0 - dot
+        return tf.reduce_sum(a * normed_b, axis=-1)
 
       positive_distances = cosine(positives, output)
       negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
