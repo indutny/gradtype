@@ -239,9 +239,9 @@ class Model():
           tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
 
       if self.use_lcml:
-        exp_pos = tf.exp(-radius * (positive_distances + self.margin),
+        exp_pos = tf.exp(radius * (positive_distances + self.margin),
             name='exp_pos')
-        exp_neg = tf.exp(-radius * negative_distances, name='exp_neg')
+        exp_neg = tf.exp(radius * negative_distances, name='exp_neg')
 
         total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
