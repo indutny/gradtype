@@ -179,7 +179,7 @@ class Model():
 
     if self.use_cosine:
       def cosine(normed_a, b, use_double=False):
-        a_norm = tf.norm(a, axis=-1) + 1e-23
+        a_norm = tf.norm(normed_a, axis=-1) + 1e-23
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
         dot_norm = dot / b_norm / a_norm
