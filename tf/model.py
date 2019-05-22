@@ -214,6 +214,7 @@ class Model():
   # More like in: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
   # TODO(indutny): try http://ydwen.github.io/papers/WenECCV16.pdf
   # TODO(indutny): try http://openaccess.thecvf.com/content_cvpr_2018/papers/Zheng_Ring_Loss_Convex_CVPR_2018_paper.pdf
+  # TODO(indutny): try https://arxiv.org/pdf/1704.08063.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
