@@ -45,7 +45,6 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.use_sphereface = False
     self.margin = 0.0 # Possibly 0.35
     self.radius = 1.0
 
@@ -178,7 +177,7 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      def cosine(normed_a, b, use_double=False):
+      def cosine(normed_a, b):
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
         dot_norm = dot / b_norm
@@ -186,20 +185,9 @@ class Model():
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        if use_double:
-          # cos(2x) = 2.0 * cos^2(x) - 1
-          dot_norm = tf.clip_by_value(dot_norm, -1.0, 1.0)
-          double = 2.0 * (dot_norm ** 2.0) - 1.0
-          k = tf.floor(tf.acos(dot_norm) * 2.0 / math.pi)
-          k = tf.clip_by_value(k, 0.0, 1.0)
-          psi = (-1.0) ** k * double - 2 * k
-          psi = 1.0 - psi * b_norm
-          return psi, psi
-        else:
-          return unnorm_cos, cos
+        return unnorm_cos, cos
 
-      positive_distances, norm_positive_distances = cosine(positives, output,
-          use_double=self.use_sphereface)
+      positive_distances, norm_positive_distances = cosine(positives, output)
       negative_distances, norm_negative_distances = \
           cosine(negatives, tf.expand_dims(output, axis=1))
     else:
