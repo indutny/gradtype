@@ -188,7 +188,7 @@ class Model():
 
         if use_double:
           # cos(2x) = 2.0 * cos^2(x) - 1
-          double = (2.0 * tf.sign(dot_norm) * dot_norm ** 2.0 - 1.0) * b_norm
+          double = (tf.sign(dot_norm) * 2.0 * (dot_norm ** 2.0) - 1.0) * b_norm
           return 1.0 - double, cos
         else:
           return unnorm_cos, cos
