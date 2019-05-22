@@ -187,7 +187,7 @@ class Model():
         unnorm_cos = 1.0 - dot
 
         if use_double:
-          double = tf.sign(dot_norm) * (dot_norm ** 2.0 - 1.0) * b_norm
+          double = (tf.sign(dot_norm) * dot_norm ** 2.0 - 1.0) * b_norm
           return 1.0 - double, cos
         else:
           return unnorm_cos, cos
