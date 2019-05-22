@@ -178,7 +178,8 @@ class Model():
 
     if self.use_cosine:
       def cosine(a, normed_b):
-        return tf.reduce_sum(a * normed_b, axis=-1)
+        dot = tf.reduce_sum(a * normed_b, axis=-1)
+        return 1.0 - dot
 
       positive_distances = cosine(positives, output)
       negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
@@ -239,9 +240,9 @@ class Model():
           tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
 
       if self.use_lcml:
-        exp_pos = tf.exp(radius * (positive_distances + self.margin),
+        exp_pos = tf.exp(-radius * (positive_distances + self.margin),
             name='exp_pos')
-        exp_neg = tf.exp(radius * negative_distances, name='exp_neg')
+        exp_neg = tf.exp(-radius * negative_distances, name='exp_neg')
 
         total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
