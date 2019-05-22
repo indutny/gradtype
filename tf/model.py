@@ -257,12 +257,6 @@ class Model():
           tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
 
       if self.use_lcml:
-        if self.use_sphereface:
-          # From SphereFace
-          # cos(2 * x) = 2 * cos^2(x) - 1
-          positive_distances = tf.sign(positive_distances) * \
-              2.0 * (positive_distances ** 2.0) - 1.0
-
         exp_pos = tf.exp(-radius * (positive_distances + self.margin),
             name='exp_pos')
         exp_neg = tf.exp(-radius * negative_distances, name='exp_neg')
