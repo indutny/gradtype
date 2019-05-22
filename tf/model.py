@@ -179,9 +179,10 @@ class Model():
 
     if self.use_cosine:
       def cosine(normed_a, b, use_double=False):
+        a_norm = tf.norm(a, axis=-1) + 1e-23
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
-        dot_norm = dot / b_norm
+        dot_norm = dot / b_norm / a_norm
 
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
@@ -189,9 +190,9 @@ class Model():
         if use_double:
           # cos(2x) = 2.0 * cos^2(x) - 1
           double = 2.0 * (dot_norm ** 2.0) - 1.0
-          k = tf.floor(2.0 * tf.acos(dot_norm) / math.pi)
-          margin_dot_norm = ((-1.0) ** k) * double - 2 * k
-          return 1.0 - margin_dot_norm * b_norm, cos
+          margin_dot_norm = tf.sign(dot_norm) * double
+          psi = 1.0 - psi * b_norm
+          return psi, psi
         else:
           return unnorm_cos, cos
 
