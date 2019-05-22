@@ -177,25 +177,29 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      def cosine(a, normed_b):
-        dot = tf.reduce_sum(a * normed_b, axis=-1)
-        return 1.0 - dot
+      def cosine(normed_a, b):
+        dot = tf.reduce_sum(normed_a * b, axis=-1)
+        b_norm = tf.norm(b, axis=-1)
+        return 1.0 - dot, 1.0 - dot / b_norm
 
-      positive_distances = cosine(positives, output)
-      negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
+      positive_distances, norm_positive_distances = cosine(positives, output)
+      negative_distances, norm_negative_distances = \
+          cosine(negatives, tf.expand_dims(output, axis=1))
     else:
       positive_distances = tf.norm(positives - output, axis=-1,
           name='positive_distances')
       negative_distances = tf.norm(negatives - tf.expand_dims(output, axis=1),
           axis=-1, name='negative_distances')
+      norm_positive_distances = positive_distances
+      norm_negative_distances = negative_distances
 
     metrics = {}
     for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
-      neg_p = tf.contrib.distributions.percentile(negative_distances,
+      neg_p = tf.contrib.distributions.percentile(norm_negative_distances,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
 
-      pos_p = tf.contrib.distributions.percentile(positive_distances,
+      pos_p = tf.contrib.distributions.percentile(norm_positive_distances,
           percentile, name='positive_{}'.format(percentile))
       metrics['positive_{}'.format(percentile)] = pos_p
 
