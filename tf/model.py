@@ -192,7 +192,7 @@ class Model():
           double = 2.0 * (dot_norm ** 2.0) - 1.0
           margin_dot_norm = tf.sign(dot_norm) * double
           psi = 1.0 - margin_dot_norm * b_norm
-          return psi, psi
+          return psi, cos
         else:
           return unnorm_cos, cos
 
