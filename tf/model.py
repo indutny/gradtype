@@ -291,5 +291,6 @@ class Model():
           'category_points')
       return tf.reduce_mean(points, axis=0)
 
-    return tf.map_fn(compute_mean_proxy, tf.range(category_count),
+    result = tf.map_fn(compute_mean_proxy, tf.range(category_count),
         dtype=tf.float32)
+    return tf.math.l2_normalize(result, axis=-1)
