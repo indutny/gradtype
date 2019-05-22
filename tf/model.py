@@ -50,7 +50,7 @@ class Model():
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
         num_units=RNN_WIDTH)
 
-    self.input_dropout = tf.keras.layers.SpatialDropout1D(name='input_dropout',
+    self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
 
     self.process_times = tf.layers.Dense(name='process_times',
@@ -212,7 +212,8 @@ class Model():
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
-  # TODO(indutny) Consider: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
+  # More like in: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
+  # TODO(indutny): try http://ydwen.github.io/papers/WenECCV16.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
