@@ -178,10 +178,18 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
+      normalize = self.use_sphereface
       def cosine(normed_a, b):
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
-        return 1.0 - dot, 1.0 - dot / b_norm
+
+        cos = 1.0 - dot / b_norm
+        unnorm_cos = 1.0 - dot
+
+        if normalize:
+          return cos, cos
+        else:
+          return unnorm_cos, cos
 
       positive_distances, norm_positive_distances = cosine(positives, output)
       negative_distances, norm_negative_distances = \
