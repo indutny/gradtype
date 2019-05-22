@@ -16,6 +16,9 @@ DENSE_L2 = 0.001
 GAUSSIAN_POOLING_VAR = 1.0
 GAUSSIAN_POOLING_LEN_DELTA = 3.0
 
+RING_R = 1.0
+RING_LAMBDA = 0.01
+
 RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
@@ -42,8 +45,8 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.margin = 0.2 # Possibly 0.35
-    self.radius = 13.331313782506344 # Possibly 9.0
+    self.margin = 0.0 # Possibly 0.35
+    self.radius = 1.0
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -152,8 +155,6 @@ class Model():
       x = entry['dropout'](x, training=self.training)
 
     x = self.features(x)
-    if self.use_cosine:
-      x = tf.math.l2_normalize(x, axis=-1)
 
     return x
 
@@ -178,9 +179,7 @@ class Model():
     if self.use_cosine:
       def cosine(a, normed_b):
         dot = tf.reduce_sum(a * normed_b, axis=-1)
-        a_norm = tf.norm(a, axis=-1)
-        cos = dot / a_norm
-        return 1.0 - cos
+        return 1.0 - dot
 
       positive_distances = cosine(positives, output)
       negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
@@ -214,13 +213,14 @@ class Model():
   # As in https://arxiv.org/pdf/1703.07464.pdf
   # More like in: http://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_CosFace_Large_Margin_CVPR_2018_paper.pdf
   # TODO(indutny): try http://ydwen.github.io/papers/WenECCV16.pdf
+  # TODO(indutny): try http://openaccess.thecvf.com/content_cvpr_2018/papers/Zheng_Ring_Loss_Convex_CVPR_2018_paper.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
           (category_count, FEATURE_COUNT,))
       proxies_init = tf.math.l2_normalize(proxies_init, axis=-1,
-          name='sphere_initial_proxies')
+          name='sphere_initial_proxies') * RING_RADIUS
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
@@ -258,8 +258,12 @@ class Model():
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
 
+      ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
+          (tf.norm(output, axis=-1) - RING_R) ** 2)
+
       metrics['loss'] = loss
       metrics['radius'] = radius
+      metrics['ring_loss'] = ring_loss
 
       return metrics
 
