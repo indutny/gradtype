@@ -188,8 +188,10 @@ class Model():
 
         if use_double:
           # cos(2x) = 2.0 * cos^2(x) - 1
-          double = (tf.sign(dot_norm) * 2.0 * (dot_norm ** 2.0) - 1.0) * b_norm
-          return 1.0 - double, cos
+          double = 2.0 * (dot_norm ** 2.0) - 1.0
+          k = tf.floor(2.0 * tf.acos(dot_norm) / math.pi)
+          margin_dot_norm = ((-1.0) ** k) * double - 2 * k
+          return 1.0 - margin_dot_norm * b_norm, cos
         else:
           return unnorm_cos, cos
 
