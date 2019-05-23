@@ -11,14 +11,11 @@ INPUT_DROPOUT = 0.2
 POST_RNN_DROPOUT = 0.2
 NOISE_LEVEL = 0.0
 
-RADIUS_MAX_STEP = 20000.0
-
 DENSE_L2 = 0.001
 
 GAUSSIAN_POOLING_VAR = 1.0
 GAUSSIAN_POOLING_LEN_DELTA = 3.0
 
-RING_R = 1.0
 RING_LAMBDA = 0.01
 
 RNN_WIDTH = 16
@@ -48,7 +45,6 @@ class Model():
 
     self.use_lcml = True
     self.margin = 0.0 # Possibly 0.35
-    self.radius = 1.0
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -243,6 +239,9 @@ class Model():
           initializer=proxies_init)
       proxies = tf.math.l2_normalize(proxies, axis=-1,
           name='normalized_proxies')
+      ring_radius = tf.get_variable('ring_radius', trainable=True,
+          initializer=1.0,
+          shape=(,))
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
@@ -255,13 +254,9 @@ class Model():
 
       epsilon = 1e-12
 
-      radius = 1.0 + (self.radius - 1.0) * tf.minimum(1.0,
-          tf.cast(step, dtype=tf.float32) / RADIUS_MAX_STEP)
-
       if self.use_lcml:
-        exp_pos = tf.exp(-radius * (positive_distances + self.margin),
-            name='exp_pos')
-        exp_neg = tf.exp(-radius * negative_distances, name='exp_neg')
+        exp_pos = tf.exp(-(positive_distances + self.margin), name='exp_pos')
+        exp_neg = tf.exp(-negative_distances, name='exp_neg')
 
         total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
@@ -281,7 +276,7 @@ class Model():
           (tf.norm(output, axis=-1) - RING_R) ** 2)
 
       metrics['loss'] = loss
-      metrics['radius'] = radius
+      metrics['ring_radius'] = ring_radius
       metrics['ring_loss'] = ring_loss
 
       return metrics
