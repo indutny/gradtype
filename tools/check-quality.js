@@ -231,6 +231,7 @@ const meanFeatures = {
   validate: mean(DATA.validate),
 };
 
+console.log('step', DATA.step);
 console.log('means', meanFeatures);
 
 const distances = {
