@@ -27,7 +27,9 @@ def visualize(entries):
 
   axes = plt.gca()
 
-  if USE_TSNE:
+  if len(entries[0]['features']) == 2:
+    decomps = []
+  elif USE_TSNE:
     decomps = [
       sklearn.decomposition.PCA( \
           n_components=min(50, len(entries[0]['features'])), random_state=SEED),
