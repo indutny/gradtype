@@ -68,7 +68,7 @@ update_global_step_t = global_step_t.assign_add(1)
 
 output = model.build(holds, codes, deltas, sequence_lens)
 t_metrics = model.get_proxy_loss(output, categories, category_count,
-    category_mask, global_step_t)
+    category_mask, tf.cast(global_step_t, dtype=tf.float32) * LR)
 t_val_metrics = model.get_proxy_val_metrics(output, categories,
     category_count, category_mask)
 
