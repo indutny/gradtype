@@ -41,10 +41,7 @@ class Model():
     self.training = training
     self.use_gaussian_pooling = False
 
-    self.use_cosine = True
-
-    self.use_lcml = True
-    self.margin = 0.2 # Possibly 0.35
+    self.margin = 0.35 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -183,39 +180,21 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    if self.use_cosine:
-      def cosine(normed_a, b, margin=0.0):
-        b_norm = tf.norm(b, axis=-1) + 1e-23
-        dot = tf.reduce_sum(normed_a * b, axis=-1)
-        dot_norm = dot / b_norm
+    def cosine(normed_a, b):
+      normed_b = tf.math.l2_normalize(b, axis=-1)
+      cos = tf.reduce_sum(normed_a * normed_b, axis=-1)
+      return cos
 
-        cos = 1.0 - dot_norm
-        unnorm_cos = 1.0 - tf.clip_by_value(dot - \
-            margin * tf.stop_gradient(b_norm),
-            -b_norm,
-            b_norm)
-
-        return unnorm_cos, cos
-
-      positive_distances, norm_positive_distances = cosine(positives, output,
-          margin=self.margin)
-      negative_distances, norm_negative_distances = \
-          cosine(negatives, tf.expand_dims(output, axis=1))
-    else:
-      positive_distances = tf.norm(positives - output, axis=-1,
-          name='positive_distances')
-      negative_distances = tf.norm(negatives - tf.expand_dims(output, axis=1),
-          axis=-1, name='negative_distances')
-      norm_positive_distances = positive_distances
-      norm_negative_distances = negative_distances
+    positive_distances = cosine(positives, output)
+    negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
 
     metrics = {}
     for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
-      neg_p = tf.contrib.distributions.percentile(norm_negative_distances,
+      neg_p = tf.contrib.distributions.percentile(1.0 - negative_distances,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
 
-      pos_p = tf.contrib.distributions.percentile(norm_positive_distances,
+      pos_p = tf.contrib.distributions.percentile(1.0 - positive_distances,
           percentile, name='positive_{}'.format(percentile))
       metrics['positive_{}'.format(percentile)] = pos_p
 
@@ -249,6 +228,7 @@ class Model():
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask, step)
+      norms = tf.norm(output, axis=-1, keepdims=True)
 
       # NOTE: We use same mean proxies for the metrics as in validation
 
@@ -258,20 +238,13 @@ class Model():
 
       epsilon = 1e-12
 
-      if self.use_lcml:
-        exp_pos = tf.exp(-positive_distances, name='exp_pos')
-        exp_neg = tf.exp(-negative_distances, name='exp_neg')
+      exp_pos = tf.exp(norms * (positive_distances - self.margin),
+          name='exp_pos')
+      exp_neg = tf.exp(norms * negative_distances, name='exp_neg')
 
-        total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
+      total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
-        ratio = exp_pos / (exp_pos + total_exp_neg + epsilon)
-      else:
-        exp_pos = tf.exp(-positive_distances, name='exp_pos')
-        exp_neg = tf.exp(-negative_distances, name='exp_neg')
-
-        total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
-
-        ratio = exp_pos / (total_exp_neg + epsilon)
+      ratio = exp_pos / (exp_pos + total_exp_neg + epsilon)
 
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
