@@ -44,7 +44,7 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.margin = 0.0 # Possibly 0.35
+    self.margin = 0.35 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -192,7 +192,7 @@ class Model():
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        return unnorm_cos + margin, cos
+        return unnorm_cos + margin * tf.stop_gradient(b_norm), cos
 
       positive_distances, norm_positive_distances = cosine(positives, output,
           margin=self.margin)
