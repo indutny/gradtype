@@ -192,7 +192,7 @@ class Model():
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        return unnorm_cos + margin * b_norm, cos
+        return unnorm_cos + margin, cos
 
       positive_distances, norm_positive_distances = cosine(positives, output,
           margin=self.margin * tf.stop_gradient(self.ring_radius))
