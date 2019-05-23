@@ -183,7 +183,7 @@ class Model():
         dtype=tf.float32)
 
     dynamic_margin = tf.clip_by_value(
-        tf.cast(step, dtype=tf.float32) / MAX_MARGIN_STEP),
+        tf.cast(step, dtype=tf.float32) / MAX_MARGIN_STEP,
         0.0,
         1.0) * self.margin
 
