@@ -272,7 +272,7 @@ class Model():
       loss = tf.reduce_mean(loss, name='loss')
 
       ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
-          (tf.norm(output, axis=-1) - RING_R) ** 2)
+          (tf.norm(output, axis=-1) - ring_radius) ** 2)
 
       metrics['loss'] = loss
       metrics['ring_radius'] = ring_radius
