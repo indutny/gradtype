@@ -22,6 +22,8 @@ RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
+MAX_MARGIN_STEP = 20000.0
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -163,7 +165,7 @@ class Model():
     return x
 
   def get_proxy_common(self, proxies, output, categories, category_count, \
-      category_mask):
+      category_mask, step):
     positives = tf.gather(proxies, categories, axis=0,
         name='positive_proxies')
 
@@ -180,6 +182,11 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
+    dynamic_margin = tf.clip_by_value(
+        tf.cast(step, dtype=tf.float32) / MAX_MARGIN_STEP),
+        0.0,
+        1.0) * self.margin
+
     if self.use_cosine:
       def cosine(normed_a, b, margin=0.0):
         b_norm = tf.norm(b, axis=-1) + 1e-23
@@ -192,7 +199,7 @@ class Model():
         return unnorm_cos + margin * b_norm, cos
 
       positive_distances, norm_positive_distances = cosine(positives, output,
-          margin=self.margin)
+          margin=dynamic_margin)
       negative_distances, norm_negative_distances = \
           cosine(negatives, tf.expand_dims(output, axis=1))
     else:
@@ -220,6 +227,8 @@ class Model():
         (metrics['positive_90'] + epsilon)
     metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
+
+    metrics['margin'] = dynamic_margin
 
     return positive_distances, negative_distances, metrics
 
@@ -250,7 +259,7 @@ class Model():
 
       mean_proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common( \
-          mean_proxies, output, categories, category_count, category_mask)
+          mean_proxies, output, categories, category_count, category_mask, step)
 
       epsilon = 1e-12
 
@@ -287,7 +296,7 @@ class Model():
         category_mask ]):
       proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common(proxies, output, categories, \
-          category_count, category_mask)
+          category_count, category_mask, 0)
 
       return metrics
 
