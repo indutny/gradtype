@@ -224,8 +224,6 @@ class Model():
     metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
 
-    metrics['margin'] = dynamic_margin
-
     return positive_distances, negative_distances, metrics
 
 
