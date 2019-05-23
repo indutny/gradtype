@@ -185,22 +185,23 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(a, b):
-      normed_a = tf.math.l2_normalize(a, axis=-1)
-      normed_b = tf.math.l2_normalize(b, axis=-1)
-      cos = tf.reduce_sum(normed_a * normed_b, axis=-1)
-      return cos
+    def cosine(target, features):
+      normed_target = tf.math.l2_normalize(target, axis=-1)
+      unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
+      dist = 1.0 - unnorm_cos / tf.math.norm(features, axis=-1)
+      return unnorm_cos, dist
 
-    positive_distances = cosine(positives, output)
-    negative_distances = cosine(negatives, tf.expand_dims(output, axis=1))
+    positive_distances, positive_metrics = cosine(positives, output)
+    negative_distances, negative_metrics = cosine(negatives, \
+        tf.expand_dims(output, axis=1))
 
     metrics = {}
     for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
-      neg_p = tf.contrib.distributions.percentile(1.0 - negative_distances,
+      neg_p = tf.contrib.distributions.percentile(negative_metrics,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
 
-      pos_p = tf.contrib.distributions.percentile(1.0 - positive_distances,
+      pos_p = tf.contrib.distributions.percentile(positive_metrics,
           percentile, name='positive_{}'.format(percentile))
       metrics['positive_{}'.format(percentile)] = pos_p
 
@@ -232,7 +233,6 @@ class Model():
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
-      norms = tf.norm(output, axis=-1, keepdims=True)
 
       # NOTE: We use same mean proxies for the metrics as in validation
 
@@ -243,7 +243,6 @@ class Model():
       epsilon = 1e-12
 
       # SphereFace
-      # cos(2x) = 2.0 * cos^2(x) - 1
       if self.use_sphereface:
         sphere_lambda = tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP
         sphere_lambda = 1.0 - sphere_lambda
@@ -252,18 +251,23 @@ class Model():
 
         metrics['sphere_lambda'] = sphere_lambda
 
-        double_positives = 2.0 * (positive_distances ** 2.0) - 1.0
-        k = tf.floor(tf.acos(positive_distances) * 2.0 / math.pi)
-        k = tf.clip_by_value(k, 0.0, 1.0)
-        psi = (-1.0) ** k * double_positives - 2 * k
+        # cos(2x) = 2.0 * cos^2(x) - 1
+        norms = tf.norm(output, axis=-1, keepdims=True)
+        double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
+        double_unnorm_cos /= norms
+        double_unnorm_cos -= 1.0
+
+        cos = positive_distances / norms
+        k = tf.where(cos >= 0.0, 0.0, 1.0)
+
+        psi = (-1.0) ** k * double_unnorm_cos - 2 * k
 
         # Anneal to psi over SPHERE_MAX_STEP
         positive_distances = sphere_lambda * positive_distances + psi
         positive_distances /= (1.0 + sphere_lambda)
 
-      exp_pos = tf.exp(norms * positive_distances,
-          name='exp_pos')
-      exp_neg = tf.exp(norms * negative_distances, name='exp_neg')
+      exp_pos = tf.exp(positive_distances, name='exp_pos')
+      exp_neg = tf.exp(negative_distances, name='exp_neg')
 
       total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
 
