@@ -241,7 +241,7 @@ class Model():
           name='normalized_proxies')
       ring_radius = tf.get_variable('ring_radius', trainable=True,
           initializer=1.0,
-          shape=(,))
+          shape=(1,))
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
