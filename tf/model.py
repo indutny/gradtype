@@ -58,7 +58,8 @@ class Model():
 
     self.process_times = tf.layers.Dense(name='process_times',
                                          units=TIMES_WIDTH,
-                                         activation=tf.nn.relu)
+                                         activation=tf.nn.relu,
+                                         kernel_regularizer=self.l2)
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
