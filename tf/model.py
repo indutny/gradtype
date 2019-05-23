@@ -40,8 +40,9 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
+    self.use_sphereface = True
 
-    self.margin = 0.35 # Possibly 0.35
+    self.margin = 0.0 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -238,7 +239,15 @@ class Model():
 
       epsilon = 1e-12
 
-      exp_pos = tf.exp(norms * (positive_distances - self.margin),
+      # SphereFace
+      # cos(2x) = 2.0 * cos^2(x) - 1
+      if self.use_sphereface:
+        double_positives = 2.0 * (positive_distances ** 2.0) - 1.0
+        k = tf.floor(tf.acos(positive_distances) * 2.0 / math.pi)
+        k = tf.clip_by_value(k, 0.0, 1.0)
+        positive_distances = (-1.0) ** k * double_positives - 2 * k
+
+      exp_pos = tf.exp(norms * positive_distances,
           name='exp_pos')
       exp_neg = tf.exp(norms * negative_distances, name='exp_neg')
 
