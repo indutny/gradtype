@@ -188,7 +188,7 @@ class Model():
     def cosine(target, features):
       normed_target = tf.math.l2_normalize(target, axis=-1)
       unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
-      dist = 1.0 - unnorm_cos / tf.math.norm(features, axis=-1)
+      dist = 1.0 - unnorm_cos / tf.norm(features, axis=-1)
       return unnorm_cos, dist
 
     positive_distances, positive_metrics = cosine(positives, output)
