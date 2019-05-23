@@ -185,7 +185,8 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(normed_a, b):
+    def cosine(a, b):
+      normed_a = tf.math.l2_normalize(a, axis=-1)
       normed_b = tf.math.l2_normalize(b, axis=-1)
       cos = tf.reduce_sum(normed_a * normed_b, axis=-1)
       return cos
@@ -228,8 +229,6 @@ class Model():
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
-      proxies = tf.math.l2_normalize(proxies, axis=-1,
-          name='normalized_proxies')
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
@@ -303,4 +302,4 @@ class Model():
 
     result = tf.map_fn(compute_mean_proxy, tf.range(category_count),
         dtype=tf.float32)
-    return tf.math.l2_normalize(result, axis=-1)
+    return result
