@@ -240,8 +240,7 @@ class Model():
       proxies = tf.math.l2_normalize(proxies, axis=-1,
           name='normalized_proxies')
       ring_radius = tf.get_variable('ring_radius', trainable=True,
-          initializer=1.0,
-          shape=(1,))
+          initializer=tf.constant(1.0))
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
