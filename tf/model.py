@@ -188,7 +188,7 @@ class Model():
     def cosine(target, features):
       normed_target = tf.math.l2_normalize(target, axis=-1)
       unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
-      dist = 1.0 - unnorm_cos / tf.norm(features, axis=-1)
+      dist = 1.0 - unnorm_cos / (tf.norm(features, axis=-1) + 1e-23)
       return unnorm_cos, dist
 
     positive_distances, positive_metrics = cosine(positives, output)
@@ -241,7 +241,7 @@ class Model():
       _, _, metrics = self.get_proxy_common( \
           mean_proxies, output, categories, category_count, category_mask)
 
-      epsilon = 1e-12
+      epsilon = 1e-23
 
       # SphereFace
       if self.use_sphereface:
@@ -258,7 +258,7 @@ class Model():
         # cos(2x) = 2.0 * cos^2(x) - 1
         norms = tf.norm(output, axis=-1, keepdims=True)
         double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
-        double_unnorm_cos /= norms
+        double_unnorm_cos /= norms + epsilon
         double_unnorm_cos -= 1.0
 
         cos = positive_distances / norms
