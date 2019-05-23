@@ -22,6 +22,9 @@ RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
+SPHERE_MAX_LAMBDA = 100.0
+SPHERE_MAX_STEP = 10000.0
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -164,7 +167,7 @@ class Model():
     return x
 
   def get_proxy_common(self, proxies, output, categories, category_count, \
-      category_mask, step):
+      category_mask):
     positives = tf.gather(proxies, categories, axis=0,
         name='positive_proxies')
 
@@ -228,24 +231,33 @@ class Model():
           name='normalized_proxies')
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
-          proxies, output, categories, category_count, category_mask, step)
+          proxies, output, categories, category_count, category_mask)
       norms = tf.norm(output, axis=-1, keepdims=True)
 
       # NOTE: We use same mean proxies for the metrics as in validation
 
       mean_proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common( \
-          mean_proxies, output, categories, category_count, category_mask, step)
+          mean_proxies, output, categories, category_count, category_mask)
 
       epsilon = 1e-12
 
       # SphereFace
       # cos(2x) = 2.0 * cos^2(x) - 1
       if self.use_sphereface:
+        sphere_lambda = tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP
+        sphere_lambda = (1.0 - sphere_lambda) * SPHERE_MAX_LAMBDA
+
+        metrics['sphere_lambda'] = sphere_lambda
+
         double_positives = 2.0 * (positive_distances ** 2.0) - 1.0
         k = tf.floor(tf.acos(positive_distances) * 2.0 / math.pi)
         k = tf.clip_by_value(k, 0.0, 1.0)
-        positive_distances = (-1.0) ** k * double_positives - 2 * k
+        psi = (-1.0) ** k * double_positives - 2 * k
+
+        # Anneal to psi over SPHERE_MAX_STEP
+        positive_distances = sphere_lambda * positive_distances + psi
+        positive_distances /= (1.0 + sphere_lambda)
 
       exp_pos = tf.exp(norms * positive_distances,
           name='exp_pos')
