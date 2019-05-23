@@ -10,6 +10,11 @@ fig = plt.figure(1, figsize=(8, 8))
 with open(sys.argv[1]) as f:
   raw = json.load(f)
 
+  if 'step' in raw:
+    step = 'step {}'.format(raw['step'])
+  else:
+    step = 'unknown'
+
   for category in [ 'train', 'validate' ]:
     data = raw[category]
 
@@ -22,7 +27,7 @@ with open(sys.argv[1]) as f:
     plt.hist(positive, 1000, color='green', density=True, alpha=0.5)
     plt.hist(negative, 1000, color='red', density=True, alpha=0.5)
 
-    plt.title(category)
+    plt.title(category + ' / ' + step)
     plt.xlabel('Distance')
     plt.ylabel('Percentage')
     plt.grid(True)

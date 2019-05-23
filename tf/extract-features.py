@@ -112,5 +112,5 @@ with tf.Session() as sess:
     })
     features = features[1:]
 
-  out = { 'step': step, 'train': train_out, 'validate': validate_out }
+  out = { 'step': int(step), 'train': train_out, 'validate': validate_out }
   print(json.dumps(out))

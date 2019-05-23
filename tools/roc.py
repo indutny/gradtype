@@ -8,6 +8,11 @@ with open(sys.argv[1]) as f:
   fig = plt.figure(1, figsize=(8, 8))
   data = json.load(f)
 
+  if 'step' in data:
+    step = 'step {}'.format(data['step'])
+  else:
+    step = 'unknown'
+
   for category in [ 'train', 'validate' ]:
     sub_data = data[category]
 
@@ -23,7 +28,7 @@ with open(sys.argv[1]) as f:
     plt.plot(fpr, tpr, color='green' if category is 'validate' else 'blue',
         label='{}, AUC {:0.3f}'.format(category, auc))
 
-  plt.title(sys.argv[1])
+  plt.title(sys.argv[1] + ' / ' + step)
 
   plt.xscale('log')
   plt.xlim([0.001, 1.0])
