@@ -244,7 +244,10 @@ class Model():
 
       # SphereFace
       if self.use_sphereface:
-        sphere_lambda = tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP
+        sphere_lambda = tf.clip_by_value(
+            tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP,
+            0.0,
+            1.0)
         sphere_lambda = 1.0 - sphere_lambda
         sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
         sphere_lambda += SPHERE_MIN_LAMBDA
