@@ -253,7 +253,7 @@ class Model():
           initializer=tf.constant(1.0))
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
-          proxies, output, categories, category_count, category_mask)
+          proxies, output, categories, category_count, category_mask, step)
 
       # NOTE: We use same mean proxies for the metrics as in validation
 
