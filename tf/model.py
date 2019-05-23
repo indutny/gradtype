@@ -44,7 +44,7 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.margin = 0.0 # Possibly 0.35
+    self.margin = 0.35 # Possibly 0.35
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -181,7 +181,7 @@ class Model():
         dtype=tf.float32)
 
     if self.use_cosine:
-      def cosine(normed_a, b):
+      def cosine(normed_a, b, margin=0.0):
         b_norm = tf.norm(b, axis=-1) + 1e-23
         dot = tf.reduce_sum(normed_a * b, axis=-1)
         dot_norm = dot / b_norm
@@ -189,9 +189,10 @@ class Model():
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        return unnorm_cos, cos
+        return unnorm_cos + margin * b_norm, cos
 
-      positive_distances, norm_positive_distances = cosine(positives, output)
+      positive_distances, norm_positive_distances = cosine(positives, output,
+          margin=self.margin)
       negative_distances, norm_negative_distances = \
           cosine(negatives, tf.expand_dims(output, axis=1))
     else:
@@ -254,7 +255,7 @@ class Model():
       epsilon = 1e-12
 
       if self.use_lcml:
-        exp_pos = tf.exp(-(positive_distances + self.margin), name='exp_pos')
+        exp_pos = tf.exp(-positive_distances, name='exp_pos')
         exp_neg = tf.exp(-negative_distances, name='exp_neg')
 
         total_exp_neg = tf.reduce_sum(exp_neg, axis=-1, name='total_exp_neg')
