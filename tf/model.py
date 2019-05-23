@@ -8,6 +8,7 @@ EMBED_WIDTH = 16
 TIMES_WIDTH = 16
 
 INPUT_DROPOUT = 0.2
+POST_RNN_DROPOUT = 0.2
 
 RADIUS_MAX_STEP = 20000.0
 
@@ -55,6 +56,8 @@ class Model():
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
+    self.post_rnn_dropout = tf.keras.layers.Dropout(name='post_rnn_dropout',
+        rate=POST_RNN_DROPOUT)
 
     self.process_times = tf.layers.Dense(name='process_times',
                                          units=TIMES_WIDTH,
@@ -150,6 +153,7 @@ class Model():
 
     x = tf.reduce_sum(outputs * mask, axis=1,
         name='last_output')
+    x = self.post_rnn_dropout(x, training=self.training)
 
     for entry in self.post:
       x = entry['dense'](x)
