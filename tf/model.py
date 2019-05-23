@@ -23,6 +23,7 @@ DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
 SPHERE_MAX_LAMBDA = 100.0
+SPHERE_MIN_LAMBDA = 5.0
 SPHERE_MAX_STEP = 10000.0
 
 class Embedding():
@@ -246,7 +247,9 @@ class Model():
       # cos(2x) = 2.0 * cos^2(x) - 1
       if self.use_sphereface:
         sphere_lambda = tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP
-        sphere_lambda = (1.0 - sphere_lambda) * SPHERE_MAX_LAMBDA
+        sphere_lambda = 1.0 - sphere_lambda
+        sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
+        sphere_lambda += SPHERE_MIN_LAMBDA
 
         metrics['sphere_lambda'] = sphere_lambda
 
