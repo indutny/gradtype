@@ -285,7 +285,7 @@ class Model():
         category_mask ]):
       proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common(proxies, output, categories, \
-          category_count, category_mask, 0)
+          category_count, category_mask)
 
       return metrics
 
