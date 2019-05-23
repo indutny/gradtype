@@ -22,6 +22,8 @@ RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
+MAX_MARGIN_STEP = 20000.0
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -45,9 +47,6 @@ class Model():
 
     self.use_lcml = True
     self.margin = 0.35 # Possibly 0.35
-
-    self.ring_radius = tf.get_variable('ring_radius', trainable=True,
-        initializer=tf.constant(1.0))
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -183,6 +182,11 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
+    dynamic_margin = tf.clip_by_value(
+        tf.cast(step, dtype=tf.float32) / MAX_MARGIN_STEP,
+        0.0,
+        1.0) * self.margin
+
     if self.use_cosine:
       def cosine(normed_a, b, margin=0.0):
         b_norm = tf.norm(b, axis=-1) + 1e-23
@@ -192,10 +196,10 @@ class Model():
         cos = 1.0 - dot_norm
         unnorm_cos = 1.0 - dot
 
-        return unnorm_cos + margin, cos
+        return unnorm_cos + margin * b_norm, cos
 
       positive_distances, norm_positive_distances = cosine(positives, output,
-          margin=self.margin * tf.stop_gradient(self.ring_radius))
+          margin=dynamic_margin)
       negative_distances, norm_negative_distances = \
           cosine(negatives, tf.expand_dims(output, axis=1))
     else:
@@ -224,6 +228,8 @@ class Model():
     metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
 
+    metrics['margin'] = dynamic_margin
+
     return positive_distances, negative_distances, metrics
 
 
@@ -243,6 +249,8 @@ class Model():
           initializer=proxies_init)
       proxies = tf.math.l2_normalize(proxies, axis=-1,
           name='normalized_proxies')
+      ring_radius = tf.get_variable('ring_radius', trainable=True,
+          initializer=tf.constant(1.0))
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask, step)
@@ -274,10 +282,10 @@ class Model():
       loss = tf.reduce_mean(loss, name='loss')
 
       ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
-          (tf.norm(output, axis=-1) - self.ring_radius) ** 2)
+          (tf.norm(output, axis=-1) - ring_radius) ** 2)
 
       metrics['loss'] = loss
-      metrics['ring_radius'] = self.ring_radius
+      metrics['ring_radius'] = ring_radius
       metrics['ring_loss'] = ring_loss
 
       return metrics
