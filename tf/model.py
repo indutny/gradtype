@@ -44,7 +44,7 @@ class Model():
     self.use_cosine = True
 
     self.use_lcml = True
-    self.margin = 0.35 # Possibly 0.35
+    self.margin = 0.0 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
