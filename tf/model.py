@@ -9,6 +9,7 @@ TIMES_WIDTH = 16
 
 INPUT_DROPOUT = 0.2
 POST_RNN_DROPOUT = 0.2
+NOISE_LEVEL = 0.0
 
 RADIUS_MAX_STEP = 20000.0
 
@@ -84,6 +85,8 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
+    noise = tf.random.normal(tf.shape(times))
+    times += tf.where(self.training, NOISE_LEVEL, 0.0) * noise
 
     # Process holds+deltas
     times = self.process_times(times)
