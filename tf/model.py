@@ -222,6 +222,7 @@ class Model():
   # TODO(indutny): try http://openaccess.thecvf.com/content_cvpr_2018/papers/Zheng_Ring_Loss_Convex_CVPR_2018_paper.pdf
   # TODO(indutny): try https://arxiv.org/pdf/1704.08063.pdf
   # TODO(indutny): try https://arxiv.org/pdf/1703.09507.pdf
+  # See http://proceedings.mlr.press/v48/liud16.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
