@@ -64,4 +64,5 @@ for category in [ 'train', 'validate' ]:
   plt.legend(loc='upper left')
   plt.grid(True)
 
+plt.tight_layout()
 plt.show()

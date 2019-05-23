@@ -234,6 +234,7 @@ const meanFeatures = {
 console.log('means', meanFeatures);
 
 const distances = {
+  step: DATA.step,
   train: crossDistance(DATA.train),
   validate: crossDistance(DATA.validate),
 };

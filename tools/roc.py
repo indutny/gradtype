@@ -34,4 +34,5 @@ with open(sys.argv[1]) as f:
 
   plt.grid(True, which='major', linestyle='-')
   plt.grid(True, which='minor', linestyle='--')
+  plt.tight_layout()
   plt.show()
