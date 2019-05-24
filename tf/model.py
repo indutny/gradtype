@@ -22,9 +22,9 @@ RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
-SPHERE_MAX_LAMBDA = 100.0
-SPHERE_MIN_LAMBDA = 5.0
-SPHERE_MAX_STEP = 10000.0
+ANNEAL_MAX_LAMBDA = 100.0
+ANNEAL_MIN_LAMBDA = 5.0
+ANNEAL_MAX_STEP = 10000.0
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -44,9 +44,9 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
-    self.use_sphereface = False
+    self.use_sphereface = True
 
-    self.margin = 0.35 # Possibly 0.35
+    self.margin = 0.0 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -185,8 +185,7 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(target, features):
-      normed_target = tf.math.l2_normalize(target, axis=-1)
+    def cosine(normed_target, features):
       unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
       dist = 1.0 - unnorm_cos / (tf.norm(features, axis=-1) + 1e-23)
       return unnorm_cos, dist
@@ -231,6 +230,7 @@ class Model():
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
+      proxies = tf.math.l2_normalize(proxies, axis=-1)
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
@@ -243,40 +243,46 @@ class Model():
 
       epsilon = 1e-23
 
-      sphere_lambda = tf.clip_by_value(
-          tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP,
+      anneal_lambda = tf.clip_by_value(
+          tf.cast(step, dtype=tf.float32) / ANNEAL_MAX_STEP,
           0.0,
           1.0)
-      sphere_lambda = 1.0 - sphere_lambda
-      sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
-      sphere_lambda += SPHERE_MIN_LAMBDA
+      anneal_lambda = 1.0 - anneal_lambda
+      anneal_lambda *= ANNEAL_MAX_LAMBDA - ANNEAL_MIN_LAMBDA
+      anneal_lambda += ANNEAL_MIN_LAMBDA
 
-      metrics['sphere_lambda'] = sphere_lambda
+      metrics['anneal_lambda'] = anneal_lambda
 
       norms = tf.norm(output, axis=-1)
+      proxy_norms = tf.norm(proxies, axis=-1)
+
+      anneal_distances = positive_distances
 
       # SphereFace
       if self.use_sphereface:
+        common_norms = norms * proxy_norms
+
         # cos(2x) = 2.0 * cos^2(x) - 1
         double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
-        double_unnorm_cos /= norms + epsilon
-        double_unnorm_cos -= 1.0 * norms
+        double_unnorm_cos /= common_norms
 
-        cos = positive_distances / norms
-        k = tf.cast(cos < 0.0, dtype=tf.float32)
+        cos = positive_distances / common_norms
 
-        psi = (-1.0) ** k * double_unnorm_cos - 2 * k * norms
+        # TODO(indutny): is this necessary?
+        k = tf.stop_gradient(tf.cast(cos < 0.0, dtype=tf.float32))
+        sign = (-1.0) ** k
+
+        psi = sign * double_unnorm_cos  - (2 * k + sign) * common_norms
 
         # Anneal to psi over SPHERE_MAX_STEP
-        positive_distances = sphere_lambda * positive_distances + psi
-        positive_distances /= (1.0 + sphere_lambda)
+        anneal_distances = psi
 
       # Large Margin Cosine Loss
       elif self.margin != 0.0:
-        margin_distances = positive_distances - norms * self.margin
-        positive_distances = sphere_lambda * positive_distances + \
-            margin_distances
-        positive_distances /= (1.0 + sphere_lambda)
+        anneal_distances = positive_distances - norms * self.margin
+
+      positive_distances = anneal_lambda * positive_distances + psi
+      positive_distances /= (1.0 + anneal_lambda)
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
       exp_neg = tf.exp(negative_distances, name='exp_neg')
@@ -318,4 +324,5 @@ class Model():
 
     result = tf.map_fn(compute_mean_proxy, tf.range(category_count),
         dtype=tf.float32)
+    result = tf.math.l2_normalize(result, axis=-1)
     return result
