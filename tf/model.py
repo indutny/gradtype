@@ -256,7 +256,7 @@ class Model():
         metrics['sphere_lambda'] = sphere_lambda
 
         # cos(2x) = 2.0 * cos^2(x) - 1
-        norms = tf.norm(output, axis=-1, keepdims=True)
+        norms = tf.norm(output, axis=-1)
         double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
         double_unnorm_cos /= norms + epsilon
         double_unnorm_cos -= 1.0
