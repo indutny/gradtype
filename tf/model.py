@@ -259,7 +259,7 @@ class Model():
         norms = tf.norm(output, axis=-1)
         double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
         double_unnorm_cos /= norms + epsilon
-        double_unnorm_cos -= 1.0
+        double_unnorm_cos -= 1.0 * norms
 
         cos = positive_distances / norms
         k = tf.cast(cos < 0.0, dtype=tf.float32)
