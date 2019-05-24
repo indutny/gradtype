@@ -44,9 +44,9 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
-    self.use_sphereface = True
+    self.use_sphereface = False
 
-    self.margin = 0.0 # Possibly 0.35
+    self.margin = 0.35 # Possibly 0.35
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -243,20 +243,21 @@ class Model():
 
       epsilon = 1e-23
 
+      sphere_lambda = tf.clip_by_value(
+          tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP,
+          0.0,
+          1.0)
+      sphere_lambda = 1.0 - sphere_lambda
+      sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
+      sphere_lambda += SPHERE_MIN_LAMBDA
+
+      metrics['sphere_lambda'] = sphere_lambda
+
+      norms = tf.norm(output, axis=-1)
+
       # SphereFace
       if self.use_sphereface:
-        sphere_lambda = tf.clip_by_value(
-            tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP,
-            0.0,
-            1.0)
-        sphere_lambda = 1.0 - sphere_lambda
-        sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
-        sphere_lambda += SPHERE_MIN_LAMBDA
-
-        metrics['sphere_lambda'] = sphere_lambda
-
         # cos(2x) = 2.0 * cos^2(x) - 1
-        norms = tf.norm(output, axis=-1)
         double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
         double_unnorm_cos /= norms + epsilon
         double_unnorm_cos -= 1.0 * norms
@@ -269,6 +270,10 @@ class Model():
         # Anneal to psi over SPHERE_MAX_STEP
         positive_distances = sphere_lambda * positive_distances + psi
         positive_distances /= (1.0 + sphere_lambda)
+
+      # Large Margin Cosine Loss
+      elif self.margin != 0.0:
+        positive_distances -= norms * self.margin
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
       exp_neg = tf.exp(negative_distances, name='exp_neg')
