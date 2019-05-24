@@ -24,7 +24,7 @@ FEATURE_COUNT = 32
 
 SPHERE_MAX_LAMBDA = 100.0
 SPHERE_MIN_LAMBDA = 5.0
-SPHERE_MAX_STEP = 100.0
+SPHERE_MAX_STEP = 10000.0
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
