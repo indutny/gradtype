@@ -145,7 +145,7 @@ with tf.Session() as sess:
         # Catch NaN and inf global norm
         print('got invalid argument error, printing gradients')
         for (grad, var) in zip(unclipped_grads, variables):
-          print('{}: {}'.format(var.name, sess.run(grad, feed_dict=train_feed)))
+          print('{}: {}'.format(var.name, sess.run(tf.reduce_mean(grad), feed_dict=train_feed)))
         raise
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
