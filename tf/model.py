@@ -264,7 +264,7 @@ class Model():
         cos = positive_distances / norms
         k = tf.cast(cos < 0.0, dtype=tf.float32)
 
-        psi = (-1.0) ** k * double_unnorm_cos - 2 * k
+        psi = (-1.0) ** k * double_unnorm_cos - 2 * k * norms
 
         # Anneal to psi over SPHERE_MAX_STEP
         positive_distances = sphere_lambda * positive_distances + psi
