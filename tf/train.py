@@ -129,15 +129,22 @@ with tf.Session() as sess:
     for batch in train_batches:
       tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
           t_grad_norm ]
-      _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
-        holds: batch['holds'],
-        codes: batch['codes'],
-        deltas: batch['deltas'],
-        sequence_lens: batch['sequence_lens'],
-        categories: batch['categories'],
-        category_mask: train_mask,
-        training: True,
-      })
+      try:
+        _, _, metrics, reg_loss, grad_norm = sess.run(tensors, feed_dict={
+          holds: batch['holds'],
+          codes: batch['codes'],
+          deltas: batch['deltas'],
+          sequence_lens: batch['sequence_lens'],
+          categories: batch['categories'],
+          category_mask: train_mask,
+          training: True,
+        })
+      except tf.errors.InvalidArgumentError:
+        # Catch NaN and inf global norm
+        print('got invalid argument error, printing gradients')
+        for (grad, var) in zip(unclipped_grads, variables):
+          print('{}: {}'.format(var.name, sess.run(grad)))
+        raise
       metrics['regularization_loss'] = reg_loss
       metrics['grad_norm'] = grad_norm
 
