@@ -57,9 +57,11 @@ async function download() {
 
   const rows: Array<number[]> = [];
   for (let i = 0; i < minSteps; i++) {
-    const newRow: number[] = data[0].data[i].slice(0, 2);
+    const stepI = Math.floor((i / minSteps) * data[0].data.length);
+    const newRow: number[] = data[0].data[stepI].slice(0, 2);
+
     for (const tag of data) {
-      const sparse = Math.round(i / minSteps * tag.data.length);
+      const sparse = Math.floor((i / minSteps) * tag.data.length);
       newRow.push(tag.data[sparse][2]);
     }
     rows.push(newRow);
