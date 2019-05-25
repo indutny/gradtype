@@ -48,9 +48,6 @@ class Model():
     self.margin = 0.5
     self.radius = 20.0
 
-    self.ring_radius = tf.get_variable('ring_radius', trainable=True,
-        initializer=tf.constant(1.0))
-
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
