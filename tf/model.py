@@ -276,7 +276,7 @@ class Model():
       elif self.margin != 0.0:
         anneal_distances = positive_distances - norms * self.margin
 
-      positive_distances = anneal_lambda * positive_distances + psi
+      positive_distances = anneal_lambda * positive_distances + anneal_distances
       positive_distances /= (1.0 + anneal_lambda)
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
