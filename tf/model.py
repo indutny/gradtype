@@ -189,7 +189,7 @@ class Model():
       normed_features = tf.math.l2_normalize(features, axis=-1)
       cos = tf.reduce_sum(normed_target * normed_features, axis=-1)
       dist = 1.0 - cos
-      return unnorm_cos, dist
+      return cos, dist
 
     positive_distances, positive_metrics = cosine(positives, output)
     negative_distances, negative_metrics = cosine(negatives, \
