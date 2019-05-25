@@ -179,7 +179,7 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(normed_target, features):
+    def cosine(normed_target, normed_features):
       cos = tf.reduce_sum(normed_target * normed_features, axis=-1)
       dist = 1.0 - cos
       return cos, dist
