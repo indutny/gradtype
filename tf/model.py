@@ -264,7 +264,7 @@ class Model():
 
         cos = positive_distances / common_norms
 
-        k = tf.cast(cos <= 0.0, dtype=tf.float32))
+        k = tf.cast(cos <= 0.0, dtype=tf.float32)
         sign = (-1.0) ** k
 
         psi = sign * double_unnorm_cos  - (2 * k + sign) * common_norms
