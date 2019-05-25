@@ -48,9 +48,6 @@ class Model():
 
     self.margin = 0.0 # Possibly 0.35
 
-    self.ring_radius = tf.get_variable('ring_radius', trainable=True,
-        initializer=tf.constant(1.0))
-
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
@@ -185,7 +182,8 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(normed_target, features):
+    def cosine(target, features):
+      normed_target = tf.math.l2_normalize(target, axis=-1)
       unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
       dist = 1.0 - unnorm_cos / (tf.norm(features, axis=-1) + 1e-23)
       return unnorm_cos, dist
@@ -212,7 +210,7 @@ class Model():
     metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
 
-    return positive_distances, negative_distances, metrics
+    return positives, positive_distances, negative_distances, metrics
 
 
   # As in https://arxiv.org/pdf/1703.07464.pdf
@@ -225,20 +223,18 @@ class Model():
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
-      proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
-          (category_count, FEATURE_COUNT,))
       proxies = tf.get_variable('points',
           trainable=True,
-          initializer=proxies_init)
-      proxies = tf.math.l2_normalize(proxies, axis=-1)
+          shape=(category_count, FEATURE_COUNT,))
 
-      positive_distances, negative_distances, _ = self.get_proxy_common( \
-          proxies, output, categories, category_count, category_mask)
+      positives, positive_distances, negative_distances, _ = \
+          self.get_proxy_common(proxies, output, categories, category_count, \
+              category_mask)
 
       # NOTE: We use same mean proxies for the metrics as in validation
 
       mean_proxies = self.mean_proxies(output, categories, category_count)
-      _, _, metrics = self.get_proxy_common( \
+      _, _, _, metrics = self.get_proxy_common( \
           mean_proxies, output, categories, category_count, category_mask)
 
       epsilon = 1e-23
@@ -293,11 +289,13 @@ class Model():
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
 
+      ring_radius = tf.norm(positives, axis=-1)
+
       ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
-          (tf.norm(output, axis=-1) - self.ring_radius) ** 2)
+          (tf.norm(output, axis=-1) - ring_radius) ** 2)
 
       metrics['loss'] = loss
-      metrics['ring_radius'] = self.ring_radius
+      metrics['ring_radius'] = ring_radius
       metrics['ring_loss'] = ring_loss
 
       return metrics
@@ -307,7 +305,7 @@ class Model():
     with tf.name_scope('proxy_val_metrics', [ output, categories, \
         category_mask ]):
       proxies = self.mean_proxies(output, categories, category_count)
-      _, _, metrics = self.get_proxy_common(proxies, output, categories, \
+      _, _, _, metrics = self.get_proxy_common(proxies, output, categories, \
           category_count, category_mask)
 
       return metrics
@@ -323,5 +321,4 @@ class Model():
 
     result = tf.map_fn(compute_mean_proxy, tf.range(category_count),
         dtype=tf.float32)
-    result = tf.math.l2_normalize(result, axis=-1)
     return result
