@@ -295,7 +295,8 @@ class Model():
           (tf.norm(output, axis=-1) - ring_radius) ** 2)
 
       metrics['loss'] = loss
-      metrics['ring_radius'] = ring_radius
+      metrics['ring_radius'] = tf.reduce_mean(ring_radius,
+          name='mean_ring_radius')
       metrics['ring_loss'] = ring_loss
 
       return metrics
