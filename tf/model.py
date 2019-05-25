@@ -257,6 +257,7 @@ class Model():
 
       positive_distances -= self.margin
       positive_distances *= radius
+      negative_distances *= radius
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
       exp_neg = tf.exp(negative_distances, name='exp_neg')
