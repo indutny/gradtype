@@ -157,6 +157,7 @@ class Model():
       x = entry['dropout'](x, training=self.training)
 
     x = self.features(x)
+    x = tf.math.l2_normalize(x, axis=-1)
 
     return x
 
@@ -179,7 +180,6 @@ class Model():
         dtype=tf.float32)
 
     def cosine(normed_target, features):
-      normed_features = tf.math.l2_normalize(features, axis=-1)
       cos = tf.reduce_sum(normed_target * normed_features, axis=-1)
       dist = 1.0 - cos
       return cos, dist
@@ -282,8 +282,6 @@ class Model():
       return metrics
 
   def mean_proxies(self, output, categories, category_count):
-    output = tf.math.l2_normalize(output, axis=-1)
-
     # Compute proxies as mean points
     def compute_mean_proxy(category):
       points = tf.boolean_mask(output, tf.equal(categories, category),
