@@ -23,8 +23,10 @@ DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_LAMBDA = 100.0
-ANNEAL_MIN_LAMBDA = 5.0
+ANNEAL_MIN_LAMBDA = 0.0
 ANNEAL_MAX_STEP = 10000.0
+
+SPHERE_MIN_LAMBDA = 5.0
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -47,6 +49,7 @@ class Model():
     self.use_sphereface = True
 
     self.margin = 0.0 # Possibly 0.35
+    self.mul_margin = 1.2
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -239,13 +242,16 @@ class Model():
 
       epsilon = 1e-23
 
+      min_lambda = SPHERE_MIN_LAMBDA if self.use_sphereface else \
+          ANNEAL_MIN_LAMBDA
+
       anneal_lambda = tf.clip_by_value(
           tf.cast(step, dtype=tf.float32) / ANNEAL_MAX_STEP,
           0.0,
           1.0)
       anneal_lambda = 1.0 - anneal_lambda
-      anneal_lambda *= ANNEAL_MAX_LAMBDA - ANNEAL_MIN_LAMBDA
-      anneal_lambda += ANNEAL_MIN_LAMBDA
+      anneal_lambda *= ANNEAL_MAX_LAMBDA - min_lambda
+      anneal_lambda += min_lambda
 
       metrics['anneal_lambda'] = anneal_lambda
 
@@ -275,6 +281,8 @@ class Model():
       # Large Margin Cosine Loss
       elif self.margin != 0.0:
         anneal_distances = positive_distances - norms * self.margin
+      elif self.mul_margin != 0.0:
+        anneal_distances = positive_distances * self.mul_margin
 
       positive_distances = anneal_lambda * positive_distances + anneal_distances
       positive_distances /= (1.0 + anneal_lambda)
