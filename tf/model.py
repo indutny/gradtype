@@ -46,7 +46,8 @@ class Model():
     self.use_gaussian_pooling = False
     self.use_sphereface = False
 
-    self.margin = 0.35 # Possibly 0.35
+    self.margin = 0.0
+    self.mul_margin = 1.2
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -274,6 +275,9 @@ class Model():
       # Large Margin Cosine Loss
       elif self.margin != 0.0:
         positive_distances -= norms * self.margin
+
+      elif self.mul_margin != 0.0:
+        positive_distances *= self.mul_margin
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
       exp_neg = tf.exp(negative_distances, name='exp_neg')
