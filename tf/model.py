@@ -16,14 +16,10 @@ DENSE_L2 = 0.001
 GAUSSIAN_POOLING_VAR = 1.0
 GAUSSIAN_POOLING_LEN_DELTA = 3.0
 
-RING_LAMBDA = 0.01
-
 RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
-ANNEAL_MAX_LAMBDA = 100.0
-ANNEAL_MIN_LAMBDA = 0.0
 ANNEAL_MAX_STEP = 10000.0
 
 class Embedding():
@@ -45,8 +41,8 @@ class Model():
     self.training = training
     self.use_gaussian_pooling = False
 
-    self.margin = 0.5
-    self.radius = 20.0
+    self.margin = 0.35
+    self.radius = 9.2
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
@@ -242,20 +238,22 @@ class Model():
 
       epsilon = 1e-23
 
+      # Primitive spline with derivatives equal to zero at both start and
+      # max step
       anneal_lambda = tf.clip_by_value(
           tf.cast(step, dtype=tf.float32) / ANNEAL_MAX_STEP,
           0.0,
           1.0)
-      anneal_lambda = 1.0 - anneal_lambda
-      anneal_lambda *= ANNEAL_MAX_LAMBDA - ANNEAL_MIN_LAMBDA
-      anneal_lambda += ANNEAL_MIN_LAMBDA
+      anneal_lambda = -2.0 * (anneal_lambda ** 3.0) + \
+          3.0 * (anneal_lambda ** 2.0)
 
-      radius = (anneal_lambda + self.radius) / (anneal_lambda + 1.0)
+      radius = 1.0 + (self.radius - 1.0) * anneal_lambda
 
       metrics['anneal_lambda'] = anneal_lambda
       metrics['radius'] = radius
 
       positive_distances -= self.margin
+
       positive_distances *= radius
       negative_distances *= radius
 
@@ -269,11 +267,7 @@ class Model():
       loss = -tf.log(ratio + epsilon, name='loss_vector')
       loss = tf.reduce_mean(loss, name='loss')
 
-      ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
-          (tf.norm(output, axis=-1) - radius) ** 2)
-
       metrics['loss'] = loss
-      metrics['ring_loss'] = ring_loss
 
       return metrics
 
