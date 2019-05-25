@@ -22,9 +22,9 @@ RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
 
-SPHERE_MAX_LAMBDA = 100.0
-SPHERE_MIN_LAMBDA = 5.0
-SPHERE_MAX_STEP = 10000.0
+ANNEAL_MAX_LAMBDA = 100.0
+ANNEAL_MIN_LAMBDA = 0.0
+ANNEAL_MAX_STEP = 10000.0
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -44,10 +44,9 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
-    self.use_sphereface = False
 
-    self.margin = 0.0
-    self.mul_margin = 1.2
+    self.margin = 0.5
+    self.radius = 20.0
 
     self.ring_radius = tf.get_variable('ring_radius', trainable=True,
         initializer=tf.constant(1.0))
@@ -186,10 +185,10 @@ class Model():
     negatives = tf.map_fn(apply_mask, negative_masks, name='negatives',
         dtype=tf.float32)
 
-    def cosine(target, features):
-      normed_target = tf.math.l2_normalize(target, axis=-1)
-      unnorm_cos = tf.reduce_sum(normed_target * features, axis=-1)
-      dist = 1.0 - unnorm_cos / (tf.norm(features, axis=-1) + 1e-23)
+    def cosine(normed_target, features):
+      normed_features = tf.math.l2_normalize(features, axis=-1)
+      cos = tf.reduce_sum(normed_target * normed_features, axis=-1)
+      dist = 1.0 - cos
       return unnorm_cos, dist
 
     positive_distances, positive_metrics = cosine(positives, output)
@@ -232,6 +231,8 @@ class Model():
       proxies = tf.get_variable('points',
           trainable=True,
           initializer=proxies_init)
+      proxies = tf.math.l2_normalize(proxies, axis=-1,
+          name='normalized_proxies')
 
       positive_distances, negative_distances, _ = self.get_proxy_common( \
           proxies, output, categories, category_count, category_mask)
@@ -244,40 +245,21 @@ class Model():
 
       epsilon = 1e-23
 
-      sphere_lambda = tf.clip_by_value(
-          tf.cast(step, dtype=tf.float32) / SPHERE_MAX_STEP,
+      anneal_lambda = tf.clip_by_value(
+          tf.cast(step, dtype=tf.float32) / ANNEAL_MAX_STEP,
           0.0,
           1.0)
-      sphere_lambda = 1.0 - sphere_lambda
-      sphere_lambda *= SPHERE_MAX_LAMBDA - SPHERE_MIN_LAMBDA
-      sphere_lambda += SPHERE_MIN_LAMBDA
+      anneal_lambda = 1.0 - anneal_lambda
+      anneal_lambda *= ANNEAL_MAX_LAMBDA - ANNEAL_MIN_LAMBDA
+      anneal_lambda += ANNEAL_MIN_LAMBDA
 
-      metrics['sphere_lambda'] = sphere_lambda
+      radius = (anneal_lambda + self.radius) / (anneal_lambda + 1.0)
 
-      norms = tf.norm(output, axis=-1)
+      metrics['anneal_lambda'] = anneal_lambda
+      metrics['radius'] = radius
 
-      # SphereFace
-      if self.use_sphereface:
-        # cos(2x) = 2.0 * cos^2(x) - 1
-        double_unnorm_cos = 2.0 * (positive_distances ** 2.0)
-        double_unnorm_cos /= norms + epsilon
-        double_unnorm_cos -= 1.0 * norms
-
-        cos = positive_distances / norms
-        k = tf.cast(cos < 0.0, dtype=tf.float32)
-
-        psi = (-1.0) ** k * double_unnorm_cos - 2 * k * norms
-
-        # Anneal to psi over SPHERE_MAX_STEP
-        positive_distances = sphere_lambda * positive_distances + psi
-        positive_distances /= (1.0 + sphere_lambda)
-
-      # Large Margin Cosine Loss
-      elif self.margin != 0.0:
-        positive_distances -= norms * self.margin
-
-      elif self.mul_margin != 0.0:
-        positive_distances *= self.mul_margin
+      positive_distances -= self.margin
+      positive_distances *= radius
 
       exp_pos = tf.exp(positive_distances, name='exp_pos')
       exp_neg = tf.exp(negative_distances, name='exp_neg')
@@ -290,10 +272,9 @@ class Model():
       loss = tf.reduce_mean(loss, name='loss')
 
       ring_loss = RING_LAMBDA / 2.0 * tf.reduce_mean(
-          (tf.norm(output, axis=-1) - self.ring_radius) ** 2)
+          (tf.norm(output, axis=-1) - radius) ** 2)
 
       metrics['loss'] = loss
-      metrics['ring_radius'] = self.ring_radius
       metrics['ring_loss'] = ring_loss
 
       return metrics
@@ -319,4 +300,5 @@ class Model():
 
     result = tf.map_fn(compute_mean_proxy, tf.range(category_count),
         dtype=tf.float32)
+    result = tf.math.l2_normalize(result, axis=-1)
     return result
