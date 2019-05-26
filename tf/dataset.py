@@ -19,7 +19,7 @@ VALIDATE_CATEGORY_PERCENT = 0.5
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
-NORMALIZE = False
+NORMALIZE = True
 
 def load_labels():
   package_directory = os.path.dirname(os.path.abspath(__file__))
@@ -50,9 +50,9 @@ def load_sequence(f, category, label):
 
   # Normalize timing per-sample
   if NORMALIZE:
-    mean_delta = np.mean(deltas) + 1e-23
-    deltas /= mean_delta
-    holds /= mean_delta
+    max_delta = np.max(deltas) + 1e-23
+    deltas /= max_delta
+    holds /= max_delta
 
   return {
     'category': category,
