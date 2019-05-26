@@ -40,6 +40,7 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_gaussian_pooling = False
+    self.use_sphereface = False
 
     self.margin = 0.35
     self.radius = 9.2
@@ -252,7 +253,18 @@ class Model():
       metrics['anneal_lambda'] = anneal_lambda
       metrics['radius'] = radius
 
-      positive_distances -= self.margin
+      if self.use_sphereface:
+        # cos(2x) = 2.0 * cos^2(x) - 1
+        double_cos = 2.0 * (positive_distances ** 2.0) - 1.0
+        k = tf.cast(positive_distances <= 0.0, dtype=tf.float32)
+        sign = (-1.0) ** k
+
+        psi = sign * double_cos - 2 * k
+
+        # TODO(indutny): try annealing again
+        positive_distances = psi
+      else:
+        positive_distances -= self.margin
 
       positive_distances *= radius
       negative_distances *= radius
