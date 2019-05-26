@@ -68,6 +68,8 @@ function encodeSequence(sequence: Sequence) {
 
 let errors = 0;
 
+const ds = new Dataset(sentences);
+
 let datasets = labels.map((name) => {
   const file = path.join(DATASETS_DIR, name + '.json');
   return {
@@ -75,10 +77,8 @@ let datasets = labels.map((name) => {
     name,
   };
 }).map((entry) => {
-  const d = new Dataset(sentences);
-
   if (entry.data.version === 2) {
-    const sequences = d.check(entry.name, entry.data.sequences);
+    const sequences = ds.check(entry.name, entry.data.sequences);
     errors += entry.data.sequences.length - sequences.length;
     return {
       name: entry.name,
@@ -86,8 +86,8 @@ let datasets = labels.map((name) => {
     };
   }
 
-  const rawSequences = d.generate(entry.data);
-  const sequences = d.check(entry.name, rawSequences);
+  const rawSequences = ds.generate(entry.data);
+  const sequences = ds.check(entry.name, rawSequences);
   errors += rawSequences.length - sequences.length;
 
   return {
@@ -138,3 +138,4 @@ console.log('Mean length: %s',
 console.log('Min length: %s', totalSequenceLen.min.toFixed(2));
 console.log('Max length: %s', totalSequenceLen.max.toFixed(2));
 console.log('Errors: %d', errors);
+console.log('Stats: %j', ds.getStats());

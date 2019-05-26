@@ -21,6 +21,17 @@ export interface ISequenceElem {
   readonly duration: number;
 }
 
+export interface IStats {
+  readonly mean: {
+    readonly duration: number;
+    readonly hold: number;
+  };
+  readonly p99: {
+    readonly duration: number;
+    readonly hold: number;
+  };
+}
+
 export type Sequence = ReadonlyArray<ISequenceElem>;
 
 export type Input = ReadonlyArray<InputEntry>;
@@ -28,12 +39,15 @@ export type Output = ReadonlyArray<Sequence>;
 
 type IntermediateEntry = 'reset' | 'invalid' | ISequenceElem;
 
-const MAX_DURATION = 5;
-const MAX_HOLD = 5;
+// NOTE: Use `getStats()` to set this correctly
+const MAX_DURATION = 5.46;
+const MAX_HOLD = 0.35;
 
 export class Dataset {
   private readonly lowSentences: ReadonlyArray<string>;
   private readonly lowSentenceSet: ReadonlySet<string>;
+  private readonly durations: number[] = [];
+  private readonly holds: number[] = [];
 
   constructor(private readonly sentences: string[]) {
     this.lowSentences = this.sentences.map((s) => {
@@ -81,12 +95,15 @@ export class Dataset {
         maxHold = Math.max(event.hold, maxHold);
       }
 
+      this.durations.push(maxDuration);
+      this.holds.push(maxHold);
+
       if (maxDuration > MAX_DURATION) {
         console.error('Duration limit hit', name, sentence, maxDuration);
         continue;
       }
 
-      if (maxDuration > MAX_HOLD) {
+      if (maxHold > MAX_HOLD) {
         console.error('Hold limit hit', name, sentence, maxHold);
         continue;
       }
@@ -94,6 +111,34 @@ export class Dataset {
       out.push(seq);
     }
     return out;
+  }
+
+  public getStats(): IStats {
+    function mean(list: number[]): number {
+      let result = 0;
+      for (const elem of list) {
+        result += elem;
+      }
+      return result / list.length;
+    }
+
+    function p99(list: number[]): number {
+      list.sort();
+
+      const i = Math.round(list.length * 0.99);
+      return list[i];
+    }
+
+    return {
+      mean: {
+        duration: mean(this.durations),
+        hold: mean(this.holds),
+      },
+      p99: {
+        duration: p99(this.durations),
+        hold: p99(this.holds),
+      }
+    };
   }
 
   public generate(events: Input): Output {
