@@ -17,7 +17,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Number of sequences per batch
-BATCH_SIZE = 4096
+BATCH_SIZE = 256
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -28,7 +28,9 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.01
+LR = 0.0001
+
+AUTO = True
 
 #
 # Load dataset
@@ -66,11 +68,15 @@ model = Model(training=training)
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
 
-output = model.build(holds, codes, deltas, sequence_lens)
-t_metrics = model.get_proxy_loss(output, categories, category_count,
-    category_mask, tf.cast(global_step_t, dtype=tf.float32))
-t_val_metrics = model.get_proxy_val_metrics(output, categories,
-    category_count, category_mask)
+output = model.build(holds, codes, deltas, sequence_lens, auto=AUTO)
+if AUTO:
+  t_metrics = model.get_auto_loss(holds, deltas, output)
+  t_val_metrics = t_metrics
+else:
+  t_metrics = model.get_proxy_loss(output, categories, category_count,
+      category_mask, tf.cast(global_step_t, dtype=tf.float32))
+  t_val_metrics = model.get_proxy_val_metrics(output, categories,
+      category_count, category_mask)
 
 #
 # Initialize optimizer

@@ -50,6 +50,15 @@ class Model():
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
         num_units=RNN_WIDTH)
 
+    self.rnn_rev_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_rev_cell',
+        num_units=RNN_WIDTH)
+
+    # Just to convert rnn_rev output into holds+deltas
+    self.post_rev = tf.layers.Dense(name='dense_post_rev',
+                                    units=2,
+                                    activation=tf.nn.relu,
+                                    kernel_regularizer=self.l2)
+
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
     self.post_rnn_dropout = tf.keras.layers.Dropout(name='post_rnn_dropout',
@@ -89,9 +98,9 @@ class Model():
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
     series = self.input_dropout(series, training=self.training)
 
-    return series
+    return series, embedding
 
-  def build(self, holds, codes, deltas, sequence_len = None):
+  def build(self, holds, codes, deltas, sequence_len=None, auto=False):
     batch_size = tf.shape(codes)[0]
     max_sequence_len = int(codes.shape[1])
     if sequence_len is None:
@@ -99,20 +108,32 @@ class Model():
           shape=(1,))
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
-    series = self.apply_embedding(holds, codes, deltas)
+    series, embedding = self.apply_embedding(holds, codes, deltas)
     series = tf.unstack(series, axis=1, name='unstacked_series')
 
-    outputs, _ = tf.nn.static_rnn(
+    outputs, state = tf.nn.static_rnn(
           cell=self.rnn_cell,
           dtype=tf.float32,
           inputs=series)
+
+    if auto:
+      embedding = tf.unstack(embedding, axis=1, name='unstacked_embedding')
+      outputs, _ = tf.nn.static_rnn(
+            cell=self.rnn_rev_cell,
+            dtype=tf.float32,
+            inputs=embedding,
+            initial_state=state)
+      outputs = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
+      outputs = self.post_rev(outputs)
+      return outputs
+
     outputs = tf.stack(outputs, axis=1, name='stacked_outputs')
 
     # [ batch, sequence_len ]
     last_output_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
         dtype=tf.float32)
 
-    if self.use_gaussian_pooling:
+    if self.use_gaussian_pooling and not auto:
       # [ 1, sequence_len ]
       indices = tf.expand_dims(tf.range(max_sequence_len), axis=0,
           name='sequence_indices')
@@ -304,3 +325,19 @@ class Model():
         dtype=tf.float32)
     result = tf.math.l2_normalize(result, axis=-1)
     return result
+
+  def get_auto_loss(self, holds, deltas, outputs):
+    with tf.name_scope('auto_loss', [ holds, deltas, outputs ]):
+      holds = tf.expand_dims(holds, axis=-1, name='auto_holds')
+      deltas = tf.expand_dims(deltas, axis=-1, name='auto_deltas')
+      times = tf.concat([ holds, deltas ], axis=-1, name='auto_times')
+
+      # Mean Square Loss
+      loss = 1.0 / 2.0 * tf.reduce_sum((times - outputs) ** 2.0, axis=-1)
+      loss = tf.reduce_mean(loss, axis=-1)
+
+      max_loss_i = tf.argmax(loss, axis=0)
+
+      metrics = {}
+      metrics['loss'] = tf.reduce_mean(loss, name='auto_loss')
+      return metrics

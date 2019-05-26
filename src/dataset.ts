@@ -28,6 +28,9 @@ export type Output = ReadonlyArray<Sequence>;
 
 type IntermediateEntry = 'reset' | 'invalid' | ISequenceElem;
 
+const MAX_DURATION = 5;
+const MAX_HOLD = 5;
+
 export class Dataset {
   private readonly lowSentences: ReadonlyArray<string>;
   private readonly lowSentenceSet: ReadonlySet<string>;
@@ -66,11 +69,29 @@ export class Dataset {
         }
       }
 
-      if (found) {
-        out.push(seq);
-      } else {
+      if (!found) {
         console.error(name, sentence);
+        continue;
       }
+
+      let maxDuration: number = 0;
+      let maxHold: number = 0;
+      for (const event of seq) {
+        maxDuration = Math.max(event.duration, maxDuration);
+        maxHold = Math.max(event.hold, maxHold);
+      }
+
+      if (maxDuration > MAX_DURATION) {
+        console.error('Duration limit hit', name, sentence, maxDuration);
+        continue;
+      }
+
+      if (maxDuration > MAX_HOLD) {
+        console.error('Hold limit hit', name, sentence, maxHold);
+        continue;
+      }
+
+      out.push(seq);
     }
     return out;
   }
