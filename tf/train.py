@@ -28,7 +28,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.001
+LR = 0.1
 
 AUTO = True
 
@@ -85,7 +85,9 @@ else:
 with tf.variable_scope('optimizer'):
   t_lr = tf.constant(LR, dtype=tf.float32)
   if AUTO:
-    t_lr /= 10.0 ** tf.floor(tf.cast(global_step_t, dtype=tf.float32) / 10000.0)
+    power = tf.floor(tf.cast(global_step_t, dtype=tf.float32) / 10000.0)
+    power = tf.minimum(3.0, power)
+    t_lr /= 10.0 ** power
     t_metrics['lr'] = t_lr
   optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
   t_reg_loss = tf.losses.get_regularization_loss()
