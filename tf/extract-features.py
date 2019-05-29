@@ -1,6 +1,7 @@
 import sys
 import logging
 import json
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -12,6 +13,7 @@ from model import Model
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 SEED = 0x37255c25
+AUTO = os.environ.get('GRADTYPE_AUTO') is 'on'
 
 model = Model(training=False)
 
@@ -22,7 +24,8 @@ p_holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 p_deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 p_sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 
-output = model.build(p_holds, p_codes, p_deltas, p_sequence_lens)
+output = model.build(p_holds, p_codes, p_deltas, p_sequence_lens,
+    auto=AUTO)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 
