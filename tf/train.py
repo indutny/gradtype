@@ -28,7 +28,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.0001
+LR = 0.001
 
 AUTO = True
 

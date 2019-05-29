@@ -11,6 +11,8 @@ INPUT_DROPOUT = 0.0
 POST_RNN_DROPOUT = 0.0
 NOISE_LEVEL = 0.0
 
+AUTO_POST_WIDTH = [ 128 ]
+
 DENSE_L2 = 0.0
 
 GAUSSIAN_POOLING_VAR = 1.0
@@ -69,6 +71,14 @@ class Model():
                                          activation=tf.nn.relu,
                                          kernel_regularizer=self.l2)
 
+    self.auto_post = []
+    for i, width in enumerate(AUTO_POST_WIDTH):
+      dense = tf.layers.Dense(name='auto_post_{}'.format(i),
+                              units=width,
+                              activation=tf.nn.relu,
+                              kernel_regularizer=self.l2)
+      self.auto_post.append({ 'dense': dense })
+
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
       dense = tf.layers.Dense(name='dense_post_{}'.format(i),
@@ -124,9 +134,8 @@ class Model():
             inputs=embedding,
             initial_state=state)
       x = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
-      for entry in self.post:
+      for entry in self.auto_post:
         x = entry['dense'](x)
-        x = entry['dropout'](x, training=self.training)
       x = self.post_rev(x)
       return x
 
