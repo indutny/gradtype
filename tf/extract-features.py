@@ -13,7 +13,7 @@ from model import Model
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 SEED = 0x37255c25
-AUTO = os.environ.get('GRADTYPE_AUTO') is 'on'
+AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 model = Model(training=False)
 
@@ -89,6 +89,14 @@ with tf.Session() as sess:
   def nd_to_list(arr):
     return [ float(x) for x in arr ]
 
+  def features_to_list(arr):
+    if GRADTYPE_AUTO:
+      out = []
+      for event in arr:
+        out.append({ 'hold': event[0], 'duration': event[1] })
+      return out
+    return nd_to_list(arr)
+
   train_out = []
   for seq in train_dataset:
     train_out.append({
@@ -98,7 +106,7 @@ with tf.Session() as sess:
       'deltas': nd_to_list(seq['deltas']),
       'holds': nd_to_list(seq['holds']),
       'sequence_len': seq['sequence_len'],
-      'features': nd_to_list(features[0]),
+      'features': features_to_list(features[0]),
     })
     features = features[1:]
 
@@ -111,7 +119,7 @@ with tf.Session() as sess:
       'deltas': nd_to_list(seq['deltas']),
       'holds': nd_to_list(seq['holds']),
       'sequence_len': seq['sequence_len'],
-      'features': nd_to_list(features[0]),
+      'features': features_to_list(features[0]),
     })
     features = features[1:]
 
