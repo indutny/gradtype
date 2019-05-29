@@ -19,6 +19,9 @@ VALIDATE_CATEGORY_PERCENT = 0.5
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
+# Percent of adversarials
+ADVERSARIAL_PERCENT = 0.10
+
 NORMALIZE = False
 
 def load_labels():
@@ -287,16 +290,14 @@ def shuffle_uniform(dataset, validate=False):
       # In each category do random permutation
       perm = category_perm[category_i]
       if len(perm) == 0:
-        perm_size = len(category)
-        if not validate:
-          perm_size *= 2
-        perm = np.random.permutation(perm_size)
+        perm = np.random.permutation(len(category))
         category_perm[category_i] = perm
 
-      if perm[0] < len(category):
+      seq = perm[0]
+      if validate or np.random.rand() > ADVERSARIAL_PERCENT:
         yield category[perm[0]]
       else:
-        yield gen_adversary(category[perm[0] - len(category)])
+        yield gen_adversary(category[perm[0]])
       perm = perm[1:]
       if len(perm) == 0:
         complete[category_i] = True
