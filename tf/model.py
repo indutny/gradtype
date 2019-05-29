@@ -248,6 +248,13 @@ class Model():
       ratio = exp_pos / (exp_pos + total_exp_neg + epsilon)
 
       loss = -tf.log(ratio + epsilon, name='loss_vector')
+
+      # Anneal adversarials too
+      is_adversarial = categories < 0
+      adversarial_anneal = tf.cast(is_adversarial, dtype=tf.float32) * \
+          (anneal_lambda - 1.0) + 1.0
+      loss *= adversarial_anneal
+
       loss = tf.reduce_mean(loss, name='loss')
 
       metrics['loss'] = loss
