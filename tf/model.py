@@ -146,11 +146,11 @@ class Model():
       dist = 1.0 - cos
       return cos, dist
 
-    # Flip proxies for adversarials
+    # Zero proxies for adversarials
     positives *= tf.expand_dims(
-        2.0 * (0.5 - tf.cast(is_adversarial, dtype=tf.float32)),
+        (1.0 - tf.cast(is_adversarial, dtype=tf.float32)),
         axis=-1,
-        name='adv_flip')
+        name='zero_adversarial')
 
     positive_distances, positive_metrics = cosine(positives, output)
     negative_distances, negative_metrics = cosine(negatives, \
