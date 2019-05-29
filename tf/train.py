@@ -17,7 +17,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Number of sequences per batch
-BATCH_SIZE = 4096
+BATCH_SIZE = 32
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -44,7 +44,7 @@ category_count = loaded['category_count']
 train_batches_gen = dataset.gen_regression(train_dataset,
     batch_size=BATCH_SIZE)
 validate_batches = next(
-    dataset.gen_regression(validate_dataset, batch_size=None))
+    dataset.gen_regression(validate_dataset, batch_size=None, validate=True))
 
 #
 # Initialize model

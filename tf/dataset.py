@@ -54,12 +54,23 @@ def load_sequence(f, category, label):
     deltas /= max_delta
     holds /= max_delta
 
+  delta_var = np.var(deltas)
+  delta_mean = np.mean(deltas)
+  hold_var = np.var(holds)
+  hold_mean = np.mean(holds)
+
   return {
     'category': category,
     'label': label,
     'codes': codes,
     'holds': holds,
-    'deltas': deltas
+    'deltas': deltas,
+
+    # Adversary settings
+    'delta_var': delta_var,
+    'delta_mean': delta_mean,
+    'hold_var': hold_var,
+    'hold_mean': hold_mean,
   }
 
 def load(mode='triplet', overlap=None, train_overlap=None,
@@ -245,7 +256,18 @@ def flatten_dataset(dataset, k=None, random_state=None):
 
   return sequences
 
-def shuffle_uniform(dataset):
+def gen_adversary(seq):
+  count = len(seq['codes'])
+  return {
+    'category': -1 - seq['category'],
+    'label': seq['label'] + '-adv',
+    'codes': seq['codes'],
+    'holds': np.random.normal(seq['hold_mean'], seq['hold_var'], count),
+    'deltas': np.random.normal(seq['delta_mean'], seq['delta_var'], count),
+    'sequence_len': seq['sequence_len'],
+  }
+
+def shuffle_uniform(dataset, validate=False):
   # Permutations within each category
   category_perm = [ [] for cat in dataset ]
 
@@ -265,17 +287,23 @@ def shuffle_uniform(dataset):
       # In each category do random permutation
       perm = category_perm[category_i]
       if len(perm) == 0:
-        perm = np.random.permutation(len(category))
+        perm_size = len(category)
+        if not validate:
+          perm_size *= 2
+        perm = np.random.permutation(perm_size)
         category_perm[category_i] = perm
 
-      yield category[perm[0]]
+      if perm[0] < len(category):
+        yield category[perm[0]]
+      else:
+        yield gen_adversary(category[perm[0] - len(category)])
       perm = perm[1:]
       if len(perm) == 0:
         complete[category_i] = True
 
       category_perm[category_i] = perm
 
-def gen_regression(dataset, batch_size):
+def gen_regression(dataset, batch_size, validate=False):
   total = sum([ len(cat) for cat in dataset ])
   if batch_size is None:
     batch_size = total
@@ -283,7 +311,7 @@ def gen_regression(dataset, batch_size):
     pad = batch_size - (total % batch_size)
     total += pad
 
-  shuffle = shuffle_uniform(dataset)
+  shuffle = shuffle_uniform(dataset, validate=validate)
   while True:
     batches = []
     for _ in range(0, total, batch_size):
@@ -297,7 +325,7 @@ def gen_regression(dataset, batch_size):
         try:
           seq = next(shuffle)
         except StopIteration:
-          shuffle = shuffle_uniform(dataset)
+          shuffle = shuffle_uniform(dataset, validate=validate)
           seq = next(shuffle)
 
         categories.append(seq['category'])

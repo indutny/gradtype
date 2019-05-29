@@ -164,11 +164,14 @@ class Model():
 
   def get_proxy_common(self, proxies, output, categories, category_count, \
       category_mask):
-    positives = tf.gather(proxies, categories, axis=0,
+    is_adversarial = categories < 0
+    definite_categories = tf.where(is_adversarial, -1 - categories, categories,
+        name='definite_categories')
+    positives = tf.gather(proxies, definite_categories, axis=0,
         name='positive_proxies')
 
-    negative_masks = tf.one_hot(categories, category_count, on_value=False,
-        off_value=True, name='negative_mask')
+    negative_masks = tf.one_hot(definite_categories, category_count,
+        on_value=False, off_value=True, name='negative_mask')
     negative_masks = tf.logical_and(negative_masks, \
         tf.expand_dims(category_mask, axis=0))
 
@@ -185,9 +188,19 @@ class Model():
       dist = 1.0 - cos
       return cos, dist
 
+    # Flip proxies for adversarials
+    positives *= tf.expand_dims(
+        2.0 * (0.5 - tf.cast(is_adversarial, dtype=tf.float32)),
+        axis=-1,
+        name='adv_flip')
+
     positive_distances, positive_metrics = cosine(positives, output)
     negative_distances, negative_metrics = cosine(negatives, \
         tf.expand_dims(output, axis=1))
+
+    positive_metrics = tf.boolean_mask(positive_metrics,
+        tf.logical_not(is_adversarial),
+        axis=0, name='definite_positive_metrics')
 
     metrics = {}
     for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
