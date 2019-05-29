@@ -56,7 +56,7 @@ class Model():
     # Just to convert rnn_rev output into holds+deltas
     self.post_rev = tf.layers.Dense(name='dense_post_rev',
                                     units=2,
-                                    activation=tf.nn.relu,
+                                    activation=tf.relu,
                                     kernel_regularizer=self.l2)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
@@ -338,25 +338,21 @@ class Model():
       pred_holds, pred_deltas = tf.split(outputs, [ 1, 1 ], axis=-1)
 
       # Mean Square Loss
-      loss = 1.0 / 2.0 * tf.reduce_sum((outputs - times) ** 2.0, axis=-1)
-      loss = tf.reduce_sum(loss, axis=-1)
-      loss = tf.reduce_mean(loss)
+      hold_loss = tf.reduce_sum((pred_holds - holds) ** 2.0, axis=-1)
+      delta_loss = tf.reduce_sum((pred_deltas - deltas) ** 2.0, axis=-1)
 
-      epsilon = 1e-13
-      mean_hold = tf.reduce_mean(tf.reduce_mean(holds, axis=-1), axis=-1) + \
-          epsilon
-      mean_delta = tf.reduce_mean(tf.reduce_mean(deltas, axis=-1), axis=-1) + \
-          epsilon
-      mean_hold = tf.expand_dims(tf.expand_dims(mean_hold, axis=-1), axis=-1)
-      mean_delta = tf.expand_dims(tf.expand_dims(mean_delta, axis=-1), axis=-1)
+      hold_loss = tf.reduce_sum(hold_loss, axis=-1)
+      delta_loss = tf.reduce_sum(delta_loss, axis=-1)
+      hold_loss = tf.reduce_mean(hold_loss)
+      delta_loss = tf.reduce_mean(delta_loss)
 
-      hold_mean, hold_var = tf.nn.moments(pred_holds / mean_hold, [ 1, 2 ])
-      delta_mean, delta_var = tf.nn.moments(pred_deltas / mean_delta, [ 1, 2 ])
+      loss = 1.0 / 2.0 * (hold_loss + delta_loss)
+
+      hold_diff = tf.sqrt(hold_loss) / (tf.reduce_mean(holds) + 1e-23)
+      delta_diff = tf.sqrt(delta_loss) / (tf.reduce_mean(deltas) + 1e-23)
 
       metrics = {}
       metrics['loss'] = loss
-      metrics['hold_mean'] = tf.reduce_mean(hold_mean)
-      metrics['hold_var'] = tf.reduce_mean(hold_var)
-      metrics['delta_mean'] = tf.reduce_mean(delta_mean)
-      metrics['delta_var'] = tf.reduce_mean(delta_var)
+      metrics['hold_diff'] = hold_diff
+      metrics['delta_diff'] = delta_diff
       return metrics
