@@ -17,7 +17,7 @@ LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Number of sequences per batch
-BATCH_SIZE = 32
+BATCH_SIZE = 4096
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
