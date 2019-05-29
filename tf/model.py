@@ -56,7 +56,7 @@ class Model():
     # Just to convert rnn_rev output into holds+deltas
     self.post_rev = tf.layers.Dense(name='dense_post_rev',
                                     units=2,
-                                    activation=tf.relu,
+                                    activation=tf.nn.relu,
                                     kernel_regularizer=self.l2)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
