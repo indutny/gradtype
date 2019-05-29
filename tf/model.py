@@ -352,6 +352,6 @@ class Model():
 
       metrics = {}
       metrics['loss'] = loss
-      metrics['hold_var'] = hold_var
-      metrics['delta_var'] = delta_var
+      metrics['hold_var'] = tf.reduce_mean(hold_var)
+      metrics['delta_var'] = tf.reduce_mean(delta_var)
       return metrics
