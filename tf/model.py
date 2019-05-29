@@ -13,9 +13,6 @@ NOISE_LEVEL = 0.0
 
 DENSE_L2 = 0.001
 
-GAUSSIAN_POOLING_VAR = 1.0
-GAUSSIAN_POOLING_LEN_DELTA = 3.0
-
 RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.2) ]
 FEATURE_COUNT = 32
@@ -39,7 +36,6 @@ class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
-    self.use_gaussian_pooling = False
     self.use_sphereface = False
 
     self.margin = 0.35
@@ -112,45 +108,7 @@ class Model():
     last_output_mask = tf.one_hot(sequence_len - 1, max_sequence_len,
         dtype=tf.float32)
 
-    if self.use_gaussian_pooling:
-      # [ 1, sequence_len ]
-      indices = tf.expand_dims(tf.range(max_sequence_len), axis=0,
-          name='sequence_indices')
-
-      # [ batch, sequence_len ]
-      mask = tf.cast(indices < tf.expand_dims(sequence_len, axis=-1),
-          dtype=tf.float32,
-          name='pre_mask')
-
-      # [ batch ]
-      len_delta = tf.random.uniform(
-          (batch_size,),
-          -GAUSSIAN_POOLING_LEN_DELTA,
-          GAUSSIAN_POOLING_LEN_DELTA,
-          name='len_delta')
-
-      # [ batch, 1 ]
-      random_len = tf.expand_dims(
-          tf.cast(sequence_len, dtype=tf.float32) - 1.0 - len_delta,
-          axis=-1,
-          name='random_len')
-
-      # [ batch, sequence_len ]
-      gauss_x = (tf.cast(indices, dtype=tf.float32) - random_len) ** 2.0
-      gauss_x /= 2.0 * (GAUSSIAN_POOLING_VAR ** 2)
-
-      mask *= tf.exp(-gauss_x, name='gaussian_pre_mask')
-      mask /= tf.reduce_sum(mask, axis=-1, keepdims=True,
-          name='gaussian_mask_norm')
-
-      mask = tf.where(self.training, mask, last_output_mask)
-    else:
-      mask = last_output_mask
-
-    mask = tf.expand_dims(mask, axis=-1, name='last_mask')
-
-    x = tf.reduce_sum(outputs * mask, axis=1,
-        name='last_output')
+    x = tf.reduce_mean(outputs, axis=1, name='avg_output')
     x = self.post_rnn_dropout(x, training=self.training)
 
     for entry in self.post:
