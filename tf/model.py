@@ -56,7 +56,7 @@ class Model():
     # Just to convert rnn_rev output into holds+deltas
     self.post_rev = tf.layers.Dense(name='dense_post_rev',
                                     units=2,
-                                    activation=tf.exp,
+                                    activation=tf.relu,
                                     kernel_regularizer=self.l2)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
@@ -123,9 +123,12 @@ class Model():
             dtype=tf.float32,
             inputs=embedding,
             initial_state=state)
-      outputs = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
-      outputs = self.post_rev(outputs)
-      return outputs
+      x = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
+      for entry in self.post:
+        x = entry['dense'](x)
+        x = entry['dropout'](x, training=self.training)
+      x = self.post_rev(x)
+      return x
 
     outputs = tf.stack(outputs, axis=1, name='stacked_outputs')
 
@@ -335,20 +338,20 @@ class Model():
       pred_holds, pred_deltas = tf.split(outputs, [ 1, 1 ], axis=-1)
 
       # Mean Square Loss
-      hold_loss = 1.0 / 2.0 * \
-          tf.reduce_sum((pred_holds - holds) ** 2.0, axis=-1)
-      delta_loss = 1.0 / 2.0 * \
-          tf.reduce_sum((pred_deltas - deltas) ** 2.0, axis=-1)
+      loss = 1.0 / 2.0 * tf.reduce_sum((outputs - times) ** 2.0, axis=-1)
+      loss = tf.reduce_sum(loss, axis=-1)
+      loss = tf.reduce_mean(loss)
 
-      hold_loss = tf.reduce_sum(hold_loss, axis=-1)
-      delta_loss = tf.reduce_sum(delta_loss, axis=-1)
-      hold_loss = tf.reduce_mean(hold_loss)
-      delta_loss = tf.reduce_mean(delta_loss)
+      epsilon = 1e-23
 
-      loss = hold_loss + delta_loss
+      hold_perc = pred_holds / (holds + epsilon)
+      delta_perc = pred_deltas / (deltas + epsilon)
+
+      _, hold_var = tf.nn.moments(hold_perc, [ 1, 2 ])
+      _, delta_var = tf.nn.moments(delta_perc, [ 1, 2 ])
 
       metrics = {}
       metrics['loss'] = loss
-      metrics['hold_loss'] = hold_loss
-      metrics['delta_loss'] = delta_loss
+      metrics['hold_var'] = hold_var
+      metrics['delta_var'] = delta_var
       return metrics
