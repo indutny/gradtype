@@ -56,7 +56,7 @@ class Model():
     # Just to convert rnn_rev output into holds+deltas
     self.post_rev = tf.layers.Dense(name='dense_post_rev',
                                     units=2,
-                                    activation=tf.nn.relu,
+                                    activation=tf.exp,
                                     kernel_regularizer=self.l2)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
@@ -332,12 +332,23 @@ class Model():
       deltas = tf.expand_dims(deltas, axis=-1, name='auto_deltas')
       times = tf.concat([ holds, deltas ], axis=-1, name='auto_times')
 
-      # Mean Square Loss
-      loss = 1.0 / 2.0 * tf.reduce_sum((times - outputs) ** 2.0, axis=-1)
-      loss = tf.reduce_mean(loss, axis=-1)
+      pred_holds, pred_deltas = tf.split(outputs, [ 1, 1 ], axis=-1)
 
-      max_loss_i = tf.argmax(loss, axis=0)
+      # Mean Square Loss
+      hold_loss = 1.0 / 2.0 * \
+          tf.reduce_sum((pred_holds - holds) ** 2.0, axis=-1)
+      delta_loss = 1.0 / 2.0 * \
+          tf.reduce_sum((pred_deltas - deltas) ** 2.0, axis=-1)
+
+      hold_loss = tf.reduce_sum(hold_loss, axis=-1)
+      delta_loss = tf.reduce_sum(delta_loss, axis=-1)
+      hold_loss = tf.reduce_mean(hold_loss)
+      delta_loss = tf.reduce_mean(delta_loss)
+
+      loss = hold_loss + delta_loss
 
       metrics = {}
-      metrics['loss'] = tf.reduce_mean(loss, name='auto_loss')
+      metrics['loss'] = loss
+      metrics['hold_loss'] = hold_loss
+      metrics['delta_loss'] = delta_loss
       return metrics
