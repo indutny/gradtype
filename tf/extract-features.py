@@ -93,7 +93,7 @@ with tf.Session() as sess:
     if AUTO:
       out = []
       for event in arr:
-        out.append({ 'hold': event[0], 'duration': event[1] })
+        out.append({ 'hold': float(event[0]), 'duration': float(event[1]) })
       return out
     return nd_to_list(arr)
 
