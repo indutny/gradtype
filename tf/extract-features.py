@@ -90,7 +90,7 @@ with tf.Session() as sess:
     return [ float(x) for x in arr ]
 
   def features_to_list(arr):
-    if GRADTYPE_AUTO:
+    if AUTO:
       out = []
       for event in arr:
         out.append({ 'hold': event[0], 'duration': event[1] })
