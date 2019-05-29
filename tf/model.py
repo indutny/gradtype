@@ -343,14 +343,18 @@ class Model():
       loss = tf.reduce_mean(loss)
 
       epsilon = 1e-13
-      mean_hold = tf.reduce_mean(holds, axis=-1, keepdims=True) + epsilon
-      mean_delta = tf.reduce_mean(deltas, axis=-1, keepdims=True) + epsilon
+      mean_hold = tf.reduce_mean(tf.reduce_mean(holds, axis=-1), axis=-1) + \
+          epsilon
+      mean_delta = tf.reduce_mean(tf.reduce_mean(deltas, axis=-1), axis=-1) + \
+          epsilon
+      mean_hold = tf.expand_dims(tf.expand_dims(mean_hold, axis=-1), axis=-1)
+      mean_delta = tf.expand_dims(tf.expand_dims(mean_delta, axis=-1), axis=-1)
 
-      _, hold_var = tf.nn.moments(pred_holds, [ 1, 2 ])
-      _, delta_var = tf.nn.moments(pred_deltas, [ 1, 2 ])
+      _, hold_var = tf.nn.moments(pred_holds / mean_hold, [ 1, 2 ])
+      _, delta_var = tf.nn.moments(pred_deltas / mean_delta, [ 1, 2 ])
 
       metrics = {}
       metrics['loss'] = loss
-      metrics['hold_var'] = tf.reduce_mean(hold_var / mean_hold)
-      metrics['delta_var'] = tf.reduce_mean(delta_var / mean_delta)
+      metrics['hold_var'] = tf.reduce_mean(hold_var)
+      metrics['delta_var'] = tf.reduce_mean(delta_var)
       return metrics
