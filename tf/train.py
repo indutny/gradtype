@@ -12,13 +12,12 @@ RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = 'gradtype'
 RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
-AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Number of sequences per batch
-BATCH_SIZE = 256 if AUTO else 4096
+BATCH_SIZE = 4096
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -29,7 +28,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.001 if AUTO else 0.01
+LR = 0.01
 
 #
 # Load dataset
@@ -65,15 +64,9 @@ category_mask = tf.placeholder(tf.bool, shape=(category_count,),
 model = Model(training=training)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
-global_auto_step_t = tf.Variable(0, trainable=False, name='global_auto_step')
 update_global_step_t = global_step_t.assign_add(1)
-update_global_auto_step_t = global_auto_step_t.assign_add(1)
 
-output = model.build(holds, codes, deltas, sequence_lens, auto=False)
-auto_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
-
-t_auto_metrics = model.get_auto_loss(holds, deltas, auto_output)
-t_auto_val_metrics = model.get_auto_loss(holds, deltas, auto_output)
+output = model.build(holds, codes, deltas, sequence_lens)
 
 t_metrics = model.get_proxy_loss(output, categories, category_count,
     category_mask, tf.cast(global_step_t, dtype=tf.float32))
@@ -86,18 +79,11 @@ t_val_metrics = model.get_proxy_val_metrics(output, categories,
 
 with tf.variable_scope('optimizer'):
   t_lr = tf.constant(LR, dtype=tf.float32)
-  if AUTO:
-    power = tf.floor(tf.cast(global_auto_step_t, dtype=tf.float32) / 50000.0)
-    power = tf.minimum(3.0, power)
-    t_lr /= 10.0 ** power
-    t_metrics['lr'] = t_lr
 
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
-  t_auto_loss = t_auto_metrics['loss'] + t_reg_loss
 
   t_metrics['regularization_loss'] = t_reg_loss
-  t_auto_metrics['regularization_loss'] = t_reg_loss
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
@@ -109,19 +95,10 @@ with tf.variable_scope('optimizer'):
     grads = list(zip(grads, variables))
     t_metrics['grad_norm'] = t_grad_norm
 
-    optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
+    optimizer = tf.train.AdamOptimizer(t_lr)
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train = get_train(t_loss, t_metrics)
-  auto_train = get_train(t_auto_loss, t_auto_metrics)
-
-if AUTO:
-  t_metrics = t_auto_metrics
-  t_val_metrics = t_auto_val_metrics
-  train = auto_train
-
-  global_step_t = global_auto_step_t
-  update_global_step_t = update_global_auto_step_t
 
 #
 # TensorBoard

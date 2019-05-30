@@ -13,7 +13,6 @@ from model import Model
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 SEED = 0x37255c25
-AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 model = Model(training=False)
 
@@ -24,8 +23,7 @@ p_holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 p_deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
 p_sequence_lens = tf.placeholder(tf.int32, shape=(None,), name='sequence_lens')
 
-output = model.build(p_holds, p_codes, p_deltas, p_sequence_lens,
-    auto=AUTO)
+output = model.build(p_holds, p_codes, p_deltas, p_sequence_lens)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 
@@ -90,11 +88,6 @@ with tf.Session() as sess:
     return [ float(x) for x in arr ]
 
   def features_to_list(arr):
-    if AUTO:
-      out = []
-      for event in arr:
-        out.append({ 'hold': float(event[0]), 'duration': float(event[1]) })
-      return out
     return nd_to_list(arr)
 
   train_out = []
