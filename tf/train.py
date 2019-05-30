@@ -69,7 +69,7 @@ global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
 
 output = model.build(holds, codes, deltas, sequence_lens, auto=AUTO)
-if not auto:
+if not AUTO:
   aux_output = model.build(holds, codes, deltas, sequence_lens, auto=AUTO)
   aux_metrics = model.get_proxy_loss(aux_output, categories, category_count,
       category_mask, tf.cast(global_step_t, dtype=tf.float32))
