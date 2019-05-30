@@ -26,7 +26,7 @@ BATCH_SIZE = 4096
 
 SAVE_EVERY = 100
 
-ALTERNATE_EVERY = 1000
+ALTERNATE_EVERY = 250
 
 # Learning rate
 LR = 0.01
@@ -142,7 +142,7 @@ with tf.Session() as sess:
     print('Epoch {}, step {}'.format(epoch, step))
     start_time = time.time()
     for batch in train_batches:
-      alternate_rnn = ((step / ALTERNATE_EVERY) % 2) == 1
+      alternate_rnn = (int(step / ALTERNATE_EVERY) % 2) == 1
       tensors = [
           train_rnn if alternate_rnn else train_post,
           update_global_step_t,
