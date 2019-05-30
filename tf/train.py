@@ -30,7 +30,7 @@ SAVE_EVERY = 100
 # Learning rate
 LR = 0.001
 
-AUTO = True
+AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 #
 # Load dataset
