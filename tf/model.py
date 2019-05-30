@@ -11,8 +11,6 @@ INPUT_DROPOUT = 0.0
 POST_RNN_DROPOUT = 0.0
 NOISE_LEVEL = 0.0
 
-AUTO_POST_WIDTH = [ (256, 0.2), (128, 0.2), (64, 0.2) ]
-
 DENSE_L2 = 0.0
 
 GAUSSIAN_POOLING_VAR = 1.0
@@ -47,19 +45,11 @@ class Model():
     self.margin = 0.35
     self.radius = 9.2
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+    self.embedding = Embedding('rnn__embedding', dataset.MAX_CHAR + 2,
+        EMBED_WIDTH)
 
-    self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
+    self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='rnn__lstm_cell',
         num_units=RNN_WIDTH)
-
-    self.rnn_rev_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_rev_cell',
-        num_units=RNN_WIDTH)
-
-    # Just to convert rnn_rev output into holds+deltas
-    self.post_rev = tf.layers.Dense(name='dense_post_rev',
-                                    units=2,
-                                    activation=tf.nn.relu,
-                                    kernel_regularizer=self.l2)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
@@ -67,34 +57,23 @@ class Model():
         name='post_rnn_dropout',
         rate=POST_RNN_DROPOUT)
 
-    self.process_times = tf.layers.Dense(name='process_times',
+    self.process_times = tf.layers.Dense(name='rnn__process_times',
                                          units=TIMES_WIDTH,
                                          activation=tf.nn.relu,
                                          kernel_regularizer=self.l2)
 
-    self.auto_post = []
-    for i, (width, dropout) in enumerate(AUTO_POST_WIDTH):
-      dense = tf.layers.Dense(name='auto_post_{}'.format(i),
-                              units=width,
-                              activation=tf.nn.relu,
-                              kernel_regularizer=self.l2)
-      dropout = tf.keras.layers.Dropout(
-          name='dropout_auto_post_{}'.format(i),
-          rate=dropout)
-      self.auto_post.append({ 'dense': dense, 'dropout': dropout })
-
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
-      dense = tf.layers.Dense(name='dense_post_{}'.format(i),
+      dense = tf.layers.Dense(name='post__dense_post_{}'.format(i),
                               units=width,
                               activation=tf.nn.relu,
                               kernel_regularizer=self.l2)
       dropout = tf.keras.layers.Dropout(
-          name='dropout_post_{}'.format(i),
+          name='post__dropout_post_{}'.format(i),
           rate=dropout)
       self.post.append({ 'dense': dense, 'dropout': dropout })
 
-    self.features = tf.layers.Dense(name='features',
+    self.features = tf.layers.Dense(name='post__features',
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
@@ -115,7 +94,7 @@ class Model():
 
     return series, embedding
 
-  def build(self, holds, codes, deltas, sequence_len=None, auto=False):
+  def build(self, holds, codes, deltas, sequence_len=None):
     batch_size = tf.shape(codes)[0]
     max_sequence_len = int(codes.shape[1])
     if sequence_len is None:
@@ -130,23 +109,6 @@ class Model():
           cell=self.rnn_cell,
           dtype=tf.float32,
           inputs=series)
-
-    if auto:
-      state = tf.nn.rnn_cell.LSTMStateTuple(
-          c=self.post_rnn_dropout(state.c, training=self.training),
-          h=self.post_rnn_dropout(state.h, training=self.training))
-      embedding = tf.unstack(embedding, axis=1, name='unstacked_embedding')
-      outputs, _ = tf.nn.static_rnn(
-            cell=self.rnn_rev_cell,
-            dtype=tf.float32,
-            inputs=embedding,
-            initial_state=state)
-      x = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
-      for entry in self.auto_post:
-        x = entry['dense'](x)
-        x = entry['dropout'](x, training=self.training)
-      x = self.post_rev(x)
-      return x
 
     outputs = tf.stack(outputs, axis=1, name='stacked_outputs')
     x = tf.reduce_mean(outputs, axis=1, name='avg_output')
@@ -221,7 +183,7 @@ class Model():
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
       proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
           (category_count, FEATURE_COUNT,))
-      proxies = tf.get_variable('points',
+      proxies = tf.get_variable('rnn__post__points',
           trainable=True,
           initializer=proxies_init)
       proxies = tf.math.l2_normalize(proxies, axis=-1,
@@ -303,30 +265,3 @@ class Model():
         dtype=tf.float32)
     result = tf.math.l2_normalize(result, axis=-1)
     return result
-
-  def get_auto_loss(self, holds, deltas, outputs):
-    with tf.name_scope('auto_loss', [ holds, deltas, outputs ]):
-      pred_holds, pred_deltas = tf.split(outputs, [ 1, 1 ], axis=-1)
-      pred_holds = tf.squeeze(pred_holds, axis=-1)
-      pred_deltas = tf.squeeze(pred_deltas, axis=-1)
-
-      # Mean hold over sequence
-      hold_mean = tf.reduce_mean(holds, axis=-1, keepdims=True) + 1e-23
-      delta_mean = tf.reduce_mean(deltas, axis=-1, keepdims=True) + 1e-23
-
-      # Mean Square Loss
-      hold_loss = tf.reduce_mean(
-          ((pred_holds - holds) / hold_mean) ** 2.0, axis=-1)
-      delta_loss = tf.reduce_mean(
-          ((pred_deltas - deltas) / delta_mean) ** 2.0, axis=-1)
-
-      hold_loss = tf.reduce_mean(hold_loss)
-      delta_loss = tf.reduce_mean(delta_loss)
-
-      loss = 1.0 / 2.0 * (hold_loss + delta_loss)
-
-      metrics = {}
-      metrics['loss'] = loss
-      metrics['hold_loss'] = hold_loss
-      metrics['delta_loss'] = delta_loss
-      return metrics
