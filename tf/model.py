@@ -11,7 +11,7 @@ INPUT_DROPOUT = 0.0
 POST_RNN_DROPOUT = 0.0
 NOISE_LEVEL = 0.0
 
-AUTO_POST_WIDTH = [ 128 ]
+AUTO_POST_WIDTH = [ (256, 0.2), (128, 0.2), (64, 0.2) ]
 
 DENSE_L2 = 0.0
 
@@ -72,12 +72,14 @@ class Model():
                                          kernel_regularizer=self.l2)
 
     self.auto_post = []
-    for i, width in enumerate(AUTO_POST_WIDTH):
+    for i, (width, dropout) in enumerate(AUTO_POST_WIDTH):
       dense = tf.layers.Dense(name='auto_post_{}'.format(i),
                               units=width,
                               activation=tf.nn.relu,
                               kernel_regularizer=self.l2)
-      self.auto_post.append({ 'dense': dense })
+      dropout = tf.keras.layers.Dropout(name='dropout_auto_post_{}'.format(i),
+                              rate=dropout)
+      self.auto_post.append({ 'dense': dense, 'dropout': dropout })
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
@@ -139,6 +141,7 @@ class Model():
       x = tf.stack(outputs, axis=1, name='stacked_rev_outputs')
       for entry in self.auto_post:
         x = entry['dense'](x)
+        x = entry['dropout'](x, training=self.training)
       x = self.post_rev(x)
       return x
 
