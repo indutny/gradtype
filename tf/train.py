@@ -12,12 +12,13 @@ RUN_NAME = os.environ.get('GRADTYPE_RUN')
 if RUN_NAME is None:
   RUN_NAME = 'gradtype'
 RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
+AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # Number of sequences per batch
-BATCH_SIZE = 256
+BATCH_SIZE = 256 if AUTO else 4096
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -29,8 +30,6 @@ SAVE_EVERY = 100
 
 # Learning rate
 LR = 0.001
-
-AUTO = os.environ.get('GRADTYPE_AUTO') == 'on'
 
 #
 # Load dataset
