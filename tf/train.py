@@ -29,7 +29,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.001
+LR = 0.001 if AUTO else 0.01
 
 #
 # Load dataset
