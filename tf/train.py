@@ -72,6 +72,7 @@ output = model.build(holds, codes, deltas, sequence_lens, auto=False)
 auto_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
 
 t_auto_metrics = model.get_auto_loss(holds, deltas, auto_output)
+t_auto_val_metrics = model.get_auto_loss(holds, deltas, auto_output)
 
 t_metrics = model.get_proxy_loss(output, categories, category_count,
     category_mask, tf.cast(global_step_t, dtype=tf.float32))
@@ -95,6 +96,9 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
   t_auto_loss = t_auto_metrics['loss'] + t_reg_loss
 
+  t_metrics['regularization_loss'] = t_reg_loss
+  t_auto_metrics['regularization_loss'] = t_reg_loss
+
   variables = tf.trainable_variables()
   def get_train(loss, t_metrics):
     unclipped_grads = tf.gradients(t_loss, variables)
@@ -103,6 +107,7 @@ with tf.variable_scope('optimizer'):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = list(zip(grads, variables))
+    t_metrics['grad_norm'] = t_grad_norm
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train = get_train(t_loss, t_metrics)
@@ -110,7 +115,7 @@ with tf.variable_scope('optimizer'):
 
 if AUTO:
   t_metrics = t_auto_metrics
-  t_val_metrics = t_metrics
+  t_val_metrics = t_auto_val_metrics
   train = auto_train
 
 #
@@ -151,8 +156,7 @@ with tf.Session() as sess:
     print('Epoch {}, step {}'.format(epoch, step))
     start_time = time.time()
     for batch in train_batches:
-      tensors = [ train, update_global_step_t, t_metrics, t_reg_loss,
-          t_grad_norm ]
+      tensors = [ train, update_global_step_t, t_metrics ]
       train_feed = {
           holds: batch['holds'],
           codes: batch['codes'],
@@ -163,7 +167,7 @@ with tf.Session() as sess:
           training: True,
         }
       try:
-        _, _, metrics, reg_loss, grad_norm = sess.run(tensors,
+        _, _, metrics = sess.run(tensors,
             feed_dict=train_feed)
       except tf.errors.InvalidArgumentError:
         # Catch NaN and inf global norm
@@ -171,8 +175,6 @@ with tf.Session() as sess:
         for (grad, var) in zip(unclipped_grads, variables):
           print('{}: {}'.format(var.name, sess.run(tf.reduce_mean(grad), feed_dict=train_feed)))
         raise
-      metrics['regularization_loss'] = reg_loss
-      metrics['grad_norm'] = grad_norm
 
       step += 1
       log_summary('train', metrics, step)
