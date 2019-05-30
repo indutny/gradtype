@@ -98,7 +98,7 @@ with tf.variable_scope('optimizer'):
   t_auto_metrics['regularization_loss'] = t_reg_loss
 
   variables = tf.trainable_variables()
-  def get_train(loss, t_metrics):
+  def get_train(t_loss, t_metrics):
     unclipped_grads = tf.gradients(t_loss, variables)
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
     for (grad, var) in zip(unclipped_grads, variables):
