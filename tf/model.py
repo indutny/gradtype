@@ -127,6 +127,9 @@ class Model():
           inputs=series)
 
     if auto:
+      state = tf.nn.rnn_cell.LSTMStateTuple(
+          c=self.post_rnn_dropout(state.c, training=self.training),
+          h=self.post_rnn_dropout(state.h, training=self.training))
       embedding = tf.unstack(embedding, axis=1, name='unstacked_embedding')
       outputs, _ = tf.nn.static_rnn(
             cell=self.rnn_rev_cell,
@@ -340,28 +343,27 @@ class Model():
 
   def get_auto_loss(self, holds, deltas, outputs):
     with tf.name_scope('auto_loss', [ holds, deltas, outputs ]):
-      holds = tf.expand_dims(holds, axis=-1, name='auto_holds')
-      deltas = tf.expand_dims(deltas, axis=-1, name='auto_deltas')
-      times = tf.concat([ holds, deltas ], axis=-1, name='auto_times')
-
       pred_holds, pred_deltas = tf.split(outputs, [ 1, 1 ], axis=-1)
+      pred_holds = tf.squeeze(pred_holds, axis=-1)
+      pred_deltas = tf.squeeze(pred_deltas, axis=-1)
+
+      # Mean hold over sequence
+      hold_mean = tf.reduce_mean(holds, axis=-1) + 1e-23
+      delta_mean = tf.reduce_mean(deltas, axis=-1) + 1e-23
 
       # Mean Square Loss
-      hold_loss = tf.reduce_sum((pred_holds - holds) ** 2.0, axis=-1)
-      delta_loss = tf.reduce_sum((pred_deltas - deltas) ** 2.0, axis=-1)
+      hold_loss = tf.reduce_mean(
+          ((pred_holds - holds) / hold_mean) ** 2.0, axis=-1)
+      delta_loss = tf.reduce_mean(
+          ((pred_deltas - deltas) / delta_mean) ** 2.0, axis=-1)
 
-      hold_loss = tf.reduce_sum(hold_loss, axis=-1)
-      delta_loss = tf.reduce_sum(delta_loss, axis=-1)
       hold_loss = tf.reduce_mean(hold_loss)
       delta_loss = tf.reduce_mean(delta_loss)
 
       loss = 1.0 / 2.0 * (hold_loss + delta_loss)
 
-      hold_diff = tf.sqrt(hold_loss) / (tf.reduce_mean(holds) + 1e-23)
-      delta_diff = tf.sqrt(delta_loss) / (tf.reduce_mean(deltas) + 1e-23)
-
       metrics = {}
       metrics['loss'] = loss
-      metrics['hold_diff'] = hold_diff
-      metrics['delta_diff'] = delta_diff
+      metrics['hold_loss'] = hold_loss
+      metrics['delta_loss'] = delta_loss
       return metrics
