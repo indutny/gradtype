@@ -348,8 +348,8 @@ class Model():
       pred_deltas = tf.squeeze(pred_deltas, axis=-1)
 
       # Mean hold over sequence
-      hold_mean = tf.reduce_mean(holds, axis=-1) + 1e-23
-      delta_mean = tf.reduce_mean(deltas, axis=-1) + 1e-23
+      hold_mean = tf.reduce_mean(holds, axis=-1, keepdims=True) + 1e-23
+      delta_mean = tf.reduce_mean(deltas, axis=-1, keepdims=True) + 1e-23
 
       # Mean Square Loss
       hold_loss = tf.reduce_mean(
