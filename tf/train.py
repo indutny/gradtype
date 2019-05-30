@@ -89,7 +89,6 @@ with tf.variable_scope('optimizer'):
     power = tf.minimum(3.0, power)
     t_lr /= 10.0 ** power
     t_metrics['lr'] = t_lr
-  optimizer = tf.train.AdamOptimizer(t_lr)
 
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
@@ -107,6 +106,8 @@ with tf.variable_scope('optimizer'):
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = list(zip(grads, variables))
     t_metrics['grad_norm'] = t_grad_norm
+
+    optimizer = tf.train.AdamOptimizer(t_lr)
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train = get_train(t_loss, t_metrics)
