@@ -28,7 +28,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.01
+LR = 0.001
 
 AUTO = True
 
@@ -89,7 +89,7 @@ with tf.variable_scope('optimizer'):
     power = tf.minimum(3.0, power)
     t_lr /= 10.0 ** power
     t_metrics['lr'] = t_lr
-  optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
+  optimizer = tf.train.AdamOptimizer(t_lr)
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
   variables = tf.trainable_variables()
