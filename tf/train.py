@@ -98,7 +98,7 @@ with tf.variable_scope('optimizer'):
     grads = list(zip(grads, sub_vars))
     t_metrics['grad_norm'] = t_grad_norm
 
-    optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
+    optimizer = tf.train.AdamOptimizer(t_lr)
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train_rnn = get_train(t_loss, t_metrics, prefix='rnn__')
