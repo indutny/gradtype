@@ -61,9 +61,10 @@ class Model():
                                     activation=tf.nn.relu,
                                     kernel_regularizer=self.l2)
 
-    self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
+    self.input_dropout = tf.keras.layers.GaussianDropout(name='input_dropout',
         rate=INPUT_DROPOUT)
-    self.post_rnn_dropout = tf.keras.layers.Dropout(name='post_rnn_dropout',
+    self.post_rnn_dropout = tf.keras.layers.GaussianDropout(
+        name='post_rnn_dropout',
         rate=POST_RNN_DROPOUT)
 
     self.process_times = tf.layers.Dense(name='process_times',
@@ -77,8 +78,9 @@ class Model():
                               units=width,
                               activation=tf.nn.relu,
                               kernel_regularizer=self.l2)
-      dropout = tf.keras.layers.Dropout(name='dropout_auto_post_{}'.format(i),
-                              rate=dropout)
+      dropout = tf.keras.layers.GaussianDropout(
+          name='dropout_auto_post_{}'.format(i),
+          rate=dropout)
       self.auto_post.append({ 'dense': dense, 'dropout': dropout })
 
     self.post = []
@@ -87,8 +89,9 @@ class Model():
                               units=width,
                               activation=tf.nn.relu,
                               kernel_regularizer=self.l2)
-      dropout = tf.keras.layers.Dropout(name='dropout_post_{}'.format(i),
-                              rate=dropout)
+      dropout = tf.keras.layers.GaussianDropout(
+          name='dropout_post_{}'.format(i),
+          rate=dropout)
       self.post.append({ 'dense': dense, 'dropout': dropout })
 
     self.features = tf.layers.Dense(name='features',
