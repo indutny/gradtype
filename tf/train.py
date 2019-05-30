@@ -92,7 +92,8 @@ with tf.variable_scope('optimizer'):
     dropout = tf.keras.layers.Dropout(name='grad_dropout', rate=GRAD_DROPOUT)
     unclipped_grads = tf.gradients(t_loss, variables)
     unclipped_grads = [
-        dropout(g, training=True) if not 'lstm_cell' in v.name else g
+        dropout(g, training=True) \
+            if not 'lstm_cell' in v.name and 'kernel' in v.name else g
         for (g, v) in zip(unclipped_grads, variables) ]
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
     for (grad, var) in zip(unclipped_grads, variables):
