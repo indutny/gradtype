@@ -16,6 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
+GRAD_DROPOUT = 0.5
+
 # Number of sequences per batch
 BATCH_SIZE = 4096
 
@@ -87,7 +89,9 @@ with tf.variable_scope('optimizer'):
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
+    dropout = tf.keras.layers.Dropout(name='grad_dropout', rate=GRAD_DROPOUT)
     unclipped_grads = tf.gradients(t_loss, variables)
+    unclipped_grads = [ dropout(g, training=True) for g in unclipped_grads ]
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
     for (grad, var) in zip(unclipped_grads, variables):
       if not grad is None:
