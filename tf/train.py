@@ -73,6 +73,8 @@ if not auto:
   aux_output = model.build(holds, codes, deltas, sequence_lens, auto=AUTO)
   aux_metrics = model.get_proxy_loss(aux_output, categories, category_count,
       category_mask, tf.cast(global_step_t, dtype=tf.float32))
+else:
+  aux_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
 
 if AUTO:
   t_metrics = model.get_auto_loss(holds, deltas, output)
