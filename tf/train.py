@@ -65,7 +65,9 @@ category_mask = tf.placeholder(tf.bool, shape=(category_count,),
 model = Model(training=training)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
+global_auto_step_t = tf.Variable(0, trainable=False, name='global_auto_step')
 update_global_step_t = global_step_t.assign_add(1)
+update_global_auto_step_t = global_auto_step_t.assign_add(1)
 
 output = model.build(holds, codes, deltas, sequence_lens, auto=False)
 auto_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
@@ -85,7 +87,7 @@ t_val_metrics = model.get_proxy_val_metrics(output, categories,
 with tf.variable_scope('optimizer'):
   t_lr = tf.constant(LR, dtype=tf.float32)
   if AUTO:
-    power = tf.floor(tf.cast(global_step_t, dtype=tf.float32) / 50000.0)
+    power = tf.floor(tf.cast(global_auto_step_t, dtype=tf.float32) / 50000.0)
     power = tf.minimum(3.0, power)
     t_lr /= 10.0 ** power
     t_metrics['lr'] = t_lr
@@ -117,6 +119,9 @@ if AUTO:
   t_metrics = t_auto_metrics
   t_val_metrics = t_auto_val_metrics
   train = auto_train
+
+  global_step_t = global_auto_step_t
+  update_global_step_t = update_global_auto_step_t
 
 #
 # TensorBoard
