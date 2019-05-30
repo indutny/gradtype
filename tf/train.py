@@ -68,22 +68,15 @@ model = Model(training=training)
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
 
-output = model.build(holds, codes, deltas, sequence_lens, auto=AUTO)
-if AUTO:
-  aux_output = model.build(holds, codes, deltas, sequence_lens, auto=False)
-  aux_metrics = model.get_proxy_loss(aux_output, categories, category_count,
-      category_mask, tf.cast(global_step_t, dtype=tf.float32))
-else:
-  aux_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
+output = model.build(holds, codes, deltas, sequence_lens, auto=False)
+auto_output = model.build(holds, codes, deltas, sequence_lens, auto=True)
 
-if AUTO:
-  t_metrics = model.get_auto_loss(holds, deltas, output)
-  t_val_metrics = t_metrics
-else:
-  t_metrics = model.get_proxy_loss(output, categories, category_count,
-      category_mask, tf.cast(global_step_t, dtype=tf.float32))
-  t_val_metrics = model.get_proxy_val_metrics(output, categories,
-      category_count, category_mask)
+t_auto_metrics = model.get_auto_loss(holds, deltas, auto_output)
+
+t_metrics = model.get_proxy_loss(output, categories, category_count,
+    category_mask, tf.cast(global_step_t, dtype=tf.float32))
+t_val_metrics = model.get_proxy_val_metrics(output, categories,
+    category_count, category_mask)
 
 #
 # Initialize optimizer
@@ -97,17 +90,28 @@ with tf.variable_scope('optimizer'):
     t_lr /= 10.0 ** power
     t_metrics['lr'] = t_lr
   optimizer = tf.train.AdamOptimizer(t_lr)
+
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
-  variables = tf.trainable_variables()
-  unclipped_grads = tf.gradients(t_loss, variables)
-  grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
-  for (grad, var) in zip(unclipped_grads, variables):
-    if not grad is None:
-      t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
+  t_auto_loss = t_auto_metrics['loss'] + t_reg_loss
 
-  grads = list(zip(grads, variables))
-  train = optimizer.apply_gradients(grads_and_vars=grads)
+  variables = tf.trainable_variables()
+  def get_train(loss, t_metrics):
+    unclipped_grads = tf.gradients(t_loss, variables)
+    grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
+    for (grad, var) in zip(unclipped_grads, variables):
+      if not grad is None:
+        t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
+    grads = list(zip(grads, variables))
+    return optimizer.apply_gradients(grads_and_vars=grads)
+
+  train = get_train(t_loss, t_metrics)
+  auto_train = get_train(t_auto_loss, t_auto_metrics)
+
+if AUTO:
+  t_metrics = t_auto_metrics
+  t_val_metrics = t_metrics
+  train = auto_train
 
 #
 # TensorBoard
