@@ -19,7 +19,7 @@ VALIDATE_CATEGORY_PERCENT = 0.5
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
-NORMALIZE = True
+NORMALIZE = False
 
 def load_labels():
   package_directory = os.path.dirname(os.path.abspath(__file__))
