@@ -18,9 +18,6 @@ SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 GRAD_DROPOUT = 0.5
 
-# Number of sequences per batch
-BATCH_SIZE = 4096
-
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
 
@@ -44,7 +41,7 @@ validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
 train_batches_gen = dataset.gen_regression(train_dataset,
-    batch_size=BATCH_SIZE)
+    batch_size=None)
 validate_batches = next(
     dataset.gen_regression(validate_dataset, batch_size=None))
 
