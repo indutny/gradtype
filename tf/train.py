@@ -89,7 +89,8 @@ with tf.variable_scope('optimizer'):
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
-    dropout = tf.keras.layers.Dropout(name='grad_dropout', rate=GRAD_DROPOUT)
+    dropout = tf.keras.layers.GaussianDropout(name='grad_dropout',
+        rate=GRAD_DROPOUT)
     unclipped_grads = tf.gradients(t_loss, variables)
     unclipped_grads = [
         dropout(g, training=True) \
