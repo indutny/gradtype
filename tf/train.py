@@ -122,6 +122,15 @@ def log_summary(prefix, metrics, step):
     summary.value.add(tag='{}/{}'.format(prefix, key), simple_value=value)
   writer.add_summary(summary, step)
 
+def combine_metrics(log):
+  metrics = {}
+  for key in log[0]:
+    values = []
+    for entry in log:
+      values.append(entry[key])
+    metrics[key] = np.mean(values)
+  return metrics
+
 saver = tf.train.Saver(max_to_keep=10000, name=RUN_NAME)
 
 with tf.Session() as sess:
@@ -145,6 +154,7 @@ with tf.Session() as sess:
 
     print('Epoch {}, step {}'.format(epoch, step))
     start_time = time.time()
+    epoch_metrics = []
     for batch in train_batches:
       tensors = [ train, update_global_step_t, t_metrics ]
       train_feed = {
@@ -167,7 +177,11 @@ with tf.Session() as sess:
         raise
 
       step += 1
-      log_summary('train', metrics, step)
+      epoch_metrics.append(metrics)
+
+    metrics = combine_metrics(epoch_metrics)
+    log_summary('train', metrics, step)
+
     end_time = time.time()
     print('Mean batch time: {}'.format(
       (end_time - start_time) / len(train_batches)))
