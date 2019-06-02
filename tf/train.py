@@ -51,6 +51,11 @@ validate_batches = next(
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
+grad_clip = tf.placeholder(tf.float32, shape=(), name='grad_clip')
+grad_clip_max_lookback = 128
+grad_norm_history = []
+min_grad_clip = 1.0
+
 holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
 deltas = tf.placeholder(tf.float32, shape=input_shape, name='deltas')
@@ -93,12 +98,14 @@ with tf.variable_scope('optimizer'):
         dropout(g, training=True) \
             if not 'lstm_cell' in v.name and 'kernel' in v.name else g
         for (g, v) in zip(unclipped_grads, variables) ]
-    grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, 1000.0)
+    grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, grad_clip)
     for (grad, var) in zip(unclipped_grads, variables):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = list(zip(grads, variables))
+
     t_metrics['grad_norm'] = t_grad_norm
+    t_metrics['grad_clip'] = grad_clip
 
     optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
     return optimizer.apply_gradients(grads_and_vars=grads)
@@ -162,6 +169,7 @@ with tf.Session() as sess:
           categories: batch['categories'],
           category_mask: train_mask,
           training: True,
+          grad_clip: max(np.mean(grad_norm_history), min_grad_clip),
         }
       try:
         _, _, metrics = sess.run(tensors,
@@ -178,6 +186,8 @@ with tf.Session() as sess:
 
     metrics = combine_metrics(epoch_metrics)
     log_summary('train', metrics, step)
+    grad_norm_history.append(metrics['grad_norm'])
+    grad_norm_history = grad_norm_history[-grad_clip_max_lookback:]
 
     end_time = time.time()
     print('Mean batch time: {}'.format(
