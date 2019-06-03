@@ -49,6 +49,9 @@ with tf.Session() as sess:
   validate_dataset = dataset.flatten_dataset(validate_dataset,
       random_state=SEED)
 
+  train_dataset = train_dataset[:1]
+  validate_dataset = []
+
   holds = []
   codes = []
   deltas = []

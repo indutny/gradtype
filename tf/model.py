@@ -52,15 +52,6 @@ class Model():
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_cell',
         num_units=RNN_WIDTH)
 
-    self.rnn_rev_cell = tf.contrib.rnn.LSTMBlockCell(name='lstm_rev_cell',
-        num_units=RNN_WIDTH)
-
-    # Just to convert rnn_rev output into holds+deltas
-    self.post_rev = tf.layers.Dense(name='dense_post_rev',
-                                    units=2,
-                                    activation=tf.nn.relu,
-                                    kernel_regularizer=self.l2)
-
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
     self.post_rnn_dropout = tf.keras.layers.Dropout(

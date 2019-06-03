@@ -1,6 +1,54 @@
 'use strict';
 
-const assert = require('assert');
+const CUTOFF = 0.23195521533489227;
+const SAME_GIVEN_LESS = 0.19119866916903502;
+
+// Do not carry full assert to the browser
+function assert(exp) {
+  if (!exp)
+    throw new Error('Assertion failure');
+}
+assert.strictEqual = (a, b) => {
+  if (a !== b)
+    throw new Error(`Assert equal failure ${a} !== ${b}`);
+};
+
+function distance(a, b) {
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+  }
+  return 1 - dot;
+}
+
+function normalize(a) {
+  let norm = 0;
+  for (const elem of a) {
+    norm += elem ** 2;
+  }
+  norm = Math.max(Math.sqrt(norm), 1e-23);
+
+  const res = a.slice();
+  for (let i = 0; i < res.length; i++) {
+    res[i] /= norm;
+  }
+  return res;
+}
+
+function reduceMean(list) {
+  const res = list[0].slice().fill(0);
+  for (const entry of list) {
+    for (let i = 0; i < entry.length; i++) {
+      res[i] += entry[i];
+    }
+  }
+
+  for (let i = 0; i < res.length; i++){
+    res[i] /= list.length;
+  }
+
+  return res;
+}
 
 function matmul(vec, mat) {
   assert.strictEqual(vec.length, mat.length);
@@ -84,6 +132,14 @@ function selu(x) {
   return res;
 }
 
+function relu(x) {
+  const res = x.slice();
+  for (let i = 0; i < res.length; i++) {
+    res[i] = Math.max(res[i], 0);
+  }
+  return res;
+}
+
 class LSTM {
   constructor(kernel, bias) {
     this.kernel = kernel;
@@ -118,7 +174,7 @@ class LSTM {
 }
 
 class Dense {
-  constructor(kernel, bias, activation = selu) {
+  constructor(kernel, bias, activation = relu) {
     this.kernel = kernel;
     this.bias = bias;
     this.activation = activation;
@@ -132,18 +188,19 @@ class Dense {
 class Model {
   constructor(weights) {
     this.embedding = weights['embedding/weights:0'];
-    this.times = new Dense(weights['processed_times/kernel:0'][0],
-                           weights['processed_times/bias:0'],
-                           nop);
+    this.times = new Dense(weights['process_times/kernel:0'],
+                           weights['process_times/bias:0'])
     this.lstm = new LSTM(
-      weights['rnn/multi_rnn_cell/cell_0/lstm_fw_0/kernel:0'],
-      weights['rnn/multi_rnn_cell/cell_0/lstm_fw_0/bias:0']);
+      weights['rnn/lstm_cell/kernel:0'],
+      weights['rnn/lstm_cell/bias:0']);
 
     this.post = new Dense(weights['dense_post_0/kernel:0'],
                           weights['dense_post_0/bias:0']);
     this.features = new Dense(weights['features/kernel:0'],
                               weights['features/bias:0'],
                               nop);
+
+    this.outSize = weights['features/bias:0'].length;
   }
 
   applyEmbedding(event) {
@@ -157,21 +214,42 @@ class Model {
 
   call(events) {
     let state = this.lstm.initialState;
-    let lastResult = null;
-
+    const results = [];
     for (const event of events) {
       const embedding = this.applyEmbedding(event);
 
       const { result, state: newState } = this.lstm.call(embedding, state);
-      lastResult = result;
       state = newState;
+
+      results.push(result);
     }
 
-    let x = lastResult;
-    x = this.post.call(x);
-    x = this.features.call(x);
+    const avg = reduceMean(results);
 
+    let x = this.post.call(avg);
+    x = this.features.call(x);
+    x = normalize(x);
     return x;
   }
+
+  computeConfidence(features, list) {
+    if (list.length === 0) {
+      return Infinity;
+    }
+
+    if (features.length !== this.outSize) {
+      throw new Error('Invalid features');
+    }
+
+    let hits = 0;
+    for (const sample of list) {
+      if (distance(features, sample) < CUTOFF) {
+        hits++;
+      }
+    }
+
+    return 1 - ((1 - SAME_GIVEN_LESS) ** hits);
+  }
 }
+
 module.exports = Model;
