@@ -8,7 +8,7 @@ import binencoding
 
 category = 'train' if len(sys.argv) < 3 else sys.argv[2]
 
-fig = plt.figure(1, figsize=(10, 10))
+fig = plt.figure(1, figsize=(9, 9))
 
 raw = binencoding.load(sys.argv[1])
 
