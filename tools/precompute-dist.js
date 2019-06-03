@@ -30,8 +30,12 @@ function euclidian(a, b) {
 const distance = COSINE ? cosine : euclidian;
 
 function crossDistance(data) {
-  const positives = [];
-  const negatives = [];
+  const max = data.length * (data.length - 1) / 2;
+  let positives = new Float32Array(max);
+  let negatives = new Float32Array(max);
+
+  let positiveCount = 0;
+  let negativeCount = 0;
 
   for (let i = 0; i < data.length; i++) {
     const category = data[i].category;
@@ -43,12 +47,20 @@ function crossDistance(data) {
 
       const d = distance(features, otherFeatures);
       if (category === otherCategory) {
-        positives.push(d);
+        positives[positiveCount++] = d;
       } else {
-        negatives.push(d);
+        negatives[negativeCount++] = d;
       }
     }
   }
+
+  positives = positives.slice(0, positiveCount);
+  negatives = negatives.slice(0, negativeCount);
+  console.log('Got %d positives and %d negatives', positives.length,
+    negatives.length);
+
+  positives.sort();
+  negatives.sort();
 
   return { positives, negatives };
 }

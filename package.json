@@ -45,6 +45,7 @@
     "@types/assert": "0.0.31",
     "@types/debug": "0.0.30",
     "@types/node-fetch": "^2.3.3",
+    "binary-search-bounds": "^2.0.4",
     "debug": "^3.2.6",
     "joi": "^13.7.0",
     "micro": "^9.3.4",

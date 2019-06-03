@@ -1,288 +1,110 @@
 'use strict';
 
 const fs = require('fs');
+const bounds = require('binary-search-bounds');
 
-const DATA = JSON.parse(fs.readFileSync(process.argv[2]).toString());
-const OUT_DISTANCE = process.argv[3];
+function loadList(buf, off, out) {
+  const len = buf.readInt32LE(off);
+  off += 4;
 
-const PRIOR = 1 / require('../datasets').length;
-const TARGET = 0.999;
-const COSINE = true;
+  for (let i = 0; i < len; i++) {
+    const val = buf.readFloatLE(off);
+    off += 4;
 
-// Totally arbitrary, depends on PRIOR
-const TWEAK = Math.exp(1.2);
-
-function cosine(a, b) {
-  let dot = 0;
-  let aNorm = 0;
-  let bNorm = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    aNorm += a[i] ** 2;
-    bNorm += b[i] ** 2;
+    out.push(val);
   }
-  return 1 - dot / Math.sqrt(aNorm) / Math.sqrt(bNorm);
+
+  return off;
 }
 
-function euclidian(a, b) {
-  let sum = 0;
-  for (let i = 0; i < a.length; i++) {
-    sum += (a[i] - b[i]) ** 2;
-  }
-  return Math.sqrt(sum);
-}
+function load(fname) {
+  const buf = fs.readFileSync(fname);
+  let off = 0;
 
-const distance = COSINE ? cosine : euclidian;
+  const steps = buf.readInt32LE(off);
+  off += 4;
 
-function mean(list) {
-  if (list.length === 0) {
-    return 0;
-  }
-
-  const zero = list[0].features.slice().fill(0);
-  for (const { features } of list) {
-    for (const [ i, value ] of features.entries()) {
-      zero[i] += value;
-    }
-  }
-
-  const result = zero.map((val) => val / list.length);
-  return euclidian(result, result.slice().fill(0));
-}
-
-function crossDistance(data) {
-  const positives = [];
-  const negatives = [];
-
-  for (let i = 0; i < data.length; i++) {
-    const category = data[i].category;
-    const features = data[i].features;
-
-    for (let j = i + 1; j < data.length; j++) {
-      const otherCategory = data[j].category;
-      const otherFeatures = data[j].features;
-
-      const d = distance(features, otherFeatures);
-      if (category === otherCategory) {
-        positives.push(d);
-      } else {
-        negatives.push(d);
-      }
-    }
-  }
-
-  return { positives, negatives };
-}
-
-function byCategory(data) {
-  const res = new Map();
-
-  for (const elem of data) {
-    const label = elem.label || elem.category;
-    if (!res.has(label)) {
-      res.set(label, []);
-    }
-
-    res.get(label).push(elem.features);
-  }
-
-  return res;
-}
-
-function score(pos, distances) {
-  let negMin = Infinity;
-  let negHit = 0;
-  for (const d of distances.negatives) {
-    negHit += d > pos ? 1 : 0;
-    negMin = Math.min(negMin, d);
-  }
-
-  let posMax = 0;
-  let posHit = 0;
-  for (const d of distances.positives) {
-    posHit += d < pos ? 1 : 0;
-    posMax = Math.max(posMax, d);
-  }
-
-  const negCount = distances.negatives.length;
-  const posCount = distances.positives.length;
-  const total = negCount + posCount;
-
-  return {
-    lessGivenSame: posHit / posCount,
-    greaterGivenDiff: negHit / negCount,
-    negMin,
-    posMax,
+  const result = {
+    steps,
+    train: { positives: [], negatives: [] },
+    validate: { positives: [], negatives: [] },
   };
+
+  off = loadList(buf, off, result.train.positives);
+  off = loadList(buf, off, result.train.negatives);
+  off = loadList(buf, off, result.validate.positives);
+  off = loadList(buf, off, result.validate.negatives);
+  return result;
 }
 
-function isSame(pos, known, unknown) {
-  const distances = [];
-  for (const features of known) {
-    distances.push(distance(features, unknown));
-  }
+const DATA = load(process.argv[2]);
+const PRIOR_SAME = 1 / require('../datasets').length;
+const CONFIDENCE = 0.9;
 
-  distances.sort();
-  let mean = 0;
-  let count = Math.min(20, distances.length);
-  for (let i = 0; i < count; i++) {
-    mean += distances[i];
-  }
-  mean /= count;
+// 1 - Confidence = (1 - sameGivenLess) ** (categoryLen * lessGivenSame)
+// categoryLen = (Math.log(1 - Confidence) / Math.log(1 - sameGivenLess)) /
+//   lessGivenSame
 
-  return mean < pos;
+function computeSize(stats, confidence) {
+  let size = Math.log(1 - confidence) / Math.log(1 - stats.sameGivenLess);
+  size /= stats.lessGivenSame;
+  return size;
 }
 
-function scoreByCat(pos, map) {
-  let diffHit = 0;
-  let diffTotal = 0;
+function optimize(subdata, priorSame, confidence) {
+  let result = null;
+  let best = Infinity;
 
-  let sameHit = 0;
-  let sameTotal = 0;
-  let perKey = 0;
-  let perKeyCount = 0;
-  let keyMap = new Map();
-  for (const [ key, list ] of map.entries()) {
-    let keyTotal = 0;
-    let keySame = 0;
-    let keyDiff = 0;
-
-    for (const [ otherKey, otherList ] of map.entries()) {
-      if (otherKey === key) {
-        continue;
-      }
-
-      let catKeyDiff = 0;
-      for (const otherFeatures of otherList) {
-        catKeyDiff += isSame(pos, list, otherFeatures) ? 0 : 1;
-      }
-      catKeyDiff /= otherList.length;
-
-      keyDiff += catKeyDiff;
-      keyTotal++;
-      diffTotal++;
+  const priorDiff = 1 - priorSame;
+  let j = 0;
+  for (let i = 0; i < subdata.positives.length; i++) {
+    const cutoff = subdata.positives[i];
+    while (subdata.negatives[j] < cutoff) {
+      j++;
     }
 
-    for (let i = 0; i < list.length; i++) {
-      sameTotal++;
-      keyTotal++;
-      keySame += isSame(pos, list.slice(0, i).concat(list.slice(i + 1)),
-        list[i]);
+    const stats = {
+      lessGivenSame: (i + 1) / subdata.positives.length,
+      lessGivenDiff: (j + 1) / subdata.negatives.length,
+      sameGivenLess: 0,
+    };
+
+    stats.sameGivenLess = stats.lessGivenSame * priorSame /
+      (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
+
+    const size = computeSize(stats, confidence);
+    if (size < best) {
+      best = size;
+      result = { size, cutoff, stats };
     }
-
-    sameHit += keySame;
-    diffHit += keyDiff;
-
-    const keyMean = (keySame + keyDiff) / keyTotal;
-    perKey += keyMean;
-    perKeyCount++;
-
-    keyMap.set(key, keyMean);
   }
-  perKey /= perKeyCount;
-
-  return { diff: diffHit / diffTotal, same: sameHit / sameTotal, perKey };
+  return result;
 }
 
-function generalScore(distances) {
-  const negCount = distances.negatives.length;
-  const posCount = distances.positives.length;
-  const total = negCount + posCount;
-  return {
-    diff: negCount / total,
-    same: posCount / total,
+function check(subdata, priorSame, confidence, cutoff) {
+  let i = bounds.ge(subdata.positives, cutoff);
+  let j = bounds.ge(subdata.negatives, cutoff);
+
+  const priorDiff = 1 - priorSame;
+  const stats = {
+    lessGivenSame: (i + 1) / subdata.positives.length,
+    lessGivenDiff: (j + 1) / subdata.negatives.length,
+    sameGivenLess: 0,
   };
+
+  stats.sameGivenLess = stats.lessGivenSame * priorSame /
+    (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
+
+  const size = computeSize(stats, confidence);
+  return { size, cutoff, stats };
 }
 
-function loss(s) {
-  return -(TWEAK * s.greaterGivenDiff + s.lessGivenSame);
-}
+console.log('target confidence', CONFIDENCE);
+console.log('prior same', PRIOR_SAME);
 
-function search(distances) {
-  let low = Infinity;
-  let high = 0;
+const trainResult = optimize(DATA.train, PRIOR_SAME, CONFIDENCE);
+console.log('train', trainResult);
 
-  for (const d of distances.negatives) {
-    low = Math.min(low, d);
-  }
-  for (const d of distances.positives) {
-    high = Math.max(high, d);
-  }
-
-  console.error('Search between: %d and %d', low, high);
-
-  while (high - low > 1e-3) {
-    const ls = loss(score(low, distances));
-    const hs = loss(score(high, distances));
-
-    const mid = (high + low) / 2;
-
-    if (ls < hs) {
-      high = mid;
-    } else {
-      low = mid;
-    }
-  }
-  return high;
-}
-
-const meanFeatures = {
-  train: mean(DATA.train),
-  validate: mean(DATA.validate),
-};
-
-console.log('step', DATA.step);
-console.log('means', meanFeatures);
-
-const distances = {
-  step: DATA.step,
-  train: crossDistance(DATA.train),
-  validate: crossDistance(DATA.validate),
-};
-
-if (OUT_DISTANCE) {
-  fs.writeFileSync(OUT_DISTANCE, JSON.stringify(distances));
-}
-
-const featuresByCategory = {
-  train: byCategory(DATA.train),
-  validate: byCategory(DATA.validate),
-};
-
-const trainPos = search(distances.train);
-const trainScore = score(trainPos, distances.train);
-const valScore = score(trainPos, distances.validate);
-
-console.log('train pos=%d', trainPos);
-console.log('train score=%j', trainScore);
-console.log('val score=%j', valScore);
-
-// Bayes in all its beauty
-function sameGivenLess(score, sameProb) {
-  const less = score.lessGivenSame * sameProb +
-    (1 - score.greaterGivenDiff) * (1 - sameProb);
-  return score.lessGivenSame * sameProb / less;
-}
-
-function trials(target, prob) {
-  return Math.log(1 - target) / Math.log(1 - prob);
-}
-
-const trainSL = sameGivenLess(trainScore, PRIOR);
-const valSL = sameGivenLess(valScore, PRIOR);
-
-console.log('prior=%d target=%d', PRIOR, TARGET);
-console.log('train same given less', trainSL);
-console.log('train trials', trials(TARGET, trainSL));
-console.log('validate same given less', valSL);
-console.log('val trials', trials(TARGET, valSL));
-
-const trainCatScore = scoreByCat(trainPos, featuresByCategory.train);
-const valCatScore = scoreByCat(trainPos, featuresByCategory.validate);
-
-console.log('train score by cat', trainCatScore);
-console.log('train multiply',
-  trials(TARGET, Math.min(trainCatScore.same, trainCatScore.diff)));
-console.log('val score by cat', valCatScore);
-console.log('val multiply',
-  trials(TARGET, Math.min(valCatScore.same, valCatScore.diff)));
+const validateResult = check(DATA.validate, PRIOR_SAME, CONFIDENCE,
+  trainResult.cutoff);
+console.log('validate', validateResult);
