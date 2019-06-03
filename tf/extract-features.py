@@ -44,13 +44,6 @@ with tf.Session() as sess:
   train_dataset = loaded['train']
   validate_dataset = loaded['validate']
 
-  logging.debug('Trimming dataset...')
-
-  train_dataset, _ = dataset.trim_dataset(train_dataset,
-      random_state=SEED)
-  validate_dataset, _ = dataset.trim_dataset(validate_dataset,
-      random_state=SEED)
-
   train_dataset = dataset.flatten_dataset(train_dataset,
       random_state=SEED)
   validate_dataset = dataset.flatten_dataset(validate_dataset,
