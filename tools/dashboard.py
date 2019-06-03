@@ -8,7 +8,7 @@ import binencoding
 
 category = 'train' if len(sys.argv) < 3 else sys.argv[2]
 
-fig = plt.figure(1, figsize=(8, 8))
+fig = plt.figure(1, figsize=(10, 10))
 
 raw = binencoding.load(sys.argv[1])
 
@@ -19,8 +19,8 @@ else:
 
 def hist(ax, category, positive, negative):
   # the histogram of the data
-  ax.hist(positive, 1000, color='green', density=True, alpha=0.5)
-  ax.hist(negative, 1000, color='red', density=True, alpha=0.5)
+  ax.hist(positive, 500, color='green', density=True, alpha=0.5)
+  ax.hist(negative, 500, color='red', density=True, alpha=0.5)
 
   ax.set_title(category)
   ax.set_xlabel('Distance')
@@ -52,7 +52,7 @@ def finish_roc(ax):
 
 (train_hist, roc_ax), (validate_hist, aux) = fig.subplots(2, 2)
 
-aux.set_title('{} / step {}'.format(sys.argv[1], step))
+aux.set_title('{} / {}'.format(sys.argv[1], step))
 
 for category in [ 'train', 'validate' ]:
   data = raw[category]

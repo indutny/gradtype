@@ -73,7 +73,7 @@ function encode(file, result) {
   const out = fs.createWriteStream(file);
   const step = Buffer.alloc(4);
 
-  step.writeInt32LE(step, 0);
+  step.writeInt32LE(result.step, 0);
   out.write(step);
 
   out.write(encodeList(result.train.positives));
