@@ -39,7 +39,7 @@ function load(fname) {
 
 const DATA = load(process.argv[2]);
 const PRIOR_SAME = 1 / require('../datasets').length;
-const CONFIDENCE = 0.9;
+const CONFIDENCE = 0.99;
 
 // 1 - Confidence = (1 - sameGivenLess) ** (categoryLen * lessGivenSame)
 // categoryLen = (Math.log(1 - Confidence) / Math.log(1 - sameGivenLess)) /
