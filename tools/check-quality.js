@@ -75,7 +75,8 @@ function optimize(subdata, priorSame, confidence) {
     const size = computeSize(stats, confidence);
     if (size < best) {
       best = size;
-      result = { size, cutoff, stats };
+      const min = size * stats.lessGivenSame;
+      result = { size, cutoff, stats, min };
     }
   }
   return result;
@@ -96,7 +97,8 @@ function check(subdata, priorSame, confidence, cutoff) {
     (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
 
   const size = computeSize(stats, confidence);
-  return { size, cutoff, stats };
+  const min = size * stats.lessGivenSame;
+  return { size, cutoff, stats, min };
 }
 
 console.log('target confidence', CONFIDENCE);
