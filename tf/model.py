@@ -15,9 +15,6 @@ AUTO_POST_WIDTH = [ (256, 0.2), (128, 0.2), (64, 0.2) ]
 
 DENSE_L2 = 0.0
 
-GAUSSIAN_POOLING_VAR = 1.0
-GAUSSIAN_POOLING_LEN_DELTA = 3.0
-
 RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
@@ -41,7 +38,6 @@ class Model():
   def __init__(self, training):
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
-    self.use_gaussian_pooling = False
     self.use_sphereface = False
 
     self.margin = 0.35
