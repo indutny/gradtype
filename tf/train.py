@@ -52,9 +52,8 @@ validate_batches = next(
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
 grad_clip = tf.placeholder(tf.float32, shape=(), name='grad_clip')
-grad_clip_max_lookback = 128
-grad_norm_history = []
-min_grad_clip = 1.0
+grap_clip_lambda = 0.2
+grad_clip_value = 1.0
 
 holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
@@ -169,7 +168,7 @@ with tf.Session() as sess:
           categories: batch['categories'],
           category_mask: train_mask,
           training: True,
-          grad_clip: max(np.mean(grad_norm_history), min_grad_clip),
+          grad_clip: grad_clip_value,
         }
       try:
         _, _, metrics = sess.run(tensors,
@@ -186,8 +185,9 @@ with tf.Session() as sess:
 
     metrics = combine_metrics(epoch_metrics)
     log_summary('train', metrics, step)
-    grad_norm_history.append(metrics['grad_norm'])
-    grad_norm_history = grad_norm_history[-grad_clip_max_lookback:]
+
+    grad_clip_value *= (1.0 - grad_clip_lambda)
+    grad_clip_value += grad_clip_lambda * metrics['grad_norm'])
 
     end_time = time.time()
     print('Mean batch time: {}'.format(
