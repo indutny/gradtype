@@ -36,6 +36,7 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_sphereface = False
+    self.anneal_distances = False
 
     self.margin = 0.35
     self.radius = 9.2
@@ -215,7 +216,14 @@ class Model():
         psi = sign * double_cos - 2 * k
 
         # TODO(indutny): try annealing again
-        positive_distances = psi
+        if self.anneal_distances:
+          positive_distances *= (1.0 - self.anneal_lambda)
+          positive_distances += self.anneal_lambda * psi
+        else:
+          positive_distances = psi
+
+      if self.anneal_distances:
+        positive_distances -= self.anneal_lambda * self.margin
       else:
         positive_distances -= self.margin
 
