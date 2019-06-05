@@ -52,7 +52,7 @@ validate_batches = next(
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
 grad_clip = tf.placeholder(tf.float32, shape=(), name='grad_clip')
-grap_clip_lambda = 0.2
+grad_clip_lambda = 0.2
 grad_clip_value = 1.0
 
 holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
