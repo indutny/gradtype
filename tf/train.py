@@ -187,7 +187,7 @@ with tf.Session() as sess:
     log_summary('train', metrics, step)
 
     grad_clip_value *= (1.0 - grad_clip_lambda)
-    grad_clip_value += grad_clip_lambda * metrics['grad_norm'])
+    grad_clip_value += grad_clip_lambda * metrics['grad_norm']
 
     end_time = time.time()
     print('Mean batch time: {}'.format(
