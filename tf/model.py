@@ -17,6 +17,7 @@ DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 10000.0
+MAX_SPHERE_STRENGTH = 0.9
 
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
@@ -214,6 +215,12 @@ class Model():
         sign = (-1.0) ** k
 
         psi = sign * double_cos - 2 * k
+
+        # Regardless of annealing, do not cross maximum strengh of double cos
+        # It leads to gradient collapse, and possibly worse learning than
+        # it should be.
+        psi *= MAX_SPHERE_STRENGTH
+        psi += (1.0 - MAX_SPHERE_STRENGTH) * positive_distances
 
         # TODO(indutny): try annealing again
         if self.anneal_distances:
