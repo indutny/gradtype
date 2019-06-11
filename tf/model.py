@@ -12,7 +12,7 @@ POST_RNN_DROPOUT = 0.0
 
 DENSE_L2 = 0.0
 
-RNN_WIDTH = [ 16, 16 ]
+RNN_WIDTH = 16
 DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
 
@@ -44,10 +44,8 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    self.rnn_cells = [
-        tf.contrib.rnn.LSTMBlockCell(name='lstm_cell_{}'.format(i),
-            num_units=w)
-        for i, w in enumerate(RNN_WIDTH) ]
+    self.rnn_cell =
+        tf.contrib.rnn.LSTMBlockCell(name='lstm_cell', num_units=RNN_WIDTH)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
