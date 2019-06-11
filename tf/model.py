@@ -44,8 +44,8 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    self.rnn_cell =
-        tf.contrib.rnn.LSTMBlockCell(name='lstm_cell', num_units=RNN_WIDTH)
+    self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(
+        name='lstm_cell', num_units=RNN_WIDTH)
 
     self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
         rate=INPUT_DROPOUT)
