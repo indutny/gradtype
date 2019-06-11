@@ -37,6 +37,10 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_sphereface = False
+    self.use_arcface = False
+    self.arcface_m1 = 1.35 # cos(m1 * x + m2) - m3
+    self.arcface_m2 = 0.0
+    self.arcface_m3 = 0.0
     self.anneal_distances = False
 
     self.margin = 0.35
@@ -172,6 +176,7 @@ class Model():
   # TODO(indutny): try https://arxiv.org/pdf/1704.08063.pdf
   # TODO(indutny): try https://arxiv.org/pdf/1703.09507.pdf
   # See http://proceedings.mlr.press/v48/liud16.pdf
+  # TODO(indutny): https://arxiv.org/pdf/1801.07698.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
     with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
@@ -228,6 +233,16 @@ class Model():
           positive_distances += anneal_lambda * psi
         else:
           positive_distances = psi
+      elif self.use_arcface:
+        psi = tf.math.acos(positive_distances)
+        # cos(m1 * x + m2) - m3
+        psi *= self.arcface_m1
+        psi += self.arcface_m2
+        psi = tf.math.cos(psi)
+        psi -= self.arcface_m3
+
+        # according to the paper - no annealing is necessary
+        positive_distances = psi
 
       if self.anneal_distances:
         positive_distances -= anneal_lambda * self.margin
