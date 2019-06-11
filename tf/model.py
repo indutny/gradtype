@@ -99,11 +99,10 @@ class Model():
     series, embedding = self.apply_embedding(holds, codes, deltas)
     series = tf.unstack(series, axis=1, name='unstacked_series')
 
-    for cell in self.rnn_cells:
-      series, _ = tf.nn.static_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            inputs=series)
+    series, _ = tf.nn.static_rnn(
+          cell=self.rnn_cell,
+          dtype=tf.float32,
+          inputs=series)
 
     outputs = tf.stack(series, axis=1, name='stacked_outputs')
     x = tf.reduce_mean(outputs, axis=1, name='avg_output')
