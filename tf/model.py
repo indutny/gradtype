@@ -43,7 +43,6 @@ class Model():
     self.arcface_m3 = 0.0
     self.anneal_distances = False
 
-    self.margin = 0.35
     self.radius = 9.2
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
@@ -245,11 +244,6 @@ class Model():
 
         # according to the paper - no annealing is necessary
         positive_distances = psi
-
-      if self.anneal_distances:
-        positive_distances -= anneal_lambda * self.margin
-      else:
-        positive_distances -= self.margin
 
       positive_distances *= radius
       negative_distances *= radius
