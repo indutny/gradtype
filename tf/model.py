@@ -149,7 +149,7 @@ class Model():
         tf.expand_dims(output, axis=1))
 
     metrics = {}
-    for percentile in [ 5, 10, 25, 50, 75, 90, 95 ]:
+    for percentile in [ 1, 5, 10, 25, 50, 75, 90, 95, 99 ]:
       neg_p = tf.contrib.distributions.percentile(negative_metrics,
           percentile, name='negative_{}'.format(percentile))
       metrics['negative_{}'.format(percentile)] = neg_p
@@ -165,6 +165,8 @@ class Model():
         (metrics['positive_90'] + epsilon)
     metrics['ratio_5'] = metrics['negative_5'] / \
         (metrics['positive_95'] + epsilon)
+    metrics['ratio_1'] = metrics['negative_1'] / \
+        (metrics['positive_99'] + epsilon)
 
     return positive_distances, negative_distances, metrics
 
