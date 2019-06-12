@@ -50,7 +50,7 @@ class Model():
     self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(
         name='lstm_cell', num_units=RNN_WIDTH)
 
-    self.input_dropout = tf.keras.layers.Dropout(name='input_dropout',
+    self.input_dropout = tf.keras.layers.GaussianDropout(name='input_dropout',
         rate=INPUT_DROPOUT)
     self.post_rnn_dropout = tf.keras.layers.Dropout(
         name='post_rnn_dropout',
@@ -82,12 +82,12 @@ class Model():
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
     times = tf.concat([ holds, deltas ], axis=-1, name='times')
+    times = self.input_dropout(times, training=self.training)
 
     # Process holds+deltas
     times = self.process_times(times)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
-    series = self.input_dropout(series, training=self.training)
 
     return series, embedding
 
