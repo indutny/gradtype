@@ -116,6 +116,7 @@ class Model():
 
     outputs = tf.stack(series, axis=1, name='stacked_outputs')
     x = outputs * mask
+    x = tf.reduce_sum(x, axis=1)
     x = self.post_rnn_dropout(x, training=self.training)
 
     for entry in self.post:

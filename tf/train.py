@@ -33,7 +33,7 @@ LR = 0.01
 # Load dataset
 #
 
-loaded = dataset.load(overlap=4)
+loaded = dataset.load()
 train_dataset = loaded['train']
 train_mask = loaded['train_mask']
 validate_dataset = loaded['validate']
@@ -41,7 +41,7 @@ validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
 train_batches_gen = dataset.gen_regression(train_dataset,
-    batch_size=None)
+    batch_size=1, randomize=True)
 validate_batches = next(
     dataset.gen_regression(validate_dataset, batch_size=None))
 

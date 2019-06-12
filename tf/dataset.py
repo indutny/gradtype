@@ -19,6 +19,8 @@ VALIDATE_CATEGORY_PERCENT = 0.5
 # Seed for shuffling sequences in category before splitting into train/validate
 VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
+MAX_RANDOM_CUTOFF = 16
+
 NORMALIZE = False
 
 def load_labels():
@@ -59,15 +61,11 @@ def load_sequence(f, category, label):
     'label': label,
     'codes': codes,
     'holds': holds,
-    'deltas': deltas
+    'deltas': deltas,
+    'sequence_len': len(codes),
   }
 
-def load(mode='triplet', overlap=None, train_overlap=None,
-         validate_overlap = None):
-  if overlap != None:
-    train_overlap = overlap
-    validate_overlap = overlap
-
+def load(mode='triplet'):
   labels = load_labels()
   categories = []
   with open('./out/lstm.raw', 'rb') as f:
@@ -81,9 +79,9 @@ def load(mode='triplet', overlap=None, train_overlap=None,
       for j in range(0, sequence_count):
         sequences.append(load_sequence(f, category, labels[category]))
       categories.append(sequences)
-  return split(categories, mode, train_overlap, validate_overlap)
+  return split(categories, mode)
 
-def split(dataset, mode, train_overlap, validate_overlap):
+def split(dataset, mode):
   rand_state = np.random.RandomState(seed=VALIDATE_PERMUTATION_SEED)
   category_perm = rand_state.permutation(len(dataset))
   if mode == 'triplet':
@@ -127,25 +125,22 @@ def split(dataset, mode, train_overlap, validate_overlap):
 
   return {
     'category_count': len(dataset),
-    'train': expand(train, train_overlap),
+    'train': expand(train),
     'train_mask': train_mask,
-    'validate': expand(validate, validate_overlap),
+    'validate': expand(validate),
     'validate_mask': validate_mask,
   }
 
-def expand(dataset, overlap):
+def expand(dataset):
   out = []
   for category in dataset:
     out_category = []
     for seq in category:
-      out_category += expand_sequence(seq, overlap)
+      out_category.append(pad_or_trim_seq(seq))
     out.append(out_category)
   return normalize_dataset(out)
 
-def expand_sequence(seq, overlap):
-  if overlap is None:
-    overlap = MAX_SEQUENCE_LEN
-
+def pad_or_trim_seq(seq):
   count = len(seq['codes'])
 
   # Pad
@@ -164,12 +159,10 @@ def expand_sequence(seq, overlap):
       'codes': codes,
       'holds': holds,
       'deltas': deltas,
-      'sequence_len': count,
     })
-    return [ padded_seq ]
+    return padded_seq
 
   # Trim
-  out = []
   codes = seq['codes'][:MAX_SEQUENCE_LEN]
   holds = seq['holds'][:MAX_SEQUENCE_LEN]
   deltas = seq['deltas'][:MAX_SEQUENCE_LEN]
@@ -178,10 +171,9 @@ def expand_sequence(seq, overlap):
     'codes': codes,
     'holds': holds,
     'deltas': deltas,
-    'sequence_len': MAX_SEQUENCE_LEN,
+    'sequence_len': min(seq['sequence_len'], MAX_SEQUENCE_LEN),
   })
-  out.append(copy)
-  return out
+  return copy
 
 def normalize_dataset(dataset):
   out = []
@@ -245,7 +237,25 @@ def flatten_dataset(dataset, k=None, random_state=None):
 
   return sequences
 
-def shuffle_uniform(dataset):
+def randomize_seq(seq):
+  sequence_len = seq['sequence_len']
+  start_off = np.random.randint(min(sequence_len, MAX_RANDOM_CUTOFF))
+  end_off = np.random.randint(
+      min(sequence_len, MAX_RANDOM_CUTOFF) - start_off)
+  sequence_len -= start_off + end_off
+
+  if sequence_len <= 0:
+    raise Exception('Negative sequence len')
+
+  return pad_or_trim_seq({
+    'category': seq['category'],
+    'codes': seq['codes'][start_off:-end_off],
+    'holds': seq['holds'][start_off:-end_off],
+    'deltas': seq['deltas'][start_off:-end_off],
+    'sequence_len': sequence_len,
+  })
+
+def shuffle_uniform(dataset, randomize=False):
   # Permutations within each category
   category_perm = [ [] for cat in dataset ]
 
@@ -268,14 +278,17 @@ def shuffle_uniform(dataset):
         perm = np.random.permutation(len(category))
         category_perm[category_i] = perm
 
-      yield category[perm[0]]
+      seq = category[perm[0]]
+      if randomize:
+        seq = randomize_seq(seq)
+      yield seq
       perm = perm[1:]
       if len(perm) == 0:
         complete[category_i] = True
 
       category_perm[category_i] = perm
 
-def gen_regression(dataset, batch_size):
+def gen_regression(dataset, batch_size, randomize=False):
   total = sum([ len(cat) for cat in dataset ])
   if batch_size is None:
     batch_size = total
@@ -283,7 +296,7 @@ def gen_regression(dataset, batch_size):
     pad = batch_size - (total % batch_size)
     total += pad
 
-  shuffle = shuffle_uniform(dataset)
+  shuffle = shuffle_uniform(dataset, randomize=randomize)
   while True:
     batches = []
     for _ in range(0, total, batch_size):
@@ -297,7 +310,7 @@ def gen_regression(dataset, batch_size):
         try:
           seq = next(shuffle)
         except StopIteration:
-          shuffle = shuffle_uniform(dataset)
+          shuffle = shuffle_uniform(dataset, randomize=randomize)
           seq = next(shuffle)
 
         categories.append(seq['category'])
