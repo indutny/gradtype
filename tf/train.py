@@ -171,15 +171,8 @@ with tf.Session() as sess:
           training: True,
           grad_clip: grad_clip_value,
         }
-      try:
-        _, _, metrics = sess.run(tensors,
-            feed_dict=train_feed)
-      except tf.errors.InvalidArgumentError:
-        # Catch NaN and inf global norm
-        print('got invalid argument error, printing gradients')
-        for (grad, var) in zip(unclipped_grads, variables):
-          print('{}: {}'.format(var.name, sess.run(tf.reduce_mean(grad), feed_dict=train_feed)))
-        raise
+      _, _, metrics = sess.run(tensors,
+          feed_dict=train_feed)
 
       step += 1
       epoch_metrics.append(metrics)

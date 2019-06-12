@@ -107,8 +107,15 @@ class Model():
           dtype=tf.float32,
           inputs=series)
 
+    seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
+        name='seq_index')
+    mask = seq_index < tf.expand_dims(sequence_len, axis=-1)
+    mask = tf.cast(mask, dtype=tf.float32, name='mask')
+    mask /= tf.reduce_sum(mask, axis=-1, keepdims=True)
+    mask = tf.expand_dims(mask, axis=-1, name='avg_mask')
+
     outputs = tf.stack(series, axis=1, name='stacked_outputs')
-    x = tf.reduce_mean(outputs, axis=1, name='avg_output')
+    x = outputs * mask
     x = self.post_rnn_dropout(x, training=self.training)
 
     for entry in self.post:
