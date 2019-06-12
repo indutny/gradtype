@@ -244,6 +244,9 @@ class Model():
 
         # according to the paper - no annealing is necessary
         positive_distances = psi
+      else:
+        # Just apply margin
+        positive_distances -= self.arcface_m3
 
       positive_distances *= radius
       negative_distances *= radius
