@@ -12,7 +12,7 @@ POST_RNN_DROPOUT = 0.0
 
 DENSE_L2 = 0.0
 
-RNN_WIDTH = 16
+RNN_WIDTH = [ 16, 16 ]
 DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
 
@@ -47,8 +47,11 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    self.rnn_cell = tf.contrib.rnn.LSTMBlockCell(
-        name='lstm_cell', num_units=RNN_WIDTH)
+    self.rnn_cells = [
+        tf.contrib.rnn.LSTMBlockCell(name='lstm_cell_{}'.format(i),
+          num_units=width)
+        for i, width in enumerate(RNN_WIDTH)
+    ]
 
     self.input_dropout = tf.keras.layers.GaussianDropout(name='input_dropout',
         rate=INPUT_DROPOUT)
@@ -102,10 +105,11 @@ class Model():
     series, embedding = self.apply_embedding(holds, codes, deltas)
     series = tf.unstack(series, axis=1, name='unstacked_series')
 
-    series, _ = tf.nn.static_rnn(
-          cell=self.rnn_cell,
-          dtype=tf.float32,
-          inputs=series)
+    for cell in self.rnn_cells:
+      series, _ = tf.nn.static_rnn(
+            cell=cell,
+            dtype=tf.float32,
+            inputs=series)
 
     seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
         name='seq_index')
