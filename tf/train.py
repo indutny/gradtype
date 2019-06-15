@@ -94,14 +94,14 @@ with tf.variable_scope('optimizer'):
     dropout = tf.keras.layers.GaussianDropout(name='grad_dropout',
         rate=GRAD_DROPOUT)
     unclipped_grads = tf.gradients(t_loss, variables)
-    unclipped_grads = [
-        dropout(g, training=True) \
-            if not 'lstm_cell' in v.name and 'kernel' in v.name else g
-        for (g, v) in zip(unclipped_grads, variables) ]
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, grad_clip)
     for (grad, var) in zip(unclipped_grads, variables):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
+    grads = [
+        dropout(g, training=True) \
+            if not 'lstm_cell' in v.name and 'kernel' in v.name else g
+        for (g, v) in zip(grads, variables) ]
     grads = list(zip(grads, variables))
 
     t_metrics['grad_norm'] = t_grad_norm
