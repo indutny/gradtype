@@ -37,7 +37,7 @@ class Model():
     self.l2 = tf.contrib.layers.l2_regularizer(DENSE_L2)
     self.training = training
     self.use_sphereface = False
-    self.use_arcface = False
+    self.use_arcface = True
     self.arcface_m1 = 1.35 # cos(m1 * x + m2) - m3
     self.arcface_m2 = 0.0
     self.arcface_m3 = 0.0
