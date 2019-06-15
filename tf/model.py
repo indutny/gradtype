@@ -69,7 +69,7 @@ class Model():
       self.confidence.append(tf.layers.Dense(name='confidence_{}'.format(i),
                                              units=width,
                                              activation=tf.nn.relu,
-                                             kernel_regularizer=self.l2)
+                                             kernel_regularizer=self.l2))
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
