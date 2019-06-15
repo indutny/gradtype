@@ -14,6 +14,7 @@ DENSE_L2 = 0.0
 
 RNN_WIDTH = [ 32 ]
 DENSE_POST_WIDTH = [ (128, 0.0) ]
+CONFIDENCE = [ 16, 8 ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 10000.0
@@ -63,10 +64,12 @@ class Model():
                                          units=TIMES_WIDTH,
                                          activation=tf.nn.relu,
                                          kernel_regularizer=self.l2)
-    self.confidence = tf.layers.Dense(name='confidence',
-                                      units=1,
-                                      activation=tf.nn.relu,
-                                      kernel_regularizer=self.l2)
+    self.confidence = []
+    for i, width in enumerate(CONFIDENCE + [ 1 ]):
+      self.confidence.append(tf.layers.Dense(name='confidence_{}'.format(i),
+                                             units=width,
+                                             activation=tf.nn.relu,
+                                             kernel_regularizer=self.l2)
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
@@ -122,7 +125,9 @@ class Model():
 
     x = tf.stack(series, axis=1, name='stacked_outputs')
 
-    confidence = self.confidence(x)
+    confidence = x
+    for l in self.confidence
+      confidence = l(confidence)
     confidence = tf.squeeze(confidence, axis=-1, name='raw_confidence')
 
     for entry in self.post:
