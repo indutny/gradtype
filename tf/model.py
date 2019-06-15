@@ -121,6 +121,10 @@ class Model():
     mask = tf.cast(mask, dtype=tf.float32, name='mask')
 
     x = tf.stack(series, axis=1, name='stacked_outputs')
+
+    confidence = self.confidence(x)
+    confidence = tf.squeeze(confidence, axis=-1, name='raw_confidence')
+
     for entry in self.post:
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
@@ -130,9 +134,6 @@ class Model():
     # NOTE: importance of this particular vector should be dictated by
     # `confidence` value, not its magnitude
     x = tf.math.l2_normalize(x, axis=-1, name='normalized_raw_features')
-
-    confidence = self.confidence(x)
-    confidence = tf.squeeze(confidence, axis=-1, name='raw_confidence')
 
     # Masked softmax
     confidence = tf.exp(confidence, name='exp_confidence')
