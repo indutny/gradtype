@@ -126,7 +126,7 @@ class Model():
     x = tf.stack(series, axis=1, name='stacked_outputs')
 
     confidence = x
-    for l in self.confidence
+    for l in self.confidence:
       confidence = l(confidence)
     confidence = tf.squeeze(confidence, axis=-1, name='raw_confidence')
 
