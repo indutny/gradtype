@@ -14,7 +14,6 @@ DENSE_L2 = 0.0
 
 RNN_WIDTH = [ 16 ]
 DENSE_POST_WIDTH = [ (128, 0.0) ]
-CONFIDENCE = [ 16, 8 ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 10000.0
@@ -64,12 +63,6 @@ class Model():
                                          units=TIMES_WIDTH,
                                          activation=tf.nn.relu,
                                          kernel_regularizer=self.l2)
-    self.confidence = []
-    for i, width in enumerate(CONFIDENCE + [ 1 ]):
-      self.confidence.append(tf.layers.Dense(name='confidence_{}'.format(i),
-                                             units=width,
-                                             activation=tf.nn.relu,
-                                             kernel_regularizer=self.l2))
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
@@ -118,17 +111,7 @@ class Model():
             dtype=tf.float32,
             inputs=series)
 
-    seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
-        name='seq_index')
-    mask = seq_index < tf.expand_dims(sequence_len, axis=-1)
-    mask = tf.cast(mask, dtype=tf.float32, name='mask')
-
     x = tf.stack(series, axis=1, name='stacked_outputs')
-
-    confidence = x
-    for l in self.confidence:
-      confidence = l(confidence)
-    confidence = tf.squeeze(confidence, axis=-1, name='raw_confidence')
 
     for entry in self.post:
       x = entry['dense'](x)
@@ -136,18 +119,13 @@ class Model():
     x = self.features(x)
     x = self.post_rnn_dropout(x, training=self.training)
 
-    # NOTE: importance of this particular vector should be dictated by
-    # `confidence` value, not its magnitude
-    x = tf.math.l2_normalize(x, axis=-1, name='normalized_raw_features')
+    seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
+        name='seq_index')
+    mask = seq_index < tf.expand_dims(sequence_len, axis=-1)
+    mask /= tf.reduce_sum(mask, axis=-1, keepdims=True, name='mask_sum') + 1e-23
+    mask = tf.expand_dims(mask, axis=-1, name='expanded_mask')
 
-    # Masked softmax
-    confidence = tf.exp(confidence, name='exp_confidence')
-    confidence *= mask
-    confidence /= tf.reduce_sum(confidence, axis=-1, keepdims=True) + 1e-23
-
-    confidence = tf.expand_dims(confidence, axis=-1)
-
-    x *= confidence
+    x *= mask
     x = tf.reduce_sum(x, axis=1)
 
     x = tf.math.l2_normalize(x, axis=-1)
