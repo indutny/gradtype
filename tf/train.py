@@ -16,7 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-GRAD_DROPOUT = 0.9
+GRAD_NOISE_GAMMA = 1.0
+GRAD_NOISE_ETA = 0.55
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -87,7 +88,13 @@ with tf.variable_scope('optimizer'):
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
 
+  noise_dev = GRAD_NOISE_ETA
+  noise_dev /= (1 + tf.cast(global_step_t, dtype=tf.float32)) \
+      ** GRAD_NOISE_GAMMA
+  noise_dev = tf.sqrt(noise_dev, name='noise_dev')
+
   t_metrics['regularization_loss'] = t_reg_loss
+  t_metrics['noise_dev'] = noise_dev
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
@@ -99,9 +106,9 @@ with tf.variable_scope('optimizer'):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = [
-        dropout(g, training=True) \
-            if not 'lstm_cell' in v.name and 'kernel' in v.name else g
-        for (g, v) in zip(grads, variables) ]
+        g + tf.random.normal(tf.shape(g), mean=0.0, stddev=noise_dev)
+        for g in grads
+    ]
     grads = list(zip(grads, variables))
 
     t_metrics['grad_norm'] = t_grad_norm
