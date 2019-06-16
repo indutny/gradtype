@@ -16,7 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-GRAD_NOISE = 0.2
+GRAD_NOISE_GAMMA = 0.55
+GRAD_NOISE_ETA = 1.0
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
@@ -51,10 +52,10 @@ validate_batches = next(
 
 input_shape = (None, dataset.MAX_SEQUENCE_LEN,)
 
-grad_mean = tf.placeholder(tf.float32, shape=(), name='grad_mean')
-grad_mean_value = 1.0
+grad_clip = tf.placeholder(tf.float32, shape=(), name='grad_clip')
 grad_clip_lambda = 0.01
 grad_clip_mul = 1.25
+grad_clip_value = 1.0
 
 holds = tf.placeholder(tf.float32, shape=input_shape, name='holds')
 codes = tf.placeholder(tf.int32, shape=input_shape, name='codes')
@@ -87,19 +88,23 @@ with tf.variable_scope('optimizer'):
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
 
+  noise_dev = GRAD_NOISE_ETA
+  noise_dev /= (1 + tf.cast(global_step_t, dtype=tf.float32)) \
+      ** GRAD_NOISE_GAMMA
+  noise_dev = tf.sqrt(noise_dev, name='noise_dev')
+
   t_metrics['regularization_loss'] = t_reg_loss
+  t_metrics['noise_dev'] = noise_dev
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
-    grad_clip = grad_mean * grad_clip_mul
     unclipped_grads = tf.gradients(t_loss, variables)
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, grad_clip)
     for (grad, var) in zip(unclipped_grads, variables):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = [
-        g + tf.random.normal(tf.shape(g), mean=0.0,
-            stddev=GRAD_NOISE * grad_mean)
+        g + tf.random.normal(tf.shape(g), mean=0.0, stddev=noise_dev)
         for g in grads
     ]
     grads = list(zip(grads, variables))
@@ -169,7 +174,7 @@ with tf.Session() as sess:
           categories: batch['categories'],
           category_mask: train_mask,
           training: True,
-          grad_mean: grad_mean_value,
+          grad_clip: grad_clip_value,
         }
       _, _, metrics = sess.run(tensors,
           feed_dict=train_feed)
@@ -180,8 +185,8 @@ with tf.Session() as sess:
     metrics = combine_metrics(epoch_metrics)
     log_summary('train', metrics, step)
 
-    grad_mean_value *= (1.0 - grad_clip_lambda)
-    grad_mean_value += grad_clip_lambda * metrics['grad_norm']
+    grad_clip_value *= (1.0 - grad_clip_lambda)
+    grad_clip_value += grad_clip_lambda * (grad_clip_mul * metrics['grad_norm'])
 
     end_time = time.time()
     print('Mean batch time: {}'.format(
