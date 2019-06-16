@@ -113,7 +113,7 @@ with tf.variable_scope('optimizer'):
     t_metrics['grad_norm'] = t_grad_norm
     t_metrics['grad_clip'] = grad_clip
 
-    optimizer = tf.train.MomentumOptimizer(t_lr, momentum=0.9)
+    optimizer = tf.train.AdamOptimizer(t_lr)
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train = get_train(t_loss, t_metrics)
