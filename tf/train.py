@@ -16,8 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-GRAD_NOISE_GAMMA = 1.0
-GRAD_NOISE_ETA = 0.55
+GRAD_NOISE_GAMMA = 0.55
+GRAD_NOISE_ETA = 1.0
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
