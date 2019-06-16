@@ -18,7 +18,7 @@ SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 # See https://arxiv.org/pdf/1511.06807.pdf
 GRAD_NOISE_GAMMA = 0.55
-GRAD_NOISE_ETA = 1.0
+GRAD_NOISE_ETA = 0.3
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
