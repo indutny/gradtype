@@ -88,7 +88,6 @@ with tf.variable_scope('optimizer'):
   t_loss = t_metrics['loss'] + t_reg_loss
 
   t_metrics['regularization_loss'] = t_reg_loss
-  t_metrics['noise_dev'] = noise_dev
 
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
