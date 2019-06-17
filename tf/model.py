@@ -5,7 +5,7 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 16
-TIMES_WIDTH = 16
+TIMES_WIDTH = [ (16, 0.0) ]
 
 INPUT_DROPOUT = 0.0
 POST_RNN_DROPOUT = 0.0
@@ -59,10 +59,17 @@ class Model():
         name='post_rnn_dropout',
         rate=POST_RNN_DROPOUT)
 
-    self.process_times = tf.layers.Dense(name='process_times',
-                                         units=TIMES_WIDTH,
-                                         activation=tf.nn.relu,
-                                         kernel_regularizer=self.l2)
+    self.process_times = [
+        (
+          tf.layers.Dense(name='process_times_{}'.format(i),
+                          units=width,
+                          activation=tf.nn.relu,
+                          kernel_regularizer=self.l2),
+          tf.keras.layers.Dropout(name='process_times_dropout_{}'.format(i),
+                                  rate=dropout)
+        )
+        for i, (width, dropout) in enumerate(TIMES_WIDTH)
+    ]
 
     self.post = []
     for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
@@ -88,7 +95,9 @@ class Model():
     times = self.input_dropout(times, training=self.training)
 
     # Process holds+deltas
-    times = self.process_times(times)
+    for dense, dropout in self.process_times:
+      times = dense(times)
+      times = dropout(times, training=self.training)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
 
