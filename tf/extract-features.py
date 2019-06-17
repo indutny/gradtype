@@ -40,7 +40,7 @@ with tf.Session() as sess:
 
   logging.debug('Loading dataset...')
 
-  loaded = dataset.load(overlap=8)
+  loaded = dataset.load()
   train_dataset = loaded['train']
   validate_dataset = loaded['validate']
 
