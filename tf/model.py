@@ -61,8 +61,6 @@ class Model():
 
     self.process_times = [
         {
-          'bn': tf.keras.layers.BatchNormalization(
-              name='process_times_bn_{}'.format(i)),
           'dense': tf.layers.Dense(name='process_times_{}'.format(i),
                                    units=width,
                                    activation=tf.nn.relu,
@@ -99,7 +97,6 @@ class Model():
 
     # Process holds+deltas
     for o in self.process_times:
-      times = o['bn'](times, training=self.training)
       times = o['dense'](times)
       times = o['dropout'](times, training=self.training)
 
