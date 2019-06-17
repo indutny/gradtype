@@ -60,13 +60,16 @@ class Model():
         rate=POST_RNN_DROPOUT)
 
     self.process_times = [
-        (
-          tf.layers.Dense(name='process_times_{}'.format(i),
-                          units=width,
-                          activation=tf.nn.relu,
-                          kernel_regularizer=self.l2),
-          tf.keras.layers.Dropout(name='process_times_dropout_{}'.format(i),
-                                  rate=dropout)
+        {
+          'bn': tf.keras.layers.BatchNormalization(
+              name='process_times_bn_{}'.format(i)),
+          'dense': tf.layers.Dense(name='process_times_{}'.format(i),
+                                   units=width,
+                                   activation=tf.nn.relu,
+                                   kernel_regularizer=self.l2),
+          'dropout': tf.keras.layers.Dropout(
+              name='process_times_dropout_{}'.format(i),
+              rate=dropout),
         )
         for i, (width, dropout) in enumerate(TIMES_WIDTH)
     ]
@@ -95,9 +98,10 @@ class Model():
     times = self.input_dropout(times, training=self.training)
 
     # Process holds+deltas
-    for dense, dropout in self.process_times:
-      times = dense(times)
-      times = dropout(times, training=self.training)
+    for o in self.process_times:
+      times = o['bn'](times, training=self.training)
+      times = o['dense'](times)
+      times = o['dropout'](times, training=self.training)
 
     series = tf.concat([ times, embedding ], axis=-1, name='full_input')
 
