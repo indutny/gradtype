@@ -70,7 +70,7 @@ class Model():
           'dropout': tf.keras.layers.Dropout(
               name='process_times_dropout_{}'.format(i),
               rate=dropout),
-        )
+        }
         for i, (width, dropout) in enumerate(TIMES_WIDTH)
     ]
 
