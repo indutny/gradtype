@@ -8,8 +8,6 @@ EMBED_WIDTH = 18
 
 DENSE_L2 = 0.0
 
-ATTENTION_DIM = 128
-
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 100.0
@@ -40,11 +38,13 @@ class Model():
         kernel_regularizer=self.l2)
 
     self.conv = [
-        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3,
-            activation=tf.nn.relu),
+        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3),
+        tf.keras.layers.BatchNormalization(name='conv_1_bn'),
+        tf.keras.layers.Activation(name='conv_1_relu', tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_1', pool_size=(2,2)),
-        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3,
-            activation=tf.nn.relu),
+        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3),
+        tf.keras.layers.BatchNormalization(name='conv_2_bn'),
+        tf.keras.layers.Activation(name='conv_2_relu', tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_2', pool_size=(2,2)),
         tf.keras.layers.Conv2D(name='conv_3', filters=FEATURE_COUNT,
             kernel_size=3),
@@ -103,7 +103,10 @@ class Model():
 
     x = grid
     for l in self.conv:
-      x = l(x)
+      if isinstance(l, tf.keras.layers.Activation):
+        x = l(x, training=self.training)
+      else:
+        x = l(x)
 
     x = tf.reshape(x, shape=(batch_size, FEATURE_COUNT,))
     x = tf.math.l2_normalize(x, axis=-1)
