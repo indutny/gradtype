@@ -84,6 +84,7 @@ class Model():
     grid = tf.range(EMBED_WIDTH, dtype=tf.float32) / float(EMBED_WIDTH)
     grid = tf.reshape(grid, shape=[ 1, 1, EMBED_WIDTH ], name='grid')
 
+    # TODO(indutny): apply mask
     grid *= freq
     grid += phase
     grid = tf.expand_dims(grid, axis=-1)
