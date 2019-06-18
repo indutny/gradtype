@@ -65,7 +65,8 @@ class Model():
         name='index')
     mask = tf.cast(index < sequence_len, dtype=tf.float32, name='mask')
 
-    cont_index = tf.expand_dims(index / sequence_len, axis=-1,
+    cont_index = tf.expand_dims(index / tf.expand_dims(sequence_len, axis=-1),
+        axis=-1,
         name='cont_index')
 
     times = tf.concat([
