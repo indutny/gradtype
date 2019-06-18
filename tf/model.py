@@ -40,9 +40,11 @@ class Model():
         kernel_regularizer=self.l2)
 
     self.conv = [
-        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3),
+        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3,
+            activation=tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_1', pool_size=(2,2)),
-        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3),
+        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3,
+            activation=tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_2', pool_size=(2,2)),
         tf.keras.layers.Conv2D(name='conv_3', filters=FEATURE_COUNT,
             kernel_size=3),
@@ -84,7 +86,6 @@ class Model():
     grid = tf.range(EMBED_WIDTH, dtype=tf.float32) / float(EMBED_WIDTH)
     grid = tf.reshape(grid, shape=[ 1, 1, EMBED_WIDTH ], name='grid')
 
-    # TODO(indutny): apply mask
     grid *= freq
     grid += phase
     grid = tf.expand_dims(grid, axis=-1)
@@ -97,7 +98,8 @@ class Model():
     grid = tf.expand_dims(grid, axis=2)
 
     grid *= tf.expand_dims(tf.expand_dims(embedding, axis=-1), axis=-1)
-    grid = tf.reduce_sum(grid, axis=1, name='sum_grid')
+    # TODO(indutny): apply mask
+    grid = tf.reduce_mean(grid, axis=1, name='sum_grid')
 
     x = grid
     for l in self.conv:
