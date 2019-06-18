@@ -4,34 +4,16 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 16
-TIMES_WIDTH = [ (16, 0.0) ]
-
-INPUT_DROPOUT = 0.0
-POST_RNN_DROPOUT = 0.0
+EMBED_WIDTH = 18
 
 DENSE_L2 = 0.0
 
 ATTENTION_DIM = 128
 
-RNN_WIDTH = [ 16 ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 100.0
 MAX_SPHERE_STRENGTH = 0.9
-
-class Embedding():
-  def __init__(self, name, max_code, width, regularizer=None):
-    self.name = name
-    self.width = width
-    with tf.variable_scope(None, default_name=self.name):
-      self.weights = tf.get_variable('weights', shape=(max_code, width),
-                                     trainable=True,
-                                     regularizer=regularizer)
-
-  def apply(self, codes):
-    with tf.name_scope(None, values=[ codes ], default_name=self.name):
-      return tf.gather(self.weights, codes)
 
 class Model():
   def __init__(self, training):
@@ -46,56 +28,25 @@ class Model():
 
     self.radius = 9.2
 
-    self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+    self.embedding = tf.keras.layers.Embedding(
+        name='embedding',
+        input_dim=dataset.MAX_CHAR + 2,
+        output_dim=EMBED_WIDTH)
 
-    self.attention_key = tf.get_variable('attention_key',
-        trainable=True,
-        shape=(RNN_WIDTH[-1], ATTENTION_DIM,))
-    self.attention_value = tf.get_variable('attention_value',
-        trainable=True,
-        shape=(ATTENTION_DIM, FEATURE_COUNT,))
+    self.phase_freq = tf.layers.Dense(
+        name='phase',
+        units=2 * EMBED_WIDTH,
+        activation=tf.nn.relu,
+        kernel_regularizer=self.l2)
 
-    self.rnn_cells = [
-        tf.contrib.rnn.LSTMBlockCell(name='lstm_cell_{}'.format(i),
-          num_units=width)
-        for i, width in enumerate(RNN_WIDTH)
+    self.conv = [
+        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3),
+        tf.keras.layers.MaxPool2D(name='pool_1', pool_size=(2,2)),
+        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3),
+        tf.keras.layers.MaxPool2D(name='pool_2', pool_size=(2,2)),
+        tf.keras.layers.Conv2D(name='conv_3', filters=FEATURE_COUNT,
+            kernel_size=3),
     ]
-
-    self.input_dropout = tf.keras.layers.GaussianDropout(name='input_dropout',
-        rate=INPUT_DROPOUT)
-    self.post_rnn_dropout = tf.keras.layers.Dropout(
-        name='post_rnn_dropout',
-        rate=POST_RNN_DROPOUT)
-
-    self.process_times = [
-        {
-          'dense': tf.layers.Dense(name='process_times_{}'.format(i),
-                                   units=width,
-                                   activation=tf.nn.relu,
-                                   kernel_regularizer=self.l2),
-          'dropout': tf.keras.layers.Dropout(
-              name='process_times_dropout_{}'.format(i),
-              rate=dropout),
-        }
-        for i, (width, dropout) in enumerate(TIMES_WIDTH)
-    ]
-
-  def apply_embedding(self, holds, codes, deltas):
-    embedding = self.embedding.apply(codes)
-    holds = tf.expand_dims(holds, axis=-1, name='expanded_holds')
-    deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
-
-    times = tf.concat([ holds, deltas ], axis=-1, name='times')
-    times = self.input_dropout(times, training=self.training)
-
-    # Process holds+deltas
-    for o in self.process_times:
-      times = o['dense'](times)
-      times = o['dropout'](times, training=self.training)
-
-    series = tf.concat([ times, embedding ], axis=-1, name='full_input')
-
-    return series, embedding
 
   def build(self, holds, codes, deltas, sequence_len=None):
     batch_size = tf.shape(codes)[0]
@@ -105,29 +56,52 @@ class Model():
           shape=(1,))
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
-    series, embedding = self.apply_embedding(holds, codes, deltas)
-    series = tf.unstack(series, axis=1, name='unstacked_series')
+    sequence_len = tf.cast(sequence_len, dtype=tf.float32)
 
-    for cell in self.rnn_cells:
-      series, _ = tf.nn.static_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            inputs=series)
+    embedding = self.embedding(codes)
+    index = tf.expand_dims(
+        tf.range(max_sequence_len, dtype=tf.float32),
+        axis=0,
+        name='index')
+    mask = tf.cast(index < sequence_len, dtype=tf.float32, name='mask')
 
-    x = tf.stack(series, axis=1, name='stacked_outputs')
+    cont_index = tf.expand_dims(index / sequence_len, axis=-1,
+        name='cont_index')
 
-    # query = (batch, rnn_width)
-    mask = tf.one_hot(sequence_len - 1, max_sequence_len, dtype=tf.float32)
-    query = x * tf.expand_dims(mask, axis=-1)
-    query = tf.reduce_sum(query, axis=1, name='query')
+    times = tf.concat([
+        tf.expand_dims(holds, axis=-1), tf.expand_dims(deltas, axis=-1) ],
+        axis=-1,
+        name='times')
+    phase_input = tf.concat([ cont_index, times, embedding ],
+        axis=-1,
+        name='phase_input')
 
-    # dot = (batch, attention_dim)
-    dot = tf.matmul(query, self.attention_key)
-    dot /= math.sqrt(ATTENTION_DIM)
-    dot = tf.math.softmax(dot, axis=-1, name='dot')
+    phase_freq = self.phase_freq(phase_input)
 
-    # dot = (batch, feature_count)
-    x = tf.matmul(dot, self.attention_value, name='value')
+    phase, freq = tf.split(phase_freq, [ EMBED_WIDTH, EMBED_WIDTH ], axis=-1)
+
+    grid = tf.range(EMBED_WIDTH, dtype=tf.float32) / float(EMBED_WIDTH)
+    grid = tf.reshape(grid, shape=[ 1, 1, EMBED_WIDTH ], name='grid')
+
+    grid *= freq
+    grid += phase
+    grid = tf.expand_dims(grid, axis=-1)
+
+    grid = tf.concat([
+        tf.sin(grid, name='sin_grid'),
+        tf.cos(grid, name='cos_grid'),
+    ], axis=-1, name='full_grid')
+
+    grid = tf.expand_dims(grid, axis=2)
+
+    grid *= tf.expand_dims(tf.expand_dims(embedding, axis=-1), axis=-1)
+    grid = tf.reduce_sum(grid, axis=1, name='sum_grid')
+
+    x = grid
+    for l in self.conv:
+      x = l(x)
+
+    x = tf.reshape(x, shape=(batch_size, FEATURE_COUNT,))
     x = tf.math.l2_normalize(x, axis=-1)
 
     return x
