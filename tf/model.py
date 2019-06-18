@@ -117,7 +117,7 @@ class Model():
     x = tf.stack(series, axis=1, name='stacked_outputs')
 
     # query = (batch, rnn_width)
-    mask = tf.one_hot(sequence_len, max_sequence_len, dtype=tf.float32)
+    mask = tf.one_hot(sequence_len - 1, max_sequence_len, dtype=tf.float32)
     query = x * tf.expand_dims(mask, axis=-1)
     query = tf.reduce_sum(query, axis=1, name='query')
 
