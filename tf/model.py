@@ -120,7 +120,6 @@ class Model():
         x = l(x, training=self.training)
       else:
         x = l(x)
-      print(x)
 
     x = tf.reshape(x, shape=(batch_size, FEATURE_COUNT,))
     x = tf.math.l2_normalize(x, axis=-1)
