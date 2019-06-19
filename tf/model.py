@@ -79,6 +79,7 @@ class Model():
     cont_index = tf.expand_dims(index / tf.expand_dims(sequence_len, axis=-1),
         axis=-1,
         name='cont_index')
+    cont_index *= 2.0 * math.pi
 
     times = tf.concat([
         tf.expand_dims(holds, axis=-1), tf.expand_dims(deltas, axis=-1) ],
