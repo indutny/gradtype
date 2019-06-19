@@ -4,7 +4,7 @@ import tensorflow as tf
 # Internal
 import dataset
 
-LITTLE_EMBED_WIDTH = 4
+LITTLE_EMBED_WIDTH = 16
 GRID_WIDTH = 28
 
 DENSE_L2 = 0.0
@@ -37,11 +37,23 @@ class Model():
         input_dim=dataset.MAX_CHAR + 2,
         output_dim=GRID_WIDTH)
 
-    self.phase_freq = tf.layers.Dense(
-        name='phase',
-        units=2 * GRID_WIDTH,
-        activation=tf.nn.relu,
-        kernel_regularizer=self.l2)
+    self.phase_freq = [
+        tf.layers.Dense(
+            name='phase_pre_1',
+            units=16,
+            activation=tf.nn.relu,
+            kernel_regularizer=self.l2),
+        tf.layers.Dense(
+            name='phase_pre_2',
+            units=32,
+            activation=tf.nn.relu,
+            kernel_regularizer=self.l2),
+        tf.layers.Dense(
+            name='phase',
+            units=2 * GRID_WIDTH,
+            activation=tf.nn.relu,
+            kernel_regularizer=self.l2),
+    ]
 
     self.conv = [
         tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3,
@@ -90,7 +102,9 @@ class Model():
         axis=-1,
         name='phase_input')
 
-    phase_freq = self.phase_freq(phase_input)
+    phase_freq = phase_input
+    for l in self.phase_freq:
+      phase_freq = l(phase_freq)
 
     phase, freq = tf.split(phase_freq, [ GRID_WIDTH, GRID_WIDTH ], axis=-1)
 
