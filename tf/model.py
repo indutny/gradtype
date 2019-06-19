@@ -4,7 +4,8 @@ import tensorflow as tf
 # Internal
 import dataset
 
-EMBED_WIDTH = 18
+LITTLE_EMBED_WIDTH = 4
+GRID_WIDTH = 28
 
 DENSE_L2 = 0.0
 
@@ -26,28 +27,35 @@ class Model():
 
     self.radius = 9.2
 
-    self.embedding = tf.keras.layers.Embedding(
-        name='embedding',
+    self.little_embedding = tf.keras.layers.Embedding(
+        name='little_embedding',
         input_dim=dataset.MAX_CHAR + 2,
-        output_dim=EMBED_WIDTH)
+        output_dim=LITTLE_EMBED_WIDTH)
+
+    self.grid_embedding = tf.keras.layers.Embedding(
+        name='grid_embedding',
+        input_dim=dataset.MAX_CHAR + 2,
+        output_dim=GRID_WIDTH)
 
     self.phase_freq = tf.layers.Dense(
         name='phase',
-        units=2 * EMBED_WIDTH,
+        units=2 * GRID_WIDTH,
         activation=tf.nn.relu,
         kernel_regularizer=self.l2)
 
     self.conv = [
-        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3),
-        tf.keras.layers.BatchNormalization(name='conv_1_bn'),
-        tf.keras.layers.Activation(name='conv_1_relu', tf.nn.relu),
+        tf.keras.layers.Conv2D(name='conv_1', filters=8, kernel_size=3,
+            activation=tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_1', pool_size=(2,2)),
-        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3),
-        tf.keras.layers.BatchNormalization(name='conv_2_bn'),
-        tf.keras.layers.Activation(name='conv_2_relu', tf.nn.relu),
+        tf.keras.layers.Conv2D(name='conv_2', filters=16, kernel_size=3,
+            activation=tf.nn.relu),
         tf.keras.layers.MaxPool2D(name='pool_2', pool_size=(2,2)),
-        tf.keras.layers.Conv2D(name='conv_3', filters=FEATURE_COUNT,
-            kernel_size=3),
+        tf.keras.layers.Conv2D(name='conv_3', filters=32, kernel_size=3,
+            activation=tf.nn.relu),
+        tf.keras.layers.MaxPool2D(name='pool_3', pool_size=(2,2)),
+
+        tf.keras.layers.Conv2D(name='features', filters=FEATURE_COUNT,
+            kernel_size=1),
     ]
 
   def build(self, holds, codes, deltas, sequence_len=None):
@@ -60,7 +68,8 @@ class Model():
 
     sequence_len = tf.cast(sequence_len, dtype=tf.float32)
 
-    embedding = self.embedding(codes)
+    little_embedding = self.little_embedding(codes)
+
     index = tf.expand_dims(
         tf.range(max_sequence_len, dtype=tf.float32),
         axis=0,
@@ -75,16 +84,17 @@ class Model():
         tf.expand_dims(holds, axis=-1), tf.expand_dims(deltas, axis=-1) ],
         axis=-1,
         name='times')
-    phase_input = tf.concat([ cont_index, times, embedding ],
+    phase_input = tf.concat(
+        [ tf.sin(cont_index), tf.cos(cont_index), times, little_embedding ],
         axis=-1,
         name='phase_input')
 
     phase_freq = self.phase_freq(phase_input)
 
-    phase, freq = tf.split(phase_freq, [ EMBED_WIDTH, EMBED_WIDTH ], axis=-1)
+    phase, freq = tf.split(phase_freq, [ GRID_WIDTH, GRID_WIDTH ], axis=-1)
 
-    grid = tf.range(EMBED_WIDTH, dtype=tf.float32) / float(EMBED_WIDTH)
-    grid = tf.reshape(grid, shape=[ 1, 1, EMBED_WIDTH ], name='grid')
+    grid = tf.range(GRID_WIDTH, dtype=tf.float32) / float(GRID_WIDTH)
+    grid = tf.reshape(grid, shape=[ 1, 1, GRID_WIDTH ], name='grid')
 
     grid *= freq
     grid += phase
@@ -97,6 +107,8 @@ class Model():
 
     grid = tf.expand_dims(grid, axis=2)
 
+    embedding = self.grid_embedding(codes)
+
     grid *= tf.expand_dims(tf.expand_dims(embedding, axis=-1), axis=-1)
     # TODO(indutny): apply mask
     grid = tf.reduce_mean(grid, axis=1, name='sum_grid')
@@ -107,6 +119,7 @@ class Model():
         x = l(x, training=self.training)
       else:
         x = l(x)
+      print(x)
 
     x = tf.reshape(x, shape=(batch_size, FEATURE_COUNT,))
     x = tf.math.l2_normalize(x, axis=-1)
