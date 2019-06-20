@@ -43,8 +43,6 @@ class Model():
     self.arcface_m3 = 0.0
     self.anneal_distances = False
 
-    self.residual_rnn = False
-
     self.radius = 9.2
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
@@ -118,17 +116,10 @@ class Model():
     series = tf.unstack(series, axis=1, name='unstacked_series')
 
     for cell in self.rnn_cells:
-      new_series, _ = tf.nn.static_rnn(
+      series, _ = tf.nn.static_rnn(
             cell=cell,
             dtype=tf.float32,
             inputs=series)
-
-      # Residual
-      if self.residual_rnn and \
-          tf.shape(new_series[0])[-1] == tf.shape(series[0])[-1]:
-        series = [ old + new for (old, new) in zip(series, new_series) ]
-      else:
-        series = new_series
 
     x = tf.stack(series, axis=1, name='stacked_outputs')
 
