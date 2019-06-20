@@ -109,6 +109,9 @@ class Model():
     # TODO(indutny): apply mask
     grid = tf.reduce_mean(grid, axis=1, name='sum_grid')
 
+    # Just for convolutions
+    grid = tf.expand_dims(grid, axis=-1)
+
     x = grid
     for l in self.conv:
       if isinstance(l, tf.keras.layers.Activation):
