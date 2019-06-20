@@ -92,19 +92,17 @@ class Model():
     row = tf.concat(
         [ tf.sin(cont_index), tf.cos(cont_index), times, little_embedding ],
         axis=-1,
-        name='row')
+        name='row_input')
 
     for l in self.grid_row:
       row = l(row)
 
     # shape(row) = ( batch_size, sequence_len, 1, GRID_WIDTH)
-    row = tf.expand_dims(row, axis=2)
+    row = tf.expand_dims(row, axis=2, name='row')
 
     column = self.grid_embedding(codes)
-    column = tf.expand_dims(column, axis=1)
-
     # shape(column) = ( batch_size, sequence_len, GRID_WIDTH, 1)
-    column = tf.expand_dims(column, axis=-1)
+    column = tf.expand_dims(column, axis=-1, name='column')
 
     grid = row * column
 
