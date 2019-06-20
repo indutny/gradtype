@@ -12,9 +12,8 @@ POST_RNN_DROPOUT = 0.0
 
 DENSE_L2 = 0.0
 
-ATTENTION_DIM = 128
-
 RNN_WIDTH = [ 16 ]
+DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
 
 ANNEAL_MAX_STEP = 100.0
@@ -48,13 +47,6 @@ class Model():
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
 
-    self.attention_key = tf.get_variable('attention_key',
-        trainable=True,
-        shape=(RNN_WIDTH[-1], ATTENTION_DIM,))
-    self.attention_value = tf.get_variable('attention_value',
-        trainable=True,
-        shape=(ATTENTION_DIM, FEATURE_COUNT,))
-
     self.rnn_cells = [
         tf.contrib.rnn.LSTMBlockCell(name='lstm_cell_{}'.format(i),
           num_units=width)
@@ -79,6 +71,21 @@ class Model():
         }
         for i, (width, dropout) in enumerate(TIMES_WIDTH)
     ]
+
+    self.post = []
+    for i, (width, dropout) in enumerate(DENSE_POST_WIDTH):
+      dense = tf.layers.Dense(name='dense_post_{}'.format(i),
+                              units=width,
+                              activation=tf.nn.relu,
+                              kernel_regularizer=self.l2)
+      dropout = tf.keras.layers.Dropout(
+          name='dropout_post_{}'.format(i),
+          rate=dropout)
+      self.post.append({ 'dense': dense, 'dropout': dropout })
+
+    self.features = tf.layers.Dense(name='features',
+                                    units=FEATURE_COUNT,
+                                    kernel_regularizer=self.l2)
 
   def apply_embedding(self, holds, codes, deltas):
     embedding = self.embedding.apply(codes)
@@ -116,18 +123,22 @@ class Model():
 
     x = tf.stack(series, axis=1, name='stacked_outputs')
 
-    # query = (batch, rnn_width)
-    mask = tf.one_hot(sequence_len - 1, max_sequence_len, dtype=tf.float32)
-    query = x * tf.expand_dims(mask, axis=-1)
-    query = tf.reduce_sum(query, axis=1, name='query')
+    for entry in self.post:
+      x = entry['dense'](x)
+      x = entry['dropout'](x, training=self.training)
+    x = self.features(x)
+    x = self.post_rnn_dropout(x, training=self.training)
 
-    # dot = (batch, attention_dim)
-    dot = tf.matmul(query, self.attention_key)
-    dot /= math.sqrt(ATTENTION_DIM)
-    dot = tf.math.softmax(dot, axis=-1, name='dot')
+    seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
+        name='seq_index')
+    mask = seq_index < tf.expand_dims(sequence_len, axis=-1)
+    mask = tf.cast(mask, dtype=tf.float32)
+    mask /= tf.reduce_sum(mask, axis=-1, keepdims=True, name='mask_sum') + 1e-23
+    mask = tf.expand_dims(mask, axis=-1, name='expanded_mask')
 
-    # dot = (batch, feature_count)
-    x = tf.matmul(dot, self.attention_value, name='value')
+    x *= mask
+    x = tf.reduce_sum(x, axis=1)
+
     x = tf.math.l2_normalize(x, axis=-1)
 
     return x
