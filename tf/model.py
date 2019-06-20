@@ -37,20 +37,10 @@ class Model():
         input_dim=dataset.MAX_CHAR + 2,
         output_dim=GRID_WIDTH)
 
-    self.phase_freq = [
+    self.grid_row = [
         tf.layers.Dense(
-            name='phase_pre_1',
-            units=16,
-            activation=tf.nn.relu,
-            kernel_regularizer=self.l2),
-        tf.layers.Dense(
-            name='phase_pre_2',
-            units=32,
-            activation=tf.nn.relu,
-            kernel_regularizer=self.l2),
-        tf.layers.Dense(
-            name='phase',
-            units=2 * GRID_WIDTH,
+            name='grid_row',
+            units=GRID_WIDTH,
             activation=tf.nn.relu,
             kernel_regularizer=self.l2),
     ]
@@ -97,34 +87,27 @@ class Model():
         tf.expand_dims(holds, axis=-1), tf.expand_dims(deltas, axis=-1) ],
         axis=-1,
         name='times')
-    phase_input = tf.concat(
+
+    # Concat: index, times, embedding for each step
+    row = tf.concat(
         [ tf.sin(cont_index), tf.cos(cont_index), times, little_embedding ],
         axis=-1,
-        name='phase_input')
+        name='row')
 
-    phase_freq = phase_input
-    for l in self.phase_freq:
-      phase_freq = l(phase_freq)
+    for l in self.grid_row:
+      row = l(row)
 
-    phase, freq = tf.split(phase_freq, [ GRID_WIDTH, GRID_WIDTH ], axis=-1)
+    # shape(row) = ( batch_size, sequence_len, 1, GRID_WIDTH)
+    row = tf.expand_dims(row, axis=2)
 
-    grid = tf.range(GRID_WIDTH, dtype=tf.float32) / float(GRID_WIDTH)
-    grid = tf.reshape(grid, shape=[ 1, 1, GRID_WIDTH ], name='grid')
+    column = self.grid_embedding(codes)
+    column = tf.expand_dims(column, axis=1)
 
-    grid *= freq
-    grid += phase
-    grid = tf.expand_dims(grid, axis=-1)
+    # shape(column) = ( batch_size, sequence_len, GRID_WIDTH, 1)
+    column = tf.expand_dims(column, axis=-1)
 
-    grid = tf.concat([
-        tf.sin(grid, name='sin_grid'),
-        tf.cos(grid, name='cos_grid'),
-    ], axis=-1, name='full_grid')
+    grid = row * column
 
-    grid = tf.expand_dims(grid, axis=2)
-
-    embedding = self.grid_embedding(codes)
-
-    grid *= tf.expand_dims(tf.expand_dims(embedding, axis=-1), axis=-1)
     # TODO(indutny): apply mask
     grid = tf.reduce_mean(grid, axis=1, name='sum_grid')
 
