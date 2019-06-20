@@ -125,8 +125,8 @@ class Model():
 
       # Residual
       if self.residual_rnn and \
-          int(tf.shape(new_series)[-1]) == int(tf.shape(series)[-1]):
-        series += new_series
+          tf.shape(new_series[0])[-1] == tf.shape(series[0])[-1]:
+        series = [ old + new for (old, new) in zip(series, new_series) ]
       else:
         series = new_series
 
