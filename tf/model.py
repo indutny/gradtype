@@ -124,7 +124,8 @@ class Model():
             inputs=series)
 
       # Residual
-      if self.residual_rnn and tf.shape(new_series)[-1] == tf.shape(series)[-1]:
+      if self.residual_rnn and \
+          int(tf.shape(new_series)[-1]) == int(tf.shape(series)[-1]):
         series += new_series
       else:
         series = new_series
