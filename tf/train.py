@@ -75,7 +75,9 @@ category_mask = tf.placeholder(tf.bool, shape=(category_count,),
 model = Model(training=training)
 
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
+global_epoch_t = tf.Variable(0, trainable=False, name='global_epoch')
 update_global_step_t = global_step_t.assign_add(1)
+update_global_epoch_t = global_epoch_t.assign_add(1)
 
 output, t_auto_metrics = model.build(holds, codes, deltas, sequence_lens)
 t_val_auto_metrics = t_auto_metrics.copy()
@@ -97,7 +99,7 @@ with tf.variable_scope('optimizer'):
   t_auto_loss = t_auto_metrics['loss'] + t_reg_loss
 
   noise_dev = GRAD_NOISE_ETA
-  noise_dev /= (1 + tf.cast(global_step_t, dtype=tf.float32)) \
+  noise_dev /= (1 + tf.cast(global_epoch_t, dtype=tf.float32)) \
       ** GRAD_NOISE_GAMMA
   noise_dev = tf.sqrt(noise_dev, name='noise_dev')
 
@@ -196,6 +198,8 @@ with tf.Session() as sess:
 
       step += 1
       epoch_metrics.append(metrics)
+
+    sess.run(update_global_epoch_t)
 
     metrics = combine_metrics(epoch_metrics)
     log_summary('train', metrics, step)
