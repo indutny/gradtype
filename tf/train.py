@@ -16,7 +16,10 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
+AUTO_CLIP = False
+
 # See https://arxiv.org/pdf/1511.06807.pdf
+STATIC_CLIP = 10.0
 GRAD_NOISE_GAMMA = 0.55
 GRAD_NOISE_ETA = 0.3
 
@@ -175,7 +178,7 @@ with tf.Session() as sess:
           categories: batch['categories'],
           category_mask: train_mask,
           training: True,
-          grad_clip: grad_clip_value,
+          grad_clip: grad_clip_value if AUTO_CLIP else STATIC_CLIP,
         }
       _, _, metrics = sess.run(tensors,
           feed_dict=train_feed)
