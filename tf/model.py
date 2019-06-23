@@ -187,7 +187,7 @@ class Model():
       x = entry['dropout'](x, training=self.training)
 
     loss = tf.reduce_sum((x - times) ** 2.0, axis=-1) / 2.0
-    loss = tf.reduce_sum(loss, axis=1)
+    loss = tf.reduce_mean(loss, axis=1)
     loss = tf.reduce_mean(loss, axis=0)
 
     metrics = {}
