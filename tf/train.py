@@ -16,6 +16,8 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
+AUTO_ENCODER = False
+
 AUTO_CLIP = False
 
 # See https://arxiv.org/pdf/1511.06807.pdf
@@ -46,7 +48,7 @@ validate_mask = loaded['validate_mask']
 category_count = loaded['category_count']
 
 train_batches_gen = dataset.gen_regression(train_dataset,
-    batch_size=None, randomize=False)
+    batch_size=32 if AUTO_ENCODER else None, randomize=False)
 validate_batches = next(
     dataset.gen_regression(validate_dataset, batch_size=None))
 
@@ -75,7 +77,7 @@ model = Model(training=training)
 global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
 
-output = model.build(holds, codes, deltas, sequence_lens)
+output, t_auto_metrics = model.build(holds, codes, deltas, sequence_lens)
 
 t_metrics = model.get_proxy_loss(output, categories, category_count,
     category_mask, tf.cast(global_step_t, dtype=tf.float32))
@@ -91,17 +93,18 @@ with tf.variable_scope('optimizer'):
 
   t_reg_loss = tf.losses.get_regularization_loss()
   t_loss = t_metrics['loss'] + t_reg_loss
+  t_auto_loss = t_auto_metrics['loss'] + t_reg_loss
 
   noise_dev = GRAD_NOISE_ETA
   noise_dev /= (1 + tf.cast(global_step_t, dtype=tf.float32)) \
       ** GRAD_NOISE_GAMMA
   noise_dev = tf.sqrt(noise_dev, name='noise_dev')
 
-  t_metrics['regularization_loss'] = t_reg_loss
-  t_metrics['noise_dev'] = noise_dev
-
   variables = tf.trainable_variables()
   def get_train(t_loss, t_metrics):
+    t_metrics['regularization_loss'] = t_reg_loss
+    t_metrics['noise_dev'] = noise_dev
+
     unclipped_grads = tf.gradients(t_loss, variables)
     grads, t_grad_norm = tf.clip_by_global_norm(unclipped_grads, grad_clip)
     for (grad, var) in zip(unclipped_grads, variables):
@@ -109,6 +112,7 @@ with tf.variable_scope('optimizer'):
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
     grads = [
         g + tf.random.normal(tf.shape(g), mean=0.0, stddev=noise_dev)
+        if not g is None else None
         for g in grads
     ]
     grads = list(zip(grads, variables))
@@ -120,6 +124,12 @@ with tf.variable_scope('optimizer'):
     return optimizer.apply_gradients(grads_and_vars=grads)
 
   train = get_train(t_loss, t_metrics)
+  auto_train = get_train(t_auto_loss, t_auto_metrics)
+
+if AUTO_ENCODER:
+  train = auto_train
+  t_metrics = t_auto_metrics
+  t_val_metrics = t_auto_metrics
 
 #
 # TensorBoard
