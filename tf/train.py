@@ -78,6 +78,7 @@ global_step_t = tf.Variable(0, trainable=False, name='global_step')
 update_global_step_t = global_step_t.assign_add(1)
 
 output, t_auto_metrics = model.build(holds, codes, deltas, sequence_lens)
+t_val_auto_metrics = copy(t_auto_metrics)
 
 t_metrics = model.get_proxy_loss(output, categories, category_count,
     category_mask, tf.cast(global_step_t, dtype=tf.float32))
@@ -129,7 +130,7 @@ with tf.variable_scope('optimizer'):
 if AUTO_ENCODER:
   train = auto_train
   t_metrics = t_auto_metrics
-  t_val_metrics = t_auto_metrics
+  t_val_metrics = t_val_auto_metrics
 
 #
 # TensorBoard
