@@ -51,11 +51,33 @@ function computeSize(stats, confidence) {
   return size;
 }
 
-function optimize(subdata, priorSame, confidence) {
-  let result = null;
-  let best = Infinity;
+function computeStats(subdata, priorSame, truePositives, falseNegatives) {
+  const stats = {
+    truePositives,
+    trueNegatives: subdata.negatives.length - falseNegatives + 1,
+
+    lessGivenSame: truePositives / subdata.positives.length,
+    lessGivenDiff: falseNegatives / subdata.negatives.length,
+
+    // Filled below
+    accuracy: 0,
+    sameGivenLess: 0,
+  };
 
   const priorDiff = 1 - priorSame;
+
+  stats.accuracy = (stats.truePositives + stats.trueNegatives) /
+      (subdata.positives.length + subdata.negatives.length);
+  stats.sameGivenLess = stats.lessGivenSame * priorSame /
+    (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
+
+  return stats;
+}
+
+function optimize(subdata, priorSame, confidence) {
+  let result = null;
+  let best = 0;
+
   let j = 0;
   for (let i = 0; i < subdata.positives.length; i++) {
     const cutoff = subdata.positives[i];
@@ -63,18 +85,11 @@ function optimize(subdata, priorSame, confidence) {
       j++;
     }
 
-    const stats = {
-      lessGivenSame: (i + 1) / subdata.positives.length,
-      lessGivenDiff: (j + 1) / subdata.negatives.length,
-      sameGivenLess: 0,
-    };
-
-    stats.sameGivenLess = stats.lessGivenSame * priorSame /
-      (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
+    const stats = computeStats(subdata, priorSame, i + 1, j + 1);
 
     const size = computeSize(stats, confidence);
-    if (size < best) {
-      best = size;
+    if (stats.accuracy > best) {
+      best = stats.accuracy;
       const min = size * stats.lessGivenSame;
       result = { size, cutoff, stats, min };
     }
@@ -86,15 +101,7 @@ function check(subdata, priorSame, confidence, cutoff) {
   let i = bounds.ge(subdata.positives, cutoff);
   let j = bounds.ge(subdata.negatives, cutoff);
 
-  const priorDiff = 1 - priorSame;
-  const stats = {
-    lessGivenSame: (i + 1) / subdata.positives.length,
-    lessGivenDiff: (j + 1) / subdata.negatives.length,
-    sameGivenLess: 0,
-  };
-
-  stats.sameGivenLess = stats.lessGivenSame * priorSame /
-    (stats.lessGivenSame * priorSame + stats.lessGivenDiff * priorDiff);
+  const stats = computeStats(subdata, priorSame, i + 1, j + 1);
 
   const size = computeSize(stats, confidence);
   const min = size * stats.lessGivenSame;
