@@ -53,9 +53,10 @@ def load_sequence(f, category, label):
   # Normalize timing per-sample
   if NORMALIZE:
     mean_delta = np.mean(deltas)
+    var_delta = np.sqrt(np.var(deltas))
+
     mean_hold = np.mean(holds)
-    var_delta = np.var(deltas)
-    var_hold = np.var(holds)
+    var_hold = np.sqrt(np.var(holds))
 
     deltas -= mean_delta
     deltas /= var_delta

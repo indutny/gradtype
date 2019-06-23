@@ -34,7 +34,7 @@ VALIDATE_EVERY = 10
 SAVE_EVERY = 100
 
 # Learning rate
-LR = 0.01
+LR = 0.001 if AUTO_ENCODER else 0.01
 
 #
 # Load dataset
