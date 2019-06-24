@@ -153,7 +153,7 @@ class Model():
 
     # Regular
     x = tf.identity(hidden_features)
-    x = tf.stop_gradients(x)
+    x = tf.stop_gradient(x)
 
     for entry in self.post:
       x = entry['dense'](x)
