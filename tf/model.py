@@ -156,6 +156,7 @@ class Model():
     future_times = times[:, 1:, :]
 
     features = tf.expand_dims(features, axis=1)
+    features = tf.tile(features, [ 1, tf.shape(times)[1] - 1, 1 ])
 
     x = tf.concat([ features, past_embedding, past_times, future_embedding ],
         axis=-1)
