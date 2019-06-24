@@ -182,7 +182,8 @@ class Model():
     future_embedding = embedding[:, 1:, :]
     future_times = times[:, 1:, :]
 
-    series = tf.concat([ past_embedding, past_times, future_embedding ]
+    series = tf.concat([ past_embedding, past_times, future_embedding ],
+        axis=-1)
     series = tf.unstack(series, axis=1)
     for state, cell in zip(states, self.rev_rnn_cells):
       series, _ = tf.nn.static_rnn(
