@@ -5,7 +5,6 @@ import tensorflow as tf
 import dataset
 
 EMBED_WIDTH = 16
-TIMES_WIDTH = [ (16, 0.0) ]
 
 INPUT_DROPOUT = 0.0
 POST_RNN_DROPOUT = 0.0
@@ -60,7 +59,6 @@ class Model():
         name='post_rnn_dropout',
         rate=POST_RNN_DROPOUT)
 
-    self.process_times = self.create_dense(TIMES_WIDTH, 'process_times')
     self.post = self.create_dense(DENSE_POST_WIDTH, 'dense_post')
     self.rev_post = self.create_dense(REV_POST_WIDTH, 'rev_post')
 
@@ -91,18 +89,17 @@ class Model():
     holds = tf.expand_dims(holds, axis=-1, name='expanded_holds')
     deltas = tf.expand_dims(deltas, axis=-1, name='expanded_deltas')
 
-    raw_times = tf.concat([ holds, deltas ], axis=-1, name='times')
+    times = tf.concat([ holds, deltas ], axis=-1, name='times')
 
-    # Process holds+deltas
-    times = raw_times
-    times = self.input_dropout(times, training=self.training)
-    for o in self.process_times:
-      times = o['dense'](times)
-      times = o['dropout'](times, training=self.training)
+    past_embedding = embedding[:, :-1, :]
+    past_times = times[:, :-1, :]
+    future_embedding = embedding[:, 1:, :]
+    future_times = times[:, 1:, :]
 
-    series = tf.concat([ times, embedding ], axis=-1, name='full_input')
+    series = tf.concat([ past_embedding, past_times, future_embedding ],
+        axis=-1, name='full_input')
 
-    return series, raw_times, embedding
+    return series, future_times
 
   def build(self, holds, codes, deltas, sequence_len=None):
     batch_size = tf.shape(codes)[0]
@@ -112,7 +109,7 @@ class Model():
           shape=(1,))
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
-    series, times, embedding = self.apply_embedding(holds, codes, deltas)
+    series, future_times = self.apply_embedding(holds, codes, deltas)
     series = tf.unstack(series, axis=1, name='unstacked_series')
 
     for cell in self.rnn_cells:
@@ -121,25 +118,22 @@ class Model():
             dtype=tf.float32,
             inputs=series)
 
-    x = tf.stack(series, axis=1, name='stacked_outputs')
+    predictor_output = tf.stack(series, axis=1, name='stacked_outputs')
 
-    seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
+    seq_index = tf.expand_dims(tf.range(1, max_sequence_len), axis=0,
         name='seq_index')
     mask = tf.equal(seq_index, tf.expand_dims(sequence_len - 1, axis=-1))
     mask = tf.cast(mask, dtype=tf.float32)
     mask = tf.expand_dims(mask, axis=-1)
 
+    # Train predictor
+    auto_metrics = self.get_auto_metrics(predictor_output, future_times)
+
     # Select last
+    x = predictor_output
     x *= mask
     x = tf.reduce_sum(x, axis=1)
 
-    hidden_features = x
-
-    # Auto
-    auto_metrics = self.get_auto_metrics(hidden_features, embedding, times)
-
-    # Regular
-    x = hidden_features
     for entry in self.post:
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
@@ -149,17 +143,8 @@ class Model():
 
     return features, auto_metrics
 
-  def get_auto_metrics(self, features, embedding, times):
-    past_embedding = embedding[:, :-1, :]
-    past_times = times[:, :-1, :]
-    future_embedding = embedding[:, 1:, :]
-    future_times = times[:, 1:, :]
-
-    features = tf.expand_dims(features, axis=1)
-    features = tf.tile(features, [ 1, tf.shape(times)[1] - 1, 1 ])
-
-    x = tf.concat([ features, past_embedding, past_times, future_embedding ],
-        axis=-1)
+  def get_auto_metrics(self, predicted_times, future_times):
+    x = predicted_times
 
     for entry in self.rev_post:
       x = entry['dense'](x)
