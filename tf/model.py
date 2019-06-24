@@ -152,7 +152,9 @@ class Model():
     auto_metrics = self.get_auto_metrics(hidden_features, embedding, times)
 
     # Regular
-    x = hidden_features
+    x = tf.identity(hidden_features)
+    x = tf.stop_gradients(x)
+
     for entry in self.post:
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
