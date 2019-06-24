@@ -18,12 +18,12 @@ SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
 AUTO_ENCODER = True
 
-AUTO_CLIP = False
+AUTO_CLIP = AUTO_ENCODER
 
 # See https://arxiv.org/pdf/1511.06807.pdf
 STATIC_CLIP = 10.0
 GRAD_NOISE_GAMMA = 0.55
-GRAD_NOISE_ETA = 0.3
+GRAD_NOISE_ETA = 0.0 if AUTO_ENCODER else 0.3
 
 # Maximum number of epochs to run for
 MAX_EPOCHS = 500000
