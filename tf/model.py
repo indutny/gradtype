@@ -155,6 +155,8 @@ class Model():
     future_embedding = embedding[:, 1:, :]
     future_times = times[:, 1:, :]
 
+    features = tf.expand_dims(features, axis=1)
+
     x = tf.concat([ features, past_embedding, past_times, future_embedding ],
         axis=-1)
 
