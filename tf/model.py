@@ -155,7 +155,7 @@ class Model():
     future_embedding = embedding[:, 1:, :]
     future_times = times[:, 1:, :]
 
-    x = tf.concat([ past_embedding, past_times, future_embedding ],
+    x = tf.concat([ features, past_embedding, past_times, future_embedding ],
         axis=-1)
 
     for entry in self.rev_post:
