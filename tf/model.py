@@ -19,6 +19,8 @@ FEATURE_COUNT = 32
 ANNEAL_MAX_STEP = 100.0
 MAX_SPHERE_STRENGTH = 0.9
 
+PREDICTION_LENGTH = 32
+
 class Embedding():
   def __init__(self, name, max_code, width, regularizer=None):
     self.name = name
@@ -153,6 +155,11 @@ class Model():
     x = self.rev_post_times(x)
 
     predicted_times = x
+
+    # Expect correct values on later predictions
+    # (i.e. assume that the RNN gains state on first ones)
+    predicted_times = predicted_times[:, -PREDICTION_LENGTH:, :]
+    future_times = future_times[:, -PREDICTION_LENGTH:, :]
 
     loss = tf.reduce_sum((predicted_times - future_times) ** 2.0, axis=-1) / 2.0
     loss = tf.reduce_mean(loss, axis=1)
