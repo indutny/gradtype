@@ -172,7 +172,7 @@ class Model():
         for state in states
     ]
 
-    series = embedding
+    series = tf.concat([ embedding[:, 1:, :], times[:, :-1, :] ], axis=-1)
     series = tf.unstack(series, axis=1)
     for state, cell in zip(states, self.rev_rnn_cells):
       series, _ = tf.nn.static_rnn(
@@ -186,7 +186,7 @@ class Model():
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
 
-    loss = tf.reduce_sum((x - times) ** 2.0, axis=-1) / 2.0
+    loss = tf.reduce_sum((x - times[:, 1:, :]) ** 2.0, axis=-1) / 2.0
     loss = tf.reduce_mean(loss, axis=1)
     loss = tf.reduce_mean(loss, axis=0)
 
