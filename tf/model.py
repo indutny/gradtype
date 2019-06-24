@@ -13,7 +13,6 @@ POST_RNN_DROPOUT = 0.0
 DENSE_L2 = 0.0
 
 RNN_WIDTH = [ 16 ]
-REV_RNN_WIDTH = [ 16 ]
 REV_POST_WIDTH = [ (128, 0.0) ]
 DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
@@ -60,12 +59,6 @@ class Model():
     self.post_rnn_dropout = tf.keras.layers.Dropout(
         name='post_rnn_dropout',
         rate=POST_RNN_DROPOUT)
-
-    # c, h for every rev cell
-    self.auto_state = tf.layers.Dense(name='auto_state',
-                                      units=sum(REV_RNN_WIDTH) * 2,
-                                      kernel_regularizer=self.l2,
-                                      activation=tf.tanh)
 
     self.process_times = self.create_dense(TIMES_WIDTH, 'process_times')
     self.post = self.create_dense(DENSE_POST_WIDTH, 'dense_post')
@@ -157,20 +150,6 @@ class Model():
     return features, auto_metrics
 
   def get_auto_metrics(self, features, embedding, times):
-    states = self.auto_state(features)
-    states = tf.split(states, [ 2 * units for units in REV_RNN_WIDTH ],
-        axis=-1)
-
-    states = [
-        tf.split(raw_state, [ units, units ], axis=-1)
-        for units, raw_state in zip(REV_RNN_WIDTH, states)
-    ]
-
-    states = [
-        tf.nn.rnn_cell.LSTMStateTuple(c=state[0], h=state[1])
-        for state in states
-    ]
-
     past_embedding = embedding[:, :-1, :]
     past_times = times[:, :-1, :]
     future_embedding = embedding[:, 1:, :]
