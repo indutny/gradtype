@@ -55,12 +55,6 @@ class Model():
         for i, width in enumerate(RNN_WIDTH)
     ]
 
-    self.rev_rnn_cells = [
-        tf.contrib.rnn.LSTMBlockCell(name='lstm_rev_cell_{}'.format(i),
-          num_units=width)
-        for i, width in enumerate(REV_RNN_WIDTH)
-    ]
-
     self.input_dropout = tf.keras.layers.GaussianDropout(name='input_dropout',
         rate=INPUT_DROPOUT)
     self.post_rnn_dropout = tf.keras.layers.Dropout(
@@ -182,16 +176,8 @@ class Model():
     future_embedding = embedding[:, 1:, :]
     future_times = times[:, 1:, :]
 
-    series = tf.concat([ past_embedding, past_times, future_embedding ],
+    x = tf.concat([ past_embedding, past_times, future_embedding ],
         axis=-1)
-    series = tf.unstack(series, axis=1)
-    for state, cell in zip(states, self.rev_rnn_cells):
-      series, _ = tf.nn.static_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            initial_state=state,
-            inputs=series)
-    x = tf.stack(series, axis=1)
 
     for entry in self.rev_post:
       x = entry['dense'](x)
