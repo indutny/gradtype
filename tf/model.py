@@ -172,6 +172,7 @@ class Model():
         for state in states
     ]
 
+    # Current key, and past timing
     series = tf.concat([ embedding[:, 1:, :], times[:, :-1, :] ], axis=-1)
     series = tf.unstack(series, axis=1)
     for state, cell in zip(states, self.rev_rnn_cells):
@@ -186,7 +187,10 @@ class Model():
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
 
-    loss = tf.reduce_sum((x - times[:, 1:, :]) ** 2.0, axis=-1) / 2.0
+    # Should result in new timing
+    new_times = x
+
+    loss = tf.reduce_sum((new_times - times[:, 1:, :]) ** 2.0, axis=-1) / 2.0
     loss = tf.reduce_mean(loss, axis=1)
     loss = tf.reduce_mean(loss, axis=0)
 
