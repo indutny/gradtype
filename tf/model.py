@@ -177,8 +177,12 @@ class Model():
         for state in states
     ]
 
-    # Current key, and past timing
-    series = tf.concat([ embedding[:, 1:, :], times[:, :-1, :] ], axis=-1)
+    past_embedding = embedding[:, :-1, :]
+    past_times = times[:, :-1, :]
+    future_embedding = embedding[:, 1:, :]
+    future_times = times[:, 1:, :]
+
+    series = tf.concat([ past_embedding, past_times, future_embedding ]
     series = tf.unstack(series, axis=1)
     for state, cell in zip(states, self.rev_rnn_cells):
       series, _ = tf.nn.static_rnn(
@@ -194,10 +198,9 @@ class Model():
 
     x = self.rev_post_times(x)
 
-    # Should result in new timing
-    new_times = x
+    predicted_times = x
 
-    loss = tf.reduce_sum((new_times - times[:, 1:, :]) ** 2.0, axis=-1) / 2.0
+    loss = tf.reduce_sum((predicted_times - future_times) ** 2.0, axis=-1) / 2.0
     loss = tf.reduce_mean(loss, axis=1)
     loss = tf.reduce_mean(loss, axis=0)
 
