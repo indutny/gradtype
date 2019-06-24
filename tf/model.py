@@ -75,18 +75,23 @@ class Model():
 
     self.process_times = self.create_dense(TIMES_WIDTH, 'process_times')
     self.post = self.create_dense(DENSE_POST_WIDTH, 'dense_post')
-    self.rev_post = self.create_dense(REV_POST_WIDTH + [ (2, 0.0) ], 'rev_post')
+    self.rev_post = self.create_dense(REV_POST_WIDTH, 'rev_post')
+
+    # hold + delta
+    self.rev_post_times = tf.layers.Dense(name='rev_post_times',
+                                          units=2,
+                                          kernel_regularizer=self.l2)
 
     self.features = tf.layers.Dense(name='features',
                                     units=FEATURE_COUNT,
                                     kernel_regularizer=self.l2)
 
-  def create_dense(self, config, name):
+  def create_dense(self, config, name, activation=tf.nn.relu):
     res = []
     for i, (width, dropout) in enumerate(config):
       dense = tf.layers.Dense(name=name + '_{}'.format(i),
                               units=width,
-                              activation=tf.nn.relu,
+                              activation=activation,
                               kernel_regularizer=self.l2)
       dropout = tf.keras.layers.Dropout(
           name=name + '_drop_{}'.format(i),
@@ -186,6 +191,8 @@ class Model():
     for entry in self.rev_post:
       x = entry['dense'](x)
       x = entry['dropout'](x, training=self.training)
+
+    x = self.rev_post_times(x)
 
     # Should result in new timing
     new_times = x
