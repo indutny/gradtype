@@ -16,7 +16,7 @@ RESTORE_FROM = os.environ.get('GRADTYPE_RESTORE')
 LOG_DIR = os.path.join('.', 'logs', RUN_NAME)
 SAVE_DIR = os.path.join('.', 'saves', RUN_NAME)
 
-AUTO_ENCODER = False
+AUTO_ENCODER = True
 
 AUTO_CLIP = False
 

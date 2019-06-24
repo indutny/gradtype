@@ -133,11 +133,11 @@ class Model():
 
     seq_index = tf.expand_dims(tf.range(max_sequence_len), axis=0,
         name='seq_index')
-    mask = seq_index < tf.expand_dims(sequence_len, axis=-1)
+    mask = tf.equal(seq_index, tf.expand_dims(sequence_len - 1, axis=-1))
     mask = tf.cast(mask, dtype=tf.float32)
-    mask /= tf.reduce_sum(mask, axis=-1, keepdims=True, name='mask_sum') + 1e-23
-    mask = tf.expand_dims(mask, axis=-1, name='expanded_mask')
+    mask = tf.expand_dims(mask, axis=-1)
 
+    # Select last
     x *= mask
     x = tf.reduce_sum(x, axis=1)
 

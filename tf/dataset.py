@@ -21,7 +21,7 @@ VALIDATE_PERMUTATION_SEED = 0x6f3d755c
 
 MAX_RANDOM_CUTOFF = 16
 
-NORMALIZE = False
+NORMALIZE = True
 
 def load_labels():
   package_directory = os.path.dirname(os.path.abspath(__file__))
