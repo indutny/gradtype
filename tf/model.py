@@ -203,7 +203,8 @@ class Model():
   # TODO(indutny): https://arxiv.org/pdf/1801.07698.pdf
   def get_proxy_loss(self, output, categories, category_count, \
       category_mask, step):
-    with tf.name_scope('proxy_loss', [ output, categories, category_mask ]):
+    with tf.name_scope('proxy_loss',
+        values=[ output, categories, category_mask ]):
       proxies_init = tf.initializers.random_uniform(-1.0, 1.0)( \
           (category_count, FEATURE_COUNT,))
       proxies = tf.get_variable('points',
@@ -290,7 +291,7 @@ class Model():
 
   def get_proxy_val_metrics(self, output, categories, category_count, \
       category_mask):
-    with tf.name_scope('proxy_val_metrics', [ output, categories, \
+    with tf.name_scope('proxy_val_metrics', values=[ output, categories, \
         category_mask ]):
       proxies = self.mean_proxies(output, categories, category_count)
       _, _, metrics = self.get_proxy_common(proxies, output, categories, \
