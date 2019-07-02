@@ -21,7 +21,7 @@ AUTO_CLIP = False
 # See https://arxiv.org/pdf/1511.06807.pdf
 STATIC_CLIP = 10.0
 
-GRAD_DROP = True
+GRAD_DROP = False
 GRAD_DROP_RATE = 0.9
 GRAD_NOISE_GAMMA = 0.55
 GRAD_NOISE_ETA = 0.3
