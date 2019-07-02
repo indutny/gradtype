@@ -20,6 +20,9 @@ AUTO_CLIP = False
 
 # See https://arxiv.org/pdf/1511.06807.pdf
 STATIC_CLIP = 10.0
+
+GRAD_DROP = True
+GRAD_DROP_RATE = 0.9
 GRAD_NOISE_GAMMA = 0.55
 GRAD_NOISE_ETA = 0.3
 
@@ -107,10 +110,18 @@ with tf.variable_scope('optimizer'):
     for (grad, var) in zip(unclipped_grads, variables):
       if not grad is None:
         t_metrics['grad_' + var.name] = tf.norm(grad) / (t_grad_norm + 1e-23)
-    grads = [
-        g + tf.random.normal(tf.shape(g), mean=0.0, stddev=noise_dev)
-        for g in grads
-    ]
+
+    if GRAD_DROP:
+      dropout = tf.keras.layers.GaussianDropout(rate=GRAD_DROP_RATE)
+      grads = [
+          dropout(g, training=True)
+          for g in grads
+      ]
+    else:
+      grads = [
+          g + tf.random.normal(tf.shape(g), mean=0.0, stddev=noise_dev)
+          for g in grads
+      ]
     grads = list(zip(grads, variables))
 
     t_metrics['grad_norm'] = t_grad_norm
