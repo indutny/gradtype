@@ -132,8 +132,6 @@ class Model():
     if self.use_conv:
       for l in self.conv_layers:
         series = l(series)
-      print(series)
-      exit(0)
     else:
       series = tf.unstack(series, axis=1, name='unstacked_series')
 
