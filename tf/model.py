@@ -130,8 +130,9 @@ class Model():
 
     series, embedding = self.apply_embedding(holds, codes, deltas)
     if self.use_conv:
+      x = series
       for l in self.conv_layers:
-        series = l(series)
+        x = l(x)
     else:
       series = tf.unstack(series, axis=1, name='unstacked_series')
 
