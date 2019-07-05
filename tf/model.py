@@ -12,6 +12,12 @@ POST_RNN_DROPOUT = 0.0
 
 DENSE_L2 = 0.0
 
+CONV_CONF = [
+    { 'filters': 8, 'kernel_size': 3, 'strides': 2 },
+    { 'filters': 16, 'kernel_size': 3, 'strides': 2 },
+    { 'filters': 32, 'kernel_size': 3, 'strides': 2 },
+    { 'filters': 64, 'kernel_size': 1, 'strides': 1 },
+]
 RNN_WIDTH = [ 16 ]
 DENSE_POST_WIDTH = [ (128, 0.0) ]
 FEATURE_COUNT = 32
@@ -42,10 +48,20 @@ class Model():
     self.arcface_m2 = 0.0
     self.arcface_m3 = 0.0
     self.anneal_distances = False
+    self.use_conv = True
 
     self.radius = 9.2
 
     self.embedding = Embedding('embedding', dataset.MAX_CHAR + 2, EMBED_WIDTH)
+
+    self.conv_layers = [
+        tf.layers.Conv1D(name='time_conv_{}'.format(i),
+          filters=conf['filters'],
+          kernel_size=conf['kernel_size'],
+          strides=conf['strides'],
+          activation=tf.nn.relu)
+        for i, conf in enumerate(CONV_CONF)
+    ]
 
     self.rnn_cells = [
         tf.contrib.rnn.LSTMBlockCell(name='lstm_cell_{}'.format(i),
@@ -113,19 +129,26 @@ class Model():
       sequence_len = tf.tile(sequence_len, [ batch_size ])
 
     series, embedding = self.apply_embedding(holds, codes, deltas)
-    series = tf.unstack(series, axis=1, name='unstacked_series')
+    if self.use_conv:
+      for l in self.conv_layers:
+        series = l(series)
+      print(series)
+      exit(0)
+    else:
+      series = tf.unstack(series, axis=1, name='unstacked_series')
 
-    for cell in self.rnn_cells:
-      series, _ = tf.nn.static_rnn(
-            cell=cell,
-            dtype=tf.float32,
-            inputs=series)
+      for cell in self.rnn_cells:
+        series, _ = tf.nn.static_rnn(
+              cell=cell,
+              dtype=tf.float32,
+              inputs=series)
 
-    x = tf.stack(series, axis=1, name='stacked_outputs')
+      x = tf.stack(series, axis=1, name='stacked_outputs')
 
-    for entry in self.post:
-      x = entry['dense'](x)
-      x = entry['dropout'](x, training=self.training)
+      for entry in self.post:
+        x = entry['dense'](x)
+        x = entry['dropout'](x, training=self.training)
+
     x = self.features(x)
     x = self.post_rnn_dropout(x, training=self.training)
 
